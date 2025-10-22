@@ -1,0 +1,131 @@
+// ARENA V1.0 - Database Schema
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  name      String?
+  role      String   @default("citizen")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  proposals Proposal[]
+  votes     Vote[]
+  comments  Comment[]
+  auditLogs AuditLog[]
+
+  @@map("users")
+}
+
+model Proposal {
+  id          String   @id @default(uuid())
+  authorId    String   @map("author_id")
+  title       String
+  summary     String?
+  body        String?  @db.Text
+  geom        Json?
+  layer       String   @default("micro")
+  status      String   @default("draft")
+  tags        String[] @default([])
+  // images    String[] @default([]) // Commented out - column doesn't exist in DB yet
+
+  // OSM Feature Data
+  osmType     String?  @map("osm_type")
+  osmId       String?  @map("osm_id")
+  osmTags     Json?    @map("osm_tags")
+  featureName String?  @map("feature_name")
+
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  author   User      @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  votes    Vote[]
+  comments Comment[]
+  metrics  Metric[]
+
+  @@index([authorId])
+  @@index([status])
+  @@index([osmId])
+  @@index([osmType])
+  @@map("proposals")
+}
+
+model Vote {
+  id         String   @id @default(uuid())
+  proposalId String   @map("proposal_id")
+  userId     String   @map("user_id")
+  option     String
+  origin     String   @default("web")
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  proposal Proposal @relation(fields: [proposalId], references: [id], onDelete: Cascade)
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([proposalId, userId])
+  @@index([proposalId])
+  @@map("votes")
+}
+
+model Comment {
+  id         String   @id @default(uuid())
+  proposalId String   @map("proposal_id")
+  authorId   String   @map("author_id")
+  body       String   @db.Text
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  proposal Proposal @relation(fields: [proposalId], references: [id], onDelete: Cascade)
+  author   User     @relation(fields: [authorId], references: [id], onDelete: Cascade)
+
+  @@index([proposalId])
+  @@map("comments")
+}
+
+model Metric {
+  id         String   @id @default(uuid())
+  proposalId String   @map("proposal_id")
+  kind       String
+  value      Json
+  method     String
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  proposal Proposal @relation(fields: [proposalId], references: [id], onDelete: Cascade)
+
+  @@index([proposalId])
+  @@map("metrics")
+}
+
+model AuditLog {
+  id        String   @id @default(uuid())
+  userId    String?  @map("user_id")
+  action    String
+  entity    String
+  entityId  String   @map("entity_id")
+  metadata  Json?
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([entityId])
+  @@index([action])
+  @@map("audit_logs")
+}
+
+model POI {
+  id        String   @id @default(uuid())
+  name      String
+  type      String
+  geom      Json
+  address   String?
+  source    String   @default("manual")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@index([type])
+  @@map("pois")
+}

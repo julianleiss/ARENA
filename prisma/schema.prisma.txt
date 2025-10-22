@@ -1,0 +1,130 @@
+// ARENA V1.0 - Database Schema
+// This defines all database tables for the MVP
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// User roles: visitor, citizen, expert, steward
+model User {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  name      String?
+  role      String   @default("citizen") // visitor, citizen, expert, steward
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  proposals Proposal[]
+  votes     Vote[]
+  comments  Comment[]
+  auditLogs AuditLog[]
+
+  @@map("users")
+}
+
+// Urban proposals (core entity)
+model Proposal {
+  id        String   @id @default(uuid())
+  authorId  String   @map("author_id")
+  title     String
+  summary   String?
+  body      String?  @db.Text
+  geom      Json?    // GeoJSON geometry
+  layer     String   @default("micro") // micro, meso, macro
+  status    String   @default("draft") // draft, review, public, voting, closed, archived
+  tags      String[] @default([])
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  author  User      @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  votes   Vote[]
+  comments Comment[]
+  metrics Metric[]
+
+  @@index([authorId])
+  @@index([status])
+  @@map("proposals")
+}
+
+// Votes on proposals
+model Vote {
+  id         String   @id @default(uuid())
+  proposalId String   @map("proposal_id")
+  userId     String   @map("user_id")
+  option     String   // approve, reject, abstain
+  origin     String   @default("web") // web, kiosk
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  proposal Proposal @relation(fields: [proposalId], references: [id], onDelete: Cascade)
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([proposalId, userId])
+  @@index([proposalId])
+  @@map("votes")
+}
+
+// Comments on proposals
+model Comment {
+  id         String   @id @default(uuid())
+  proposalId String   @map("proposal_id")
+  authorId   String   @map("author_id")
+  body       String   @db.Text
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  proposal Proposal @relation(fields: [proposalId], references: [id], onDelete: Cascade)
+  author   User     @relation(fields: [authorId], references: [id], onDelete: Cascade)
+
+  @@index([proposalId])
+  @@map("comments")
+}
+
+// Simplified metrics for MVP
+model Metric {
+  id         String   @id @default(uuid())
+  proposalId String   @map("proposal_id")
+  kind       String   // 15min, sombra, permeabilidad, actividad_borde
+  value      Json     // Numeric value or object
+  method     String   // Calculation method used
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  proposal Proposal @relation(fields: [proposalId], references: [id], onDelete: Cascade)
+
+  @@index([proposalId])
+  @@map("metrics")
+}
+
+// Audit log for traceability
+model AuditLog {
+  id        String   @id @default(uuid())
+  userId    String?  @map("user_id")
+  action    String   // create_proposal, vote, comment, publish, archive
+  entity    String   // proposal, vote, comment
+  entityId  String   @map("entity_id")
+  metadata  Json?
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([entityId])
+  @@index([action])
+  @@map("audit_logs")
+}
+
+// POIs (Points of Interest) for the map
+model POI {
+  id        String   @id @default(uuid())
+  name      String
+  type      String   // educacion, salud, transporte, comercio, cultura
+  geom      Json     // GeoJSON Point
+  address   String?
+  source    String   @default("manual") // manual, open_data, maps_grounding
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@index([type])
+  @@map("pois")
+}
