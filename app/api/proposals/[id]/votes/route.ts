@@ -54,6 +54,7 @@ export async function POST(
       data: {
         proposalId,
         userId,
+        option: 'support', // Default vote option
         origin,
       },
     })
