@@ -1,8 +1,7 @@
 // ARENA V1.0 - Map Page
 'use client'
 
-// import MapView from '@/app/components/MapView' // OLD MapLibre version
-import MapView from '@/app/components/MapViewDeck' // NEW Deck.gl + Google Maps version
+import MapView from '@/app/components/MapView' // Deck.gl + Google Maps version
 import { useState } from 'react'
 
 export default function MapPage() {
