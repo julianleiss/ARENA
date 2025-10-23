@@ -171,7 +171,6 @@ export async function POST(request: NextRequest) {
         metadata: {
           title: newProposal.title,
           status: newProposal.status,
-          layer: newProposal.layer,
         },
       },
     })

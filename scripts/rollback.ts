@@ -1,6 +1,6 @@
-// ARENA V1.0 - Database Rollback Script
+// ARENA - Database Rollback Script (iteration 1)
 // Clear all data from database (use with caution!)
-
+import 'dotenv/config'
 import { PrismaClient } from '@prisma/client'
 
 const prisma = new PrismaClient()
@@ -10,9 +10,6 @@ async function main() {
   console.log('⚠️  This will delete ALL data!')
 
   // Delete in order to respect foreign key constraints
-  await prisma.auditLog.deleteMany()
-  console.log('✅ Deleted audit logs')
-
   await prisma.metric.deleteMany()
   console.log('✅ Deleted metrics')
 
@@ -27,6 +24,9 @@ async function main() {
 
   await prisma.pOI.deleteMany()
   console.log('✅ Deleted POIs')
+
+  await prisma.auditLog.deleteMany()
+  console.log('✅ Deleted audit logs')
 
   await prisma.user.deleteMany()
   console.log('✅ Deleted users')

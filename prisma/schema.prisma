@@ -25,23 +25,11 @@ model User {
 }
 
 model Proposal {
-  id          String   @id @default(uuid())
-  authorId    String   @map("author_id")
+  id          String   @id @default(cuid())
   title       String
-  summary     String?
-  body        String?  @db.Text
-  geom        Json?
-  layer       String   @default("micro")
-  status      String   @default("draft")
-  tags        String[] @default([])
-  // images    String[] @default([]) // Commented out - column doesn't exist in DB yet
-
-  // OSM Feature Data
-  osmType     String?  @map("osm_type")
-  osmId       String?  @map("osm_id")
-  osmTags     Json?    @map("osm_tags")
-  featureName String?  @map("feature_name")
-
+  description String   @db.Text
+  status      String   @default("published") // "draft" | "published"
+  authorId    String   @map("author_id")
   createdAt   DateTime @default(now()) @map("created_at")
   updatedAt   DateTime @updatedAt @map("updated_at")
 
@@ -52,8 +40,6 @@ model Proposal {
 
   @@index([authorId])
   @@index([status])
-  @@index([osmId])
-  @@index([osmType])
   @@map("proposals")
 }
 
@@ -128,4 +114,14 @@ model POI {
 
   @@index([type])
   @@map("pois")
+}
+
+model Sandbox {
+  id        String   @id @default(cuid())
+  geometry  Json     // GeoJSON Polygon
+  status    String   @default("draft") // "draft" | "published"
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@index([status])
+  @@map("sandboxes")
 }
