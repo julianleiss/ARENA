@@ -625,7 +625,7 @@ export default function MapViewDeck({
         </svg>
       </button>
 
-      {/* Point mode radius control */}
+      {/* Control de radio para modo punto */}
       {mapMode === 'create' && selectionMode === 'point' && (
         <div className="absolute top-6 left-1/2 -translate-x-1/2 z-40 bg-white/95 backdrop-blur-sm border border-gray-200 rounded-xl shadow-lg p-5">
           <div className="bg-indigo-50 border border-indigo-200 rounded-lg px-4 py-3">
@@ -656,32 +656,32 @@ export default function MapViewDeck({
               {selectedBuildingIds.length > 0 ? (
                 <div className="flex items-center gap-3">
                   <span className="text-sm text-indigo-900 font-medium">
-                    {selectedBuildingIds.length} building{selectedBuildingIds.length > 1 ? 's' : ''} selected
+                    {selectedBuildingIds.length} edificio{selectedBuildingIds.length > 1 ? 's' : ''} seleccionado{selectedBuildingIds.length > 1 ? 's' : ''}
                   </span>
                   <button
                     onClick={handleCreateProposal}
                     className="px-5 py-2.5 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 transition-all shadow-md shadow-indigo-200 font-medium text-sm"
                   >
-                    Create Proposal
+                    Crear Propuesta
                   </button>
                 </div>
               ) : (
-                <span className="text-sm text-gray-600">Click a building to select</span>
+                <span className="text-sm text-gray-600">Haz clic en un edificio para seleccionar</span>
               )}
             </>
           )}
           {selectionMode === 'point' && (
-            <span className="text-sm text-gray-600">Click anywhere to place a point</span>
+            <span className="text-sm text-gray-600">Haz clic en cualquier lugar para colocar un punto</span>
           )}
           {selectionMode === 'polygon' && polygonPoints.length < 3 && (
             <span className="text-sm text-gray-600">
-              {polygonPoints.length === 0 ? 'Click to draw an area' : `${polygonPoints.length} points • Need 3+ for polygon`}
+              {polygonPoints.length === 0 ? 'Haz clic para dibujar un área' : `${polygonPoints.length} puntos • Necesitas 3+ para polígono`}
             </span>
           )}
           {selectionMode === 'polygon' && polygonPoints.length >= 3 && (
             <div className="flex items-center gap-3">
               <span className="text-sm text-purple-900 font-medium">
-                {polygonPoints.length} points • Polygon ready
+                {polygonPoints.length} puntos • Polígono listo
               </span>
               <button
                 onClick={() => {
@@ -699,7 +699,7 @@ export default function MapViewDeck({
                 }}
                 className="px-5 py-2.5 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 transition-all shadow-md shadow-indigo-200 font-medium text-sm"
               >
-                Create Proposal
+                Crear Propuesta
               </button>
             </div>
           )}

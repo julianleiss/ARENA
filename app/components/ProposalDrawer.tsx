@@ -236,7 +236,7 @@ export default function ProposalDrawer({
                 {selectedFeatures.length > 0 ? (
                   <div className="bg-green-50 border border-green-200 rounded-lg p-4">
                     <p className="text-xs font-medium text-green-900 mb-2">
-                      ✓ {selectedFeatures.length} feature{selectedFeatures.length > 1 ? 's' : ''} selected
+                      ✓ {selectedFeatures.length} elemento{selectedFeatures.length > 1 ? 's' : ''} seleccionado{selectedFeatures.length > 1 ? 's' : ''}
                     </p>
                     <div className="space-y-2 max-h-32 overflow-y-auto">
                       {selectedFeatures.map((feature, idx) => (
@@ -250,35 +250,35 @@ export default function ProposalDrawer({
                     </div>
                     {coordinates && (
                       <p className="text-xs text-green-600 font-mono mt-2">
-                        Center: {coordinates.lat.toFixed(6)}, {coordinates.lng.toFixed(6)}
+                        Centro: {coordinates.lat.toFixed(6)}, {coordinates.lng.toFixed(6)}
                       </p>
                     )}
                   </div>
                 ) : drawnPolygon ? (
                   <div className="bg-purple-50 border border-purple-200 rounded-lg p-4">
                     <p className="text-xs font-medium text-purple-900 mb-1">
-                      ⬡ Polygon area selected
+                      ⬡ Área poligonal seleccionada
                     </p>
                     <p className="text-xs text-purple-700">
-                      {drawnPolygon.coordinates[0].length} points
+                      {drawnPolygon.coordinates[0].length} puntos
                     </p>
                     {coordinates && (
                       <p className="text-xs text-purple-600 font-mono mt-2">
-                        Center: {coordinates.lat.toFixed(6)}, {coordinates.lng.toFixed(6)}
+                        Centro: {coordinates.lat.toFixed(6)}, {coordinates.lng.toFixed(6)}
                       </p>
                     )}
                   </div>
                 ) : coordinates ? (
                   <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
                     <p className="text-xs font-medium text-blue-900 mb-1">
-                      📍 Point selected {pointRadius && `• ${pointRadius}m radius`}
+                      📍 Punto seleccionado {pointRadius && `• ${pointRadius}m radio`}
                     </p>
                     <p className="text-sm text-blue-800 font-mono">
                       {coordinates.lat.toFixed(6)}, {coordinates.lng.toFixed(6)}
                     </p>
                     {pointRadius && (
                       <p className="text-xs text-blue-700 mt-1">
-                        Area: ~{Math.round(Math.PI * pointRadius * pointRadius).toLocaleString()}m²
+                        Área: ~{Math.round(Math.PI * pointRadius * pointRadius).toLocaleString()}m²
                       </p>
                     )}
                   </div>

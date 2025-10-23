@@ -1,11 +1,11 @@
-// ARENA V1.0 - Database Schema
-generator client {
-  provider = "prisma-client-js"
-}
-
+// ARENA - Database Schema
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
 }
 
 model User {

@@ -36,7 +36,7 @@ export default function MapPage() {
                   : 'bg-gray-50 text-gray-700 hover:bg-gray-100'
               }`}
             >
-              🏢 Buildings
+              🏢 Edificios
             </button>
             <button
               onClick={() => setSelectionMode('point')}
@@ -46,7 +46,7 @@ export default function MapPage() {
                   : 'bg-gray-50 text-gray-700 hover:bg-gray-100'
               }`}
             >
-              📍 Point
+              📍 Punto
             </button>
             <button
               onClick={() => setSelectionMode('polygon')}
@@ -56,7 +56,7 @@ export default function MapPage() {
                   : 'bg-gray-50 text-gray-700 hover:bg-gray-100'
               }`}
             >
-              ⬡ Area
+              ⬡ Área
             </button>
           </div>
         )}

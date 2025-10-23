@@ -1,38 +1,16 @@
-// ARENA V1.0 - Database Rollback Script
+// ARENA - Database Rollback Script (iteration 0 - safe truncate)
 // Clear all data from database (use with caution!)
-
+import 'dotenv/config'
 import { PrismaClient } from '@prisma/client'
 
 const prisma = new PrismaClient()
 
 async function main() {
-  console.log('⚠️  Rolling back database...')
-  console.log('⚠️  This will delete ALL data!')
+  console.warn('[rollback] no-op (iteration 0)')
+  console.log('⚠️  Database rollback will be implemented in future iterations')
 
-  // Delete in order to respect foreign key constraints
-  await prisma.auditLog.deleteMany()
-  console.log('✅ Deleted audit logs')
-
-  await prisma.metric.deleteMany()
-  console.log('✅ Deleted metrics')
-
-  await prisma.comment.deleteMany()
-  console.log('✅ Deleted comments')
-
-  await prisma.vote.deleteMany()
-  console.log('✅ Deleted votes')
-
-  await prisma.proposal.deleteMany()
-  console.log('✅ Deleted proposals')
-
-  await prisma.pOI.deleteMany()
-  console.log('✅ Deleted POIs')
-
-  await prisma.user.deleteMany()
-  console.log('✅ Deleted users')
-
-  console.log('🎉 Rollback completed successfully!')
-  console.log('💡 Run `npm run db:seed` to populate with fresh data')
+  // Safe no-op placeholder for future TRUNCATE logic
+  // Future implementation will delete data respecting foreign key constraints
 }
 
 main()
