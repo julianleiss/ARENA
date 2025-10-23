@@ -60,10 +60,14 @@ export default function MapView() {
   // 3D view state
   const [is3DView, setIs3DView] = useState(false)
 
+  // Point mode radius state (in meters)
+  const [pointRadius, setPointRadius] = useState(50)
+
   // Store markers references
   const proposalMarkersRef = useRef<maplibregl.Marker[]>([])
   const previewMarkerRef = useRef<maplibregl.Marker | null>(null)
   const confirmedMarkerRef = useRef<maplibregl.Marker | null>(null)
+  const radiusCircleRef = useRef<maplibregl.Marker | null>(null)
 
   // Fetch POIs
   useEffect(() => {
@@ -596,7 +600,7 @@ export default function MapView() {
       // NO large areas like blocks, landuse, boundaries
 
       const selectableLayerGroups = {
-        'building': ['building', 'building-top'],
+        'building': ['building', 'building-top', 'building-3d'], // Include 3D building layer
         'transportation': [
           'road_service_fill', 'road_minor_fill',
           'road_sec_fill_noramp', 'road_pri_fill_noramp',
@@ -823,7 +827,7 @@ export default function MapView() {
         }
       }
 
-      // MODE 2: Point (single coordinate)
+      // MODE 2: Point (single coordinate) with radius
       else if (selectionModeRef.current === 'point') {
         // Remove preview marker
         if (previewMarkerRef.current) {
@@ -847,6 +851,72 @@ export default function MapView() {
         confirmedMarkerRef.current = new maplibregl.Marker({ element: el })
           .setLngLat(e.lngLat)
           .addTo(map.current!)
+
+        // Create radius circle visualization
+        const createCircle = (center: [number, number], radiusInMeters: number): GeoJSON.Feature => {
+          const points = 64
+          const coords = []
+          const distanceX = radiusInMeters / (111320 * Math.cos(center[1] * Math.PI / 180))
+          const distanceY = radiusInMeters / 110540
+
+          for (let i = 0; i < points; i++) {
+            const angle = (i / points) * 2 * Math.PI
+            const dx = distanceX * Math.cos(angle)
+            const dy = distanceY * Math.sin(angle)
+            coords.push([center[0] + dx, center[1] + dy])
+          }
+          coords.push(coords[0]) // Close the circle
+
+          return {
+            type: 'Feature',
+            properties: {},
+            geometry: {
+              type: 'Polygon',
+              coordinates: [coords]
+            }
+          }
+        }
+
+        const circleFeature = createCircle([e.lngLat.lng, e.lngLat.lat], pointRadius)
+
+        // Add or update radius circle source
+        if (map.current!.getSource('point-radius')) {
+          (map.current!.getSource('point-radius') as maplibregl.GeoJSONSource).setData({
+            type: 'FeatureCollection',
+            features: [circleFeature]
+          })
+        } else {
+          map.current!.addSource('point-radius', {
+            type: 'geojson',
+            data: {
+              type: 'FeatureCollection',
+              features: [circleFeature]
+            }
+          })
+
+          // Add circle fill layer
+          map.current!.addLayer({
+            id: 'point-radius-fill',
+            type: 'fill',
+            source: 'point-radius',
+            paint: {
+              'fill-color': '#818cf8',
+              'fill-opacity': 0.2
+            }
+          })
+
+          // Add circle outline layer
+          map.current!.addLayer({
+            id: 'point-radius-line',
+            type: 'line',
+            source: 'point-radius',
+            paint: {
+              'line-color': '#4f46e5',
+              'line-width': 2,
+              'line-opacity': 0.8
+            }
+          })
+        }
 
         setSelectedCoords({ lng: e.lngLat.lng, lat: e.lngLat.lat })
         setDrawerMode('create')
@@ -1086,9 +1156,33 @@ export default function MapView() {
               {selectionMode === 'building' && (
                 <>Click buildings/roads to select (multiple). Click again to deselect.</>
               )}
-              {selectionMode === 'point' && <>Click anywhere to place a point</>}
+              {selectionMode === 'point' && <>Click anywhere to place a point with radius</>}
               {selectionMode === 'polygon' && <>Draw an area by clicking points. Double-click to finish.</>}
             </div>
+
+            {/* Radius control for point mode */}
+            {selectionMode === 'point' && (
+              <div className="bg-blue-50 border border-blue-200 rounded px-3 py-2">
+                <label className="text-sm text-blue-900 font-medium mb-2 block">
+                  Radius: {pointRadius}m
+                </label>
+                <input
+                  type="range"
+                  min="1"
+                  max="500"
+                  value={pointRadius}
+                  onChange={(e) => setPointRadius(Number(e.target.value))}
+                  className="w-full h-2 bg-blue-200 rounded-lg appearance-none cursor-pointer"
+                  style={{
+                    background: `linear-gradient(to right, #3b82f6 0%, #3b82f6 ${((pointRadius - 1) / 499) * 100}%, #dbeafe ${((pointRadius - 1) / 499) * 100}%, #dbeafe 100%)`
+                  }}
+                />
+                <div className="flex justify-between text-xs text-blue-700 mt-1">
+                  <span>1m</span>
+                  <span>500m</span>
+                </div>
+              </div>
+            )}
 
             {/* Selection counter for building mode */}
             {selectionMode === 'building' && selectedFeatures.length > 0 && (
@@ -1226,6 +1320,7 @@ export default function MapView() {
         onProposalCreated={handleProposalCreated}
         selectedFeatures={selectedFeatures}
         drawnPolygon={drawnPolygon}
+        pointRadius={selectionMode === 'point' ? pointRadius : undefined}
       />
     </div>
   )

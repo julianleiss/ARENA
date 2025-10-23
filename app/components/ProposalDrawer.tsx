@@ -16,6 +16,7 @@ interface DrawerProps {
   onProposalCreated?: (proposal: any) => void
   selectedFeatures?: DetectedFeature[]
   drawnPolygon?: GeoJSON.Polygon | null
+  pointRadius?: number
 }
 
 interface ProposalData {
@@ -46,6 +47,7 @@ export default function ProposalDrawer({
   onProposalCreated,
   selectedFeatures = [],
   drawnPolygon = null,
+  pointRadius,
 }: DrawerProps) {
   const [formData, setFormData] = useState({
     title: '',
@@ -264,11 +266,16 @@ export default function ProposalDrawer({
                 ) : coordinates ? (
                   <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
                     <p className="text-xs font-medium text-blue-900 mb-1">
-                      📍 Point selected
+                      📍 Point selected {pointRadius && `• ${pointRadius}m radius`}
                     </p>
                     <p className="text-sm text-blue-800 font-mono">
                       {coordinates.lat.toFixed(6)}, {coordinates.lng.toFixed(6)}
                     </p>
+                    {pointRadius && (
+                      <p className="text-xs text-blue-700 mt-1">
+                        Area: ~{Math.round(Math.PI * pointRadius * pointRadius).toLocaleString()}m²
+                      </p>
+                    )}
                   </div>
                 ) : null}
 
