@@ -46,7 +46,9 @@ function DeckGLOverlay({
   selectionMode,
   pointRadius,
   polygonPoints,
-  proposals
+  proposals,
+  onProposalClick,
+  onProposalHover
 }: {
   selectedBuildingIds: string[]
   hoveredBuildingId: string | null
@@ -57,6 +59,8 @@ function DeckGLOverlay({
   pointRadius?: number
   polygonPoints?: [number, number][]
   proposals: Proposal[]
+  onProposalClick: (proposalId: string) => void
+  onProposalHover: (proposal: any | null) => void
 }) {
   const map = useMap()
   const overlayRef = useRef<GoogleMapsOverlay | null>(null)
@@ -287,17 +291,15 @@ function DeckGLOverlay({
           onClick: (info: any) => {
             if (info.object) {
               console.log('📍 Proposal clicked:', info.object.properties)
-              setViewedProposalId(info.object.properties.id)
-              setDrawerMode('view')
-              setDrawerOpen(true)
+              onProposalClick(info.object.properties.id)
             }
           },
           onHover: (info: any) => {
             // Set hovered proposal for tooltip
             if (info.object) {
-              setHoveredProposal(info.object.properties)
+              onProposalHover(info.object.properties)
             } else {
-              setHoveredProposal(null)
+              onProposalHover(null)
             }
 
             // Change cursor on hover
@@ -539,6 +541,18 @@ export default function MapViewDeck({
     setMapMode('navigate') // Return to navigate mode after creating
   }
 
+  // Proposal click handler (for viewing)
+  const handleProposalClick = (proposalId: string) => {
+    setViewedProposalId(proposalId)
+    setDrawerMode('view')
+    setDrawerOpen(true)
+  }
+
+  // Proposal hover handler (for tooltip)
+  const handleProposalHover = (proposal: any | null) => {
+    setHoveredProposal(proposal)
+  }
+
   // Close drawer handler
   const handleCloseDrawer = () => {
     setDrawerOpen(false)
@@ -592,6 +606,8 @@ export default function MapViewDeck({
             pointRadius={pointRadius}
             polygonPoints={polygonPoints}
             proposals={proposals}
+            onProposalClick={handleProposalClick}
+            onProposalHover={handleProposalHover}
           />
         </Map>
       </APIProvider>
