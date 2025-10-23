@@ -57,6 +57,9 @@ export default function MapView() {
   // Polygon drawing state
   const [polygonPoints, setPolygonPoints] = useState<[number, number][]>([])
 
+  // 3D view state
+  const [is3DView, setIs3DView] = useState(false)
+
   // Store markers references
   const proposalMarkersRef = useRef<maplibregl.Marker[]>([])
   const previewMarkerRef = useRef<maplibregl.Marker | null>(null)
@@ -132,12 +135,21 @@ export default function MapView() {
     console.log('🏢 Building IDs for selection:', buildingIds)
     console.log('🛣️ Road IDs for selection:', roadIds)
 
-    // Update building selection layer
+    // Update building selection layer (2D)
     if (map.current.getLayer('building-selected')) {
       if (buildingIds.length > 0) {
         map.current.setFilter('building-selected', ['in', ['id'], ['literal', buildingIds]])
       } else {
         map.current.setFilter('building-selected', ['in', ['id'], ['literal', []]])
+      }
+    }
+
+    // Update building selection layer (3D)
+    if (map.current.getLayer('building-3d-selected')) {
+      if (buildingIds.length > 0) {
+        map.current.setFilter('building-3d-selected', ['in', ['id'], ['literal', buildingIds]])
+      } else {
+        map.current.setFilter('building-3d-selected', ['in', ['id'], ['literal', []]])
       }
     }
 
@@ -258,6 +270,77 @@ export default function MapView() {
       })
     }
   }, [polygonPoints])
+
+  // Toggle 3D view
+  useEffect(() => {
+    if (!map.current) return
+
+    if (is3DView) {
+      // Enable 3D view - add pitch and change to 3D building layers
+      map.current.easeTo({
+        pitch: 60,
+        bearing: 0,
+        duration: 1000
+      })
+
+      // Hide 2D building layers
+      if (map.current.getLayer('building')) {
+        map.current.setLayoutProperty('building', 'visibility', 'none')
+      }
+      if (map.current.getLayer('building-top')) {
+        map.current.setLayoutProperty('building-top', 'visibility', 'none')
+      }
+      if (map.current.getLayer('building-hover')) {
+        map.current.setLayoutProperty('building-hover', 'visibility', 'none')
+      }
+      if (map.current.getLayer('building-selected')) {
+        map.current.setLayoutProperty('building-selected', 'visibility', 'none')
+      }
+
+      // Show 3D building layers (will be created in map load)
+      if (map.current.getLayer('building-3d')) {
+        map.current.setLayoutProperty('building-3d', 'visibility', 'visible')
+      }
+      if (map.current.getLayer('building-3d-hover')) {
+        map.current.setLayoutProperty('building-3d-hover', 'visibility', 'visible')
+      }
+      if (map.current.getLayer('building-3d-selected')) {
+        map.current.setLayoutProperty('building-3d-selected', 'visibility', 'visible')
+      }
+    } else {
+      // Disable 3D view - reset pitch and show 2D layers
+      map.current.easeTo({
+        pitch: 0,
+        bearing: 0,
+        duration: 1000
+      })
+
+      // Show 2D building layers
+      if (map.current.getLayer('building')) {
+        map.current.setLayoutProperty('building', 'visibility', 'visible')
+      }
+      if (map.current.getLayer('building-top')) {
+        map.current.setLayoutProperty('building-top', 'visibility', 'visible')
+      }
+      if (map.current.getLayer('building-hover')) {
+        map.current.setLayoutProperty('building-hover', 'visibility', 'visible')
+      }
+      if (map.current.getLayer('building-selected')) {
+        map.current.setLayoutProperty('building-selected', 'visibility', 'visible')
+      }
+
+      // Hide 3D building layers
+      if (map.current.getLayer('building-3d')) {
+        map.current.setLayoutProperty('building-3d', 'visibility', 'none')
+      }
+      if (map.current.getLayer('building-3d-hover')) {
+        map.current.setLayoutProperty('building-3d-hover', 'visibility', 'none')
+      }
+      if (map.current.getLayer('building-3d-selected')) {
+        map.current.setLayoutProperty('building-3d-selected', 'visibility', 'none')
+      }
+    }
+  }, [is3DView])
 
   // Initialize map
   useEffect(() => {
@@ -391,6 +474,75 @@ export default function MapView() {
         filter: ['==', ['id'], -999999], // Start hidden
       })
 
+      // 3D BUILDING LAYERS (fill-extrusion type)
+      // Base 3D buildings (soft indigo)
+      map.current.addLayer({
+        id: 'building-3d',
+        type: 'fill-extrusion',
+        source: 'carto',
+        'source-layer': 'building',
+        paint: {
+          'fill-extrusion-color': '#818cf8', // Soft indigo
+          'fill-extrusion-opacity': 0.6,
+          'fill-extrusion-height': [
+            'case',
+            ['has', 'render_height'], ['get', 'render_height'],
+            ['has', 'height'], ['get', 'height'],
+            10 // Default height for buildings without height data
+          ],
+          'fill-extrusion-base': 0,
+        },
+        layout: {
+          'visibility': 'none' // Start hidden (2D view by default)
+        }
+      })
+
+      // 3D buildings SELECTED layer
+      map.current.addLayer({
+        id: 'building-3d-selected',
+        type: 'fill-extrusion',
+        source: 'carto',
+        'source-layer': 'building',
+        paint: {
+          'fill-extrusion-color': '#6366f1', // Medium indigo
+          'fill-extrusion-opacity': 0.8,
+          'fill-extrusion-height': [
+            'case',
+            ['has', 'render_height'], ['get', 'render_height'],
+            ['has', 'height'], ['get', 'height'],
+            10
+          ],
+          'fill-extrusion-base': 0,
+        },
+        filter: ['in', ['id'], ['literal', []]],
+        layout: {
+          'visibility': 'none'
+        }
+      })
+
+      // 3D buildings HOVER layer
+      map.current.addLayer({
+        id: 'building-3d-hover',
+        type: 'fill-extrusion',
+        source: 'carto',
+        'source-layer': 'building',
+        paint: {
+          'fill-extrusion-color': '#4f46e5', // Strong indigo
+          'fill-extrusion-opacity': 0.9,
+          'fill-extrusion-height': [
+            'case',
+            ['has', 'render_height'], ['get', 'render_height'],
+            ['has', 'height'], ['get', 'height'],
+            10
+          ],
+          'fill-extrusion-base': 0,
+        },
+        filter: ['==', ['id'], -999999],
+        layout: {
+          'visibility': 'none'
+        }
+      })
+
       // Track currently hovered feature
       let hoveredFeature: { layer: string; id: any } | null = null
 
@@ -398,6 +550,10 @@ export default function MapView() {
       const hoverLayerMap: Record<string, string> = {
         'building': 'building-hover',
         'transportation': 'transportation-hover',
+      }
+
+      const hoverLayerMap3D: Record<string, string> = {
+        'building': 'building-3d-hover',
       }
 
       // Helper function to update hover highlight
@@ -408,6 +564,12 @@ export default function MapView() {
           if (hoverLayerId && map.current!.getLayer(hoverLayerId)) {
             // Set to empty - no features shown
             map.current!.setFilter(hoverLayerId, ['==', ['id'], -999999])
+          }
+
+          // Also clear 3D hover if it exists
+          const hoverLayerId3D = hoverLayerMap3D[hoveredFeature.layer]
+          if (hoverLayerId3D && map.current!.getLayer(hoverLayerId3D)) {
+            map.current!.setFilter(hoverLayerId3D, ['==', ['id'], -999999])
           }
         }
 
@@ -420,6 +582,12 @@ export default function MapView() {
             // Match by feature ID (not property)
             console.log('Setting hover for', newFeature.layer, 'ID:', newFeature.id)
             map.current!.setFilter(hoverLayerId, ['==', ['id'], newFeature.id])
+          }
+
+          // Also set 3D hover if it exists
+          const hoverLayerId3D = hoverLayerMap3D[newFeature.layer]
+          if (hoverLayerId3D && map.current!.getLayer(hoverLayerId3D)) {
+            map.current!.setFilter(hoverLayerId3D, ['==', ['id'], newFeature.id])
           }
         }
       }
@@ -859,6 +1027,21 @@ export default function MapView() {
             : 'cursor-grab active:cursor-grabbing'
         }`}
       />
+
+      {/* 2D/3D Toggle */}
+      <div className="absolute top-4 right-20 z-30">
+        <button
+          onClick={() => setIs3DView(!is3DView)}
+          className={`px-4 py-2 rounded-lg shadow-lg text-sm font-medium transition ${
+            is3DView
+              ? 'bg-indigo-600 text-white'
+              : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50'
+          }`}
+          title={is3DView ? 'Switch to 2D view' : 'Switch to 3D view'}
+        >
+          {is3DView ? '🏗️ 3D' : '🗺️ 2D'}
+        </button>
+      </div>
 
       {/* Selection mode controls */}
       {mapMode === 'create' && (
