@@ -164,42 +164,92 @@ export default function MapView() {
 
       console.log('OSM Vector Tiles source and layers added successfully')
 
-      // Add hover effects to CartoDB basemap layers
-      // Buildings - highlight on hover
+      // Add violet highlight layers for hover effects
+      // These layers will show violet fill/stroke when hovering over features
+
+      // Building hover layer (violet highlight)
+      map.current.addLayer({
+        id: 'building-hover',
+        type: 'fill',
+        source: 'carto',
+        'source-layer': 'building',
+        paint: {
+          'fill-color': '#8b5cf6', // Violet
+          'fill-opacity': 0.6,
+        },
+        filter: ['==', ['id'], ''], // Initially show nothing
+      })
+
+      // Road hover layer (violet highlight)
+      map.current.addLayer({
+        id: 'road-hover',
+        type: 'line',
+        source: 'carto',
+        'source-layer': 'transportation',
+        paint: {
+          'line-color': '#8b5cf6', // Violet
+          'line-width': 4,
+          'line-opacity': 0.8,
+        },
+        filter: ['==', ['id'], ''], // Initially show nothing
+      })
+
+      // Landuse hover layer (violet highlight)
+      map.current.addLayer({
+        id: 'landuse-hover',
+        type: 'fill',
+        source: 'carto',
+        'source-layer': 'landuse',
+        paint: {
+          'fill-color': '#8b5cf6', // Violet
+          'fill-opacity': 0.4,
+        },
+        filter: ['==', ['id'], ''], // Initially show nothing
+      })
+
+      // Track currently hovered feature
+      let hoveredFeature: { layer: string; id: any } | null = null
+
+      // Helper function to update hover highlight
+      const updateHover = (newFeature: { layer: string; id: any } | null) => {
+        if (hoveredFeature?.layer === 'building') {
+          map.current!.setFilter('building-hover', ['==', ['id'], ''])
+        } else if (hoveredFeature?.layer === 'road') {
+          map.current!.setFilter('road-hover', ['==', ['id'], ''])
+        } else if (hoveredFeature?.layer === 'landuse') {
+          map.current!.setFilter('landuse-hover', ['==', ['id'], ''])
+        }
+
+        hoveredFeature = newFeature
+
+        if (newFeature) {
+          if (newFeature.layer === 'building') {
+            map.current!.setFilter('building-hover', ['==', ['id'], newFeature.id])
+          } else if (newFeature.layer === 'road') {
+            map.current!.setFilter('road-hover', ['==', ['id'], newFeature.id])
+          } else if (newFeature.layer === 'landuse') {
+            map.current!.setFilter('landuse-hover', ['==', ['id'], newFeature.id])
+          }
+        }
+      }
+
+      // Buildings - violet hover
       map.current.on('mousemove', 'building', (e) => {
         if (e.features && e.features.length > 0) {
           map.current!.getCanvas().style.cursor = 'pointer'
-
-          // Set hover state
-          if (e.features[0].id !== undefined) {
-            map.current!.setFeatureState(
-              { source: 'carto', sourceLayer: 'building', id: e.features[0].id },
-              { hover: true }
-            )
+          const feature = e.features[0]
+          if (feature.id !== undefined) {
+            updateHover({ layer: 'building', id: feature.id })
           }
         }
       })
 
       map.current.on('mouseleave', 'building', () => {
         map.current!.getCanvas().style.cursor = ''
-
-        // Clear all hover states
-        // Note: MapLibre doesn't have a way to clear all feature states at once
-        // We'll rely on the next mousemove to update the state
+        updateHover(null)
       })
 
-      // Add hover paint property to building layer
-      const buildingLayer = map.current.getLayer('building')
-      if (buildingLayer && buildingLayer.type === 'fill') {
-        map.current.setPaintProperty('building', 'fill-opacity', [
-          'case',
-          ['boolean', ['feature-state', 'hover'], false],
-          0.7,
-          0.3
-        ])
-      }
-
-      // Roads - highlight on hover
+      // Roads - violet hover
       const roadLayers = [
         'road_service_fill',
         'road_minor_fill',
@@ -212,41 +262,40 @@ export default function MapView() {
       roadLayers.forEach(layerId => {
         if (map.current!.getLayer(layerId)) {
           map.current!.on('mousemove', layerId, (e) => {
-            map.current!.getCanvas().style.cursor = 'pointer'
+            if (e.features && e.features.length > 0) {
+              map.current!.getCanvas().style.cursor = 'pointer'
+              const feature = e.features[0]
+              if (feature.id !== undefined) {
+                updateHover({ layer: 'road', id: feature.id })
+              }
+            }
           })
 
           map.current!.on('mouseleave', layerId, () => {
             map.current!.getCanvas().style.cursor = ''
+            updateHover(null)
           })
-
-          // Add opacity on hover
-          map.current!.setPaintProperty(layerId, 'line-opacity', [
-            'case',
-            ['boolean', ['feature-state', 'hover'], false],
-            1.0,
-            0.6
-          ])
         }
       })
 
-      // Landuse - highlight on hover
+      // Landuse - violet hover
       const landuseLayers = ['landuse', 'landuse_residential']
       landuseLayers.forEach(layerId => {
         if (map.current!.getLayer(layerId)) {
           map.current!.on('mousemove', layerId, (e) => {
-            map.current!.getCanvas().style.cursor = 'pointer'
+            if (e.features && e.features.length > 0) {
+              map.current!.getCanvas().style.cursor = 'pointer'
+              const feature = e.features[0]
+              if (feature.id !== undefined) {
+                updateHover({ layer: 'landuse', id: feature.id })
+              }
+            }
           })
 
           map.current!.on('mouseleave', layerId, () => {
             map.current!.getCanvas().style.cursor = ''
+            updateHover(null)
           })
-
-          map.current!.setPaintProperty(layerId, 'fill-opacity', [
-            'case',
-            ['boolean', ['feature-state', 'hover'], false],
-            0.6,
-            0.2
-          ])
         }
       })
 
