@@ -1,25 +1,22 @@
 // ARENA - Proposals List Page (Server Component)
-import { PrismaClient } from '@prisma/client'
 import Link from 'next/link'
 import CreateProposalForm from './_components/CreateProposalForm'
-
-const prisma = new PrismaClient()
+import { supabase } from '@/app/lib/supabase-client'
 
 export const dynamic = 'force-dynamic'
 
 export default async function ProposalsPage() {
-  // Fetch last 20 proposals
-  const proposals = await prisma.proposal.findMany({
-    orderBy: { createdAt: 'desc' },
-    take: 20,
-    select: {
-      id: true,
-      title: true,
-      description: true,
-      status: true,
-      createdAt: true,
-    },
-  })
+  // Fetch last 20 proposals via Supabase REST API
+  const { data: proposals, error } = await supabase
+    .from('proposals')
+    .select('id, title, description, status, created_at')
+    .order('created_at', { ascending: false })
+    .limit(20)
+
+  if (error) {
+    console.error('Failed to fetch proposals:', error)
+    return <div>Error loading proposals</div>
+  }
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -40,7 +37,7 @@ export default async function ProposalsPage() {
 
         {/* Proposals List */}
         <div className="space-y-4">
-          {proposals.length === 0 ? (
+          {!proposals || proposals.length === 0 ? (
             <div className="text-center py-12 bg-white rounded-lg border border-gray-200">
               <p className="text-gray-500">No proposals yet. Create one to get started!</p>
             </div>
@@ -71,7 +68,7 @@ export default async function ProposalsPage() {
                     : proposal.description}
                 </p>
                 <p className="text-sm text-gray-500">
-                  {new Date(proposal.createdAt).toLocaleDateString('en-US', {
+                  {new Date(proposal.created_at).toLocaleDateString('en-US', {
                     year: 'numeric',
                     month: 'long',
                     day: 'numeric',

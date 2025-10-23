@@ -1,12 +1,14 @@
-# ARENA — Proposals CRUD
+# ARENA — Sandbox Lite + Proposals
 
-Civic engagement platform for urban transformations. Next.js 15 + React 19 + Tailwind 4 + Prisma 6 + PostgreSQL + Server Actions.
+Civic engagement platform for urban transformations. Next.js 15 + React 19 + Tailwind 4 + Prisma 6 + Supabase PostgreSQL + Server Actions.
 
 ## Features
 
+- ✅ **Sandbox Lite (i2)** - Area selection and sandbox creation workflow
 - ✅ **Proposals CRUD** - Create, read, update, delete proposals
 - ✅ **Server Components** - Fast, SEO-friendly pages
 - ✅ **Server Actions** - Type-safe mutations with Zod validation
+- ✅ **GeoJSON Validation** - Zod schemas for geographic data
 - ✅ **Database Seeding** - Quick setup with test data
 
 ## Setup
@@ -53,11 +55,21 @@ Open [http://localhost:3000/proposals](http://localhost:3000/proposals) to view 
 
 ## Pages
 
+- `/map` - Map page with sandbox creation test button
+- `/sandbox/[id]` - Sandbox detail page with polygon info and side panel
 - `/proposals` - List of all proposals (last 20, with create form in development)
 - `/proposals/[id]` - Proposal detail page with full description and timestamps
 
 ## Manual Testing
 
+### Sandbox Flow (i2-lite)
+1. Visit `/map` - Map placeholder with test button
+2. Click "Create Test Sandbox" - Creates sandbox with hardcoded polygon (Núñez area)
+3. Redirects to `/sandbox/{id}` - Shows sandbox detail with:
+   - Left: Map placeholder for polygon visualization
+   - Right: Side panel with status badge, polygon info (point count), metadata, and publish button
+
+### Proposals Flow
 1. Visit `/proposals` - Should show 5 seeded proposals
 2. Click "+ Create New Proposal" - Form appears (development only)
 3. Fill form and submit - New proposal appears in list
@@ -67,13 +79,20 @@ Open [http://localhost:3000/proposals](http://localhost:3000/proposals) to view 
 
 - **Framework**: Next.js 15 (App Router)
 - **UI**: React 19 + Tailwind CSS 4
-- **Database**: PostgreSQL (Prisma 6 ORM)
-- **Validation**: Zod
+- **Database**: Supabase PostgreSQL (via REST API + Prisma 6 schema)
+- **Validation**: Zod (including GeoJSON schemas)
 - **Type Safety**: TypeScript (strict mode)
 
 ## Database Schema
 
 ```prisma
+model Sandbox {
+  id        String   @id @default(cuid())
+  geometry  Json     // GeoJSON Polygon
+  status    String   @default("draft") // "draft" | "published"
+  createdAt DateTime @default(now())
+}
+
 model Proposal {
   id          String   @id @default(cuid())
   title       String
@@ -89,15 +108,29 @@ model Proposal {
 
 ```
 ├── app/
-│   └── (public)/
-│       └── proposals/
-│           ├── page.tsx              # List page (server)
-│           ├── [id]/
-│           │   └── page.tsx          # Detail page (server)
-│           ├── _actions/
-│           │   └── create.ts         # Create action (server)
-│           └── _components/
-│               └── CreateProposalForm.tsx  # Form (client)
+│   ├── (public)/
+│   │   ├── map/
+│   │   │   ├── page.tsx              # Map page with test button
+│   │   │   ├── _actions/
+│   │   │   │   └── createSandbox.ts  # Create sandbox action
+│   │   │   └── _components/
+│   │   │       └── SandboxTest.tsx   # Test button component
+│   │   └── proposals/
+│   │       ├── page.tsx              # List page (server)
+│   │       ├── [id]/
+│   │       │   └── page.tsx          # Detail page (server)
+│   │       ├── _actions/
+│   │       │   └── create.ts         # Create action (server)
+│   │       └── _components/
+│   │           └── CreateProposalForm.tsx  # Form (client)
+│   ├── (creator)/
+│   │   └── sandbox/
+│   │       └── [id]/
+│   │           └── page.tsx          # Sandbox detail page
+│   └── lib/
+│       ├── db.ts                     # Prisma client
+│       ├── supabase-client.ts        # Supabase REST client
+│       └── zod-geo.ts                # GeoJSON validation schemas
 ├── prisma/
 │   └── schema.prisma                 # Database schema
 └── scripts/

@@ -1,9 +1,7 @@
 // ARENA - Proposal Detail Page (Server Component)
-import { PrismaClient } from '@prisma/client'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
-
-const prisma = new PrismaClient()
+import { supabase } from '@/app/lib/supabase-client'
 
 export const dynamic = 'force-dynamic'
 
@@ -14,21 +12,14 @@ export default async function ProposalDetailPage({
 }) {
   const { id } = await params
 
-  // Fetch proposal by ID
-  const proposal = await prisma.proposal.findUnique({
-    where: { id },
-    select: {
-      id: true,
-      title: true,
-      description: true,
-      status: true,
-      authorId: true,
-      createdAt: true,
-      updatedAt: true,
-    },
-  })
+  // Fetch proposal by ID via Supabase REST API
+  const { data: proposal, error } = await supabase
+    .from('proposals')
+    .select('id, title, description, status, author_id, created_at, updated_at')
+    .eq('id', id)
+    .single()
 
-  if (!proposal) {
+  if (error || !proposal) {
     notFound()
   }
 
@@ -75,7 +66,7 @@ export default async function ProposalDetailPage({
               </span>
             </div>
             <p className="text-gray-600">
-              By <span className="font-medium">{proposal.authorId}</span>
+              By <span className="font-medium">{proposal.author_id}</span>
             </p>
           </div>
 
@@ -94,7 +85,7 @@ export default async function ProposalDetailPage({
             <div>
               <p className="text-sm text-gray-500 mb-1">Created</p>
               <p className="text-gray-900">
-                {new Date(proposal.createdAt).toLocaleDateString('en-US', {
+                {new Date(proposal.created_at).toLocaleDateString('en-US', {
                   year: 'numeric',
                   month: 'long',
                   day: 'numeric',
@@ -106,7 +97,7 @@ export default async function ProposalDetailPage({
             <div>
               <p className="text-sm text-gray-500 mb-1">Last Updated</p>
               <p className="text-gray-900">
-                {new Date(proposal.updatedAt).toLocaleDateString('en-US', {
+                {new Date(proposal.updated_at).toLocaleDateString('en-US', {
                   year: 'numeric',
                   month: 'long',
                   day: 'numeric',

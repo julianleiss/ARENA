@@ -115,3 +115,13 @@ model POI {
   @@index([type])
   @@map("pois")
 }
+
+model Sandbox {
+  id        String   @id @default(cuid())
+  geometry  Json     // GeoJSON Polygon
+  status    String   @default("draft") // "draft" | "published"
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@index([status])
+  @@map("sandboxes")
+}
