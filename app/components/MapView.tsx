@@ -116,12 +116,13 @@ export default function MapView() {
     map.current.on('load', () => {
       if (!map.current) return
 
-      // Add OSM Vector Tiles source (OpenFreeMap - CORS enabled, no API key required)
+      // Add OSM Vector Tiles source (OpenFreeMap - uses OpenMapTiles schema)
       map.current.addSource('osm-vector', {
         type: 'vector',
         tiles: ['https://tiles.openfreemap.org/planet/{z}/{x}/{y}.pbf'],
         minzoom: 0,
         maxzoom: 14,
+        attribution: '© OpenFreeMap © OpenStreetMap contributors'
       })
 
       // Add transparent layers for OSM feature detection
@@ -168,8 +169,26 @@ export default function MapView() {
       console.log('OSM Vector Tiles source and layers added successfully')
 
       // Diagnostic logging
-      console.log('🗺️ Available layers:', map.current.getStyle().layers.map(l => l.id))
-      console.log('📦 Available sources:', Object.keys(map.current.getStyle().sources))
+      const style = map.current.getStyle()
+      console.log('🗺️ Available layers:', style.layers.map(l => l.id))
+      console.log('📦 Available sources:', Object.keys(style.sources))
+
+      // Log CartoDB source details
+      const cartoSource = style.sources['carto'] as any
+      console.log('🗺️ CartoDB source details:', {
+        type: cartoSource?.type,
+        url: cartoSource?.url,
+        tiles: cartoSource?.tiles
+      })
+
+      // Log building layer details from CartoDB
+      const buildingLayer = style.layers.find(l => l.id === 'building')
+      console.log('🏢 Building layer from CartoDB:', {
+        id: buildingLayer?.id,
+        type: buildingLayer?.type,
+        source: (buildingLayer as any)?.source,
+        sourceLayer: (buildingLayer as any)?.['source-layer']
+      })
 
       // Verify osm-vector source has data
       map.current.on('sourcedata', (e) => {

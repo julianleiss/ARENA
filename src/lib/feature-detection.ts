@@ -42,7 +42,7 @@ export function detectFeaturesAtPoint(
   console.log('🔍 Querying layers:', selectableLayers)
   console.log('🔍 Layers exist in map:', selectableLayers.map(l => availableLayers.includes(l)))
 
-  const features = map.queryRenderedFeatures(
+  let features = map.queryRenderedFeatures(
     [
       [point.x - radius, point.y - radius],
       [point.x + radius, point.y + radius],
@@ -50,24 +50,44 @@ export function detectFeaturesAtPoint(
     { layers: selectableLayers }
   )
 
-  console.log(`📍 Found ${features.length} raw features before deduplication`)
+  console.log(`📍 Found ${features.length} raw features WITH layer filter`)
 
-  // If no features found with layer filter, try without filter
+  // FALLBACK: If OSM layers return nothing, try CartoDB basemap layers
   if (features.length === 0) {
-    console.log('⚠️ No features found with layer filter, trying query without filter...')
-    const allFeatures = map.queryRenderedFeatures(
+    console.log('⚠️ No features from OSM layers, falling back to CartoDB basemap...')
+
+    // CartoDB Positron basemap layers for buildings, roads, landuse
+    const cartoLayers = [
+      'building',
+      'building-top',
+      'road_service_fill',
+      'road_minor_fill',
+      'road_sec_fill_noramp',
+      'road_pri_fill_noramp',
+      'road_trunk_fill_noramp',
+      'road_mot_fill_noramp',
+      'landuse',
+      'landuse_residential'
+    ].filter(layerId => availableLayers.includes(layerId))
+
+    console.log('🔄 Trying CartoDB layers:', cartoLayers)
+
+    features = map.queryRenderedFeatures(
       [
         [point.x - radius, point.y - radius],
         [point.x + radius, point.y + radius],
-      ]
+      ],
+      { layers: cartoLayers }
     )
-    console.log(`📍 Found ${allFeatures.length} features total (without layer filter)`)
-    if (allFeatures.length > 0) {
-      console.log('📋 Sample features found:', allFeatures.slice(0, 3).map(f => ({
+
+    console.log(`📍 Found ${features.length} features from CartoDB basemap`)
+    if (features.length > 0) {
+      console.log('📋 Sample CartoDB features:', features.slice(0, 3).map(f => ({
         id: f.id,
         layer: f.layer?.id,
         sourceLayer: f.sourceLayer,
-        source: f.source
+        source: f.source,
+        properties: Object.keys(f.properties || {}).slice(0, 5)
       })))
     }
   }
