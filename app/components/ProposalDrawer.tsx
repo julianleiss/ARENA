@@ -220,15 +220,42 @@ export default function ProposalDrawer({
           <div className="flex-1 overflow-y-auto">
             {mode === 'create' && coordinates && (
               <form onSubmit={handleSubmit} className="p-6 space-y-6">
-                {/* Coordinates Display */}
-                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                  <p className="text-xs font-medium text-blue-900 mb-1">
-                    Ubicación seleccionada
-                  </p>
-                  <p className="text-sm text-blue-800 font-mono">
-                    {coordinates.lat.toFixed(6)}, {coordinates.lng.toFixed(6)}
-                  </p>
-                </div>
+                {/* Selected Feature Display */}
+                {selectedFeature ? (
+                  <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                    <p className="text-xs font-medium text-green-900 mb-2">
+                      ✓ Feature seleccionado
+                    </p>
+                    <div className="space-y-1">
+                      <p className="text-sm text-green-800 font-semibold">
+                        {selectedFeature.name || `${selectedFeature.type} (sin nombre)`}
+                      </p>
+                      <p className="text-xs text-green-700">
+                        Tipo: <span className="font-mono">{selectedFeature.type}</span>
+                      </p>
+                      {selectedFeature.description && (
+                        <p className="text-xs text-green-700">
+                          {selectedFeature.description}
+                        </p>
+                      )}
+                      <p className="text-xs text-green-600 font-mono mt-2">
+                        {coordinates.lat.toFixed(6)}, {coordinates.lng.toFixed(6)}
+                      </p>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                    <p className="text-xs font-medium text-blue-900 mb-1">
+                      Ubicación seleccionada
+                    </p>
+                    <p className="text-sm text-blue-800 font-mono">
+                      {coordinates.lat.toFixed(6)}, {coordinates.lng.toFixed(6)}
+                    </p>
+                    <p className="text-xs text-blue-600 mt-1">
+                      No hay feature asociado (punto exacto)
+                    </p>
+                  </div>
+                )}
 
                 {/* Title */}
                 <div>

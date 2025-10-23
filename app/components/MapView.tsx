@@ -6,7 +6,6 @@ import maplibregl from 'maplibre-gl'
 import 'maplibre-gl/dist/maplibre-gl.css'
 import ProposalDrawer from './ProposalDrawer'
 import { detectFeaturesAtPoint, getCentroid, DetectedFeature } from '@/src/lib/feature-detection'
-import FeatureSelector from '@/src/components/map/FeatureSelector'
 
 interface POI {
   id: string
@@ -49,9 +48,6 @@ export default function MapView() {
   const [selectedProposalId, setSelectedProposalId] = useState<string | undefined>()
 
   // Feature selection state
-  const [detectedFeatures, setDetectedFeatures] = useState<DetectedFeature[]>([])
-  const [showFeatureSelector, setShowFeatureSelector] = useState(false)
-  const [clickPoint, setClickPoint] = useState<{ lng: number; lat: number } | null>(null)
   const [selectedFeature, setSelectedFeature] = useState<DetectedFeature | null>(null)
 
   // Store markers references
@@ -167,6 +163,92 @@ export default function MapView() {
       })
 
       console.log('OSM Vector Tiles source and layers added successfully')
+
+      // Add hover effects to CartoDB basemap layers
+      // Buildings - highlight on hover
+      map.current.on('mousemove', 'building', (e) => {
+        if (e.features && e.features.length > 0) {
+          map.current!.getCanvas().style.cursor = 'pointer'
+
+          // Set hover state
+          if (e.features[0].id !== undefined) {
+            map.current!.setFeatureState(
+              { source: 'carto', sourceLayer: 'building', id: e.features[0].id },
+              { hover: true }
+            )
+          }
+        }
+      })
+
+      map.current.on('mouseleave', 'building', () => {
+        map.current!.getCanvas().style.cursor = ''
+
+        // Clear all hover states
+        // Note: MapLibre doesn't have a way to clear all feature states at once
+        // We'll rely on the next mousemove to update the state
+      })
+
+      // Add hover paint property to building layer
+      const buildingLayer = map.current.getLayer('building')
+      if (buildingLayer && buildingLayer.type === 'fill') {
+        map.current.setPaintProperty('building', 'fill-opacity', [
+          'case',
+          ['boolean', ['feature-state', 'hover'], false],
+          0.7,
+          0.3
+        ])
+      }
+
+      // Roads - highlight on hover
+      const roadLayers = [
+        'road_service_fill',
+        'road_minor_fill',
+        'road_sec_fill_noramp',
+        'road_pri_fill_noramp',
+        'road_trunk_fill_noramp',
+        'road_mot_fill_noramp'
+      ]
+
+      roadLayers.forEach(layerId => {
+        if (map.current!.getLayer(layerId)) {
+          map.current!.on('mousemove', layerId, (e) => {
+            map.current!.getCanvas().style.cursor = 'pointer'
+          })
+
+          map.current!.on('mouseleave', layerId, () => {
+            map.current!.getCanvas().style.cursor = ''
+          })
+
+          // Add opacity on hover
+          map.current!.setPaintProperty(layerId, 'line-opacity', [
+            'case',
+            ['boolean', ['feature-state', 'hover'], false],
+            1.0,
+            0.6
+          ])
+        }
+      })
+
+      // Landuse - highlight on hover
+      const landuseLayers = ['landuse', 'landuse_residential']
+      landuseLayers.forEach(layerId => {
+        if (map.current!.getLayer(layerId)) {
+          map.current!.on('mousemove', layerId, (e) => {
+            map.current!.getCanvas().style.cursor = 'pointer'
+          })
+
+          map.current!.on('mouseleave', layerId, () => {
+            map.current!.getCanvas().style.cursor = ''
+          })
+
+          map.current!.setPaintProperty(layerId, 'fill-opacity', [
+            'case',
+            ['boolean', ['feature-state', 'hover'], false],
+            0.6,
+            0.2
+          ])
+        }
+      })
 
       // Diagnostic logging
       const style = map.current.getStyle()
@@ -293,22 +375,31 @@ export default function MapView() {
       }, 3000)
     })
 
-    // Add click handler for creating proposals (only in creation mode)
+    // Add click handler for creating proposals
     map.current.on('click', (e) => {
       if (mapModeRef.current === 'create') {
         // Detect features at click point
         const point = map.current!.project(e.lngLat)
-        const features = detectFeaturesAtPoint(map.current!, point, 15)
+        const features = detectFeaturesAtPoint(map.current!, point, 5) // Smaller radius for precision
 
         console.log('Features detectadas:', features)
 
         if (features.length > 0) {
-          // Show feature selector if features were detected
-          setDetectedFeatures(features)
-          setClickPoint({ lng: e.lngLat.lng, lat: e.lngLat.lat })
-          setShowFeatureSelector(true)
+          // Directly use the first (top-most) feature
+          const feature = features[0]
+          console.log('✅ Feature selected:', feature)
+
+          // Get centroid of feature geometry
+          const centroid = getCentroid(feature.geometry)
+
+          setSelectedFeature(feature)
+          setSelectedCoords({ lng: centroid[0], lat: centroid[1] })
+          setDrawerMode('create')
+          setDrawerOpen(true)
+          setMapMode('navigate') // Return to navigation mode
         } else {
           // No features detected, proceed directly with exact point
+          setSelectedFeature(null)
           setSelectedCoords({ lng: e.lngLat.lng, lat: e.lngLat.lat })
           setDrawerMode('create')
           setDrawerOpen(true)
@@ -448,28 +539,8 @@ export default function MapView() {
   // Handler for closing drawer
   const handleCloseDrawer = () => {
     setDrawerOpen(false)
+    setSelectedFeature(null) // Clear selected feature
     setMapMode('navigate') // Ensure return to navigation mode
-  }
-
-  // Handler for feature selection
-  const handleFeatureSelect = (feature: DetectedFeature | null) => {
-    setShowFeatureSelector(false)
-
-    if (feature) {
-      // User selected a feature - use its centroid
-      const centroid = getCentroid(feature.geometry)
-      setSelectedCoords(centroid)
-      setSelectedFeature(feature)
-    } else if (clickPoint) {
-      // User selected exact point
-      setSelectedCoords(clickPoint)
-      setSelectedFeature(null)
-    }
-
-    // Open proposal drawer
-    setDrawerMode('create')
-    setDrawerOpen(true)
-    setMapMode('navigate')
   }
 
   return (
@@ -492,7 +563,7 @@ export default function MapView() {
       {mapMode === 'create' && (
         <div className="fixed top-6 left-1/2 -translate-x-1/2 z-40 bg-indigo-100 border-2 border-indigo-500 rounded-lg px-6 py-3 shadow-lg flex items-center gap-4">
           <span className="text-indigo-900 font-medium">
-            📍 Click on the map to locate your proposal
+            🏢 Hover over buildings/roads and click to select
           </span>
           <button
             onClick={() => setMapMode('navigate')}
@@ -551,19 +622,6 @@ export default function MapView() {
         onProposalCreated={handleProposalCreated}
         selectedFeature={selectedFeature}
       />
-
-      {/* Feature Selector */}
-      {showFeatureSelector && clickPoint && (
-        <FeatureSelector
-          features={detectedFeatures}
-          clickPoint={clickPoint}
-          onSelect={handleFeatureSelect}
-          onClose={() => {
-            setShowFeatureSelector(false)
-            setMapMode('navigate')
-          }}
-        />
-      )}
     </div>
   )
 }
