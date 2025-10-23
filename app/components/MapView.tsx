@@ -277,12 +277,12 @@ function DeckGLOverlay({
           id: 'proposals',
           data: proposalFeatures as any,
           pointType: 'circle',
-          getPointRadius: 10,
-          pointRadiusMinPixels: 10,
-          pointRadiusMaxPixels: 10,
-          getFillColor: [239, 68, 68, 200], // Red for proposals
-          getLineColor: [220, 38, 38, 255],
-          lineWidthMinPixels: 2,
+          getPointRadius: 20,
+          pointRadiusMinPixels: 20,
+          pointRadiusMaxPixels: 30,
+          getFillColor: [79, 70, 229, 255], // Indigo-600 bright for visibility
+          getLineColor: [255, 255, 255, 255], // White border for contrast
+          lineWidthMinPixels: 3,
           pickable: true,
           onClick: (info: any) => {
             if (info.object) {
@@ -562,15 +562,14 @@ export default function MapViewDeck({
       <APIProvider apiKey={process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY!}>
         <Map
           defaultCenter={{ lat: -34.545, lng: -58.46 }} // Núñez area
-          defaultZoom={17}
+          defaultZoom={18}
           tilt={is3D ? 45 : 0}
           heading={0}
           gestureHandling="greedy"
           disableDefaultUI={false}
           className="w-full h-full"
-          mapId="ARENA_3D_MAP" // Required for 3D buildings
+          mapTypeId="satellite"
           onClick={handleMapClick}
-          mapTypeId="roadmap"
         >
           <DeckGLOverlay
             selectedBuildingIds={selectedBuildingIds}
