@@ -7,17 +7,6 @@ import 'maplibre-gl/dist/maplibre-gl.css'
 import ProposalDrawer from './ProposalDrawer'
 import { detectFeaturesAtPoint, getCentroid, DetectedFeature } from '@/src/lib/feature-detection'
 
-interface POI {
-  id: string
-  name: string
-  type: string
-  geom: {
-    type: string
-    coordinates: [number, number]
-  }
-  address?: string
-}
-
 interface Proposal {
   id: string
   title: string
@@ -29,20 +18,48 @@ interface Proposal {
   status: string
   layer: string
   tags: string[]
+  osmId?: string | null
+  osmType?: string | null
+  author?: {
+    name: string
+    email: string
+  }
+  createdAt?: string
 }
 
-export default function MapView() {
+interface MapViewProps {
+  externalMapMode?: 'navigate' | 'create'
+  externalSelectionMode?: 'building' | 'point' | 'polygon'
+  onMapModeChange?: (mode: 'navigate' | 'create') => void
+  onSelectionModeChange?: (mode: 'building' | 'point' | 'polygon') => void
+}
+
+export default function MapView({
+  externalMapMode,
+  externalSelectionMode,
+  onMapModeChange,
+  onSelectionModeChange
+}: MapViewProps = {}) {
   const mapContainer = useRef<HTMLDivElement>(null)
   const map = useRef<maplibregl.Map | null>(null)
-  const [pois, setPois] = useState<POI[]>([])
   const [proposals, setProposals] = useState<Proposal[]>([])
   const [loading, setLoading] = useState(true)
 
-  // Map mode state
-  const [mapMode, setMapMode] = useState<'navigate' | 'create'>('navigate')
+  // Map mode state (use external if provided)
+  const [internalMapMode, setInternalMapMode] = useState<'navigate' | 'create'>('navigate')
+  const mapMode = externalMapMode ?? internalMapMode
+  const setMapMode = (mode: 'navigate' | 'create') => {
+    setInternalMapMode(mode)
+    onMapModeChange?.(mode)
+  }
 
-  // Selection mode: building (multi-select vectors), point (single coordinate), polygon (drawn area)
-  const [selectionMode, setSelectionMode] = useState<'building' | 'point' | 'polygon'>('building')
+  // Selection mode (use external if provided)
+  const [internalSelectionMode, setInternalSelectionMode] = useState<'building' | 'point' | 'polygon'>('building')
+  const selectionMode = externalSelectionMode ?? internalSelectionMode
+  const setSelectionMode = (mode: 'building' | 'point' | 'polygon') => {
+    setInternalSelectionMode(mode)
+    onSelectionModeChange?.(mode)
+  }
 
   // Drawer state
   const [drawerOpen, setDrawerOpen] = useState(false)
@@ -57,34 +74,25 @@ export default function MapView() {
   // Polygon drawing state
   const [polygonPoints, setPolygonPoints] = useState<[number, number][]>([])
 
-  // 3D view state
-  const [is3DView, setIs3DView] = useState(false)
+  // 3D view state (default to 3D)
+  const [is3DView, setIs3DView] = useState(true)
 
   // Point mode radius state (in meters)
   const [pointRadius, setPointRadius] = useState(50)
+
+  // Proposal hover state (for highlighting related features)
+  const [hoveredProposal, setHoveredProposal] = useState<Proposal | null>(null)
 
   // Store markers references
   const proposalMarkersRef = useRef<maplibregl.Marker[]>([])
   const previewMarkerRef = useRef<maplibregl.Marker | null>(null)
   const confirmedMarkerRef = useRef<maplibregl.Marker | null>(null)
   const radiusCircleRef = useRef<maplibregl.Marker | null>(null)
+  const previewRadiusCoords = useRef<{ lng: number; lat: number } | null>(null)
 
-  // Fetch POIs
+  // Set loading to false after initial setup
   useEffect(() => {
-    async function fetchPOIs() {
-      try {
-        const response = await fetch('/api/pois')
-        if (response.ok) {
-          const data = await response.json()
-          setPois(data.pois || [])
-        }
-      } catch (error) {
-        console.error('Error fetching POIs:', error)
-      } finally {
-        setLoading(false)
-      }
-    }
-    fetchPOIs()
+    setLoading(false)
   }, [])
 
   // Fetch proposals
@@ -103,9 +111,10 @@ export default function MapView() {
     fetchProposals()
   }, [])
 
-  // Store mapMode and selectionMode in refs to avoid reinitialization
+  // Store mapMode, selectionMode, and is3DView in refs to avoid reinitialization
   const mapModeRef = useRef(mapMode)
   const selectionModeRef = useRef(selectionMode)
+  const is3DViewRef = useRef(is3DView)
 
   useEffect(() => {
     mapModeRef.current = mapMode
@@ -115,6 +124,10 @@ export default function MapView() {
     selectionModeRef.current = selectionMode
   }, [selectionMode])
 
+  useEffect(() => {
+    is3DViewRef.current = is3DView
+  }, [is3DView])
+
   // Update selected features visualization
   useEffect(() => {
     if (!map.current) return
@@ -122,19 +135,20 @@ export default function MapView() {
     console.log('🔍 Selected features:', selectedFeatures)
 
     // Get IDs of selected features by type
+    // Support both CartoDB layer names ('building', 'building-top') and OSM ('osm-buildings-selectable')
     const buildingIds = selectedFeatures
-      .filter(f => f.layer === 'building')
+      .filter(f => f.type === 'building' || f.layer?.includes('building'))
       .map(f => {
         const id = f.properties?.id || f.id
-        console.log('Building feature ID:', id, 'from', f)
+        console.log('Building feature ID:', id, 'layer:', f.layer, 'from', f)
         return id
       })
-      .filter(id => id !== undefined)
+      .filter(id => id !== undefined && id !== null)
 
     const roadIds = selectedFeatures
-      .filter(f => f.layer === 'transportation')
+      .filter(f => f.type === 'road' || f.layer?.includes('road') || f.layer?.includes('transportation'))
       .map(f => f.properties?.id || f.id)
-      .filter(id => id !== undefined)
+      .filter(id => id !== undefined && id !== null)
 
     console.log('🏢 Building IDs for selection:', buildingIds)
     console.log('🛣️ Road IDs for selection:', roadIds)
@@ -145,6 +159,15 @@ export default function MapView() {
         map.current.setFilter('building-selected', ['in', ['id'], ['literal', buildingIds]])
       } else {
         map.current.setFilter('building-selected', ['in', ['id'], ['literal', []]])
+      }
+    }
+
+    // Update building selection border layer (2D)
+    if (map.current.getLayer('building-selected-border')) {
+      if (buildingIds.length > 0) {
+        map.current.setFilter('building-selected-border', ['in', ['id'], ['literal', buildingIds]])
+      } else {
+        map.current.setFilter('building-selected-border', ['in', ['id'], ['literal', []]])
       }
     }
 
@@ -275,6 +298,142 @@ export default function MapView() {
     }
   }, [polygonPoints])
 
+  // Highlight proposal-related features on hover
+  useEffect(() => {
+    if (!map.current) return
+
+    if (hoveredProposal && hoveredProposal.osmId) {
+      console.log('Highlighting proposal feature:', hoveredProposal.osmId, hoveredProposal.osmType)
+
+      // Determine the source layer based on osmType
+      let sourceLayer = 'building'
+      if (hoveredProposal.osmType === 'road' || hoveredProposal.osmType === 'way') {
+        sourceLayer = 'transportation'
+      }
+
+      // Add proposal hover layers if they don't exist
+      if (!map.current.getLayer('proposal-hover-fill')) {
+        map.current.addLayer({
+          id: 'proposal-hover-fill',
+          type: 'fill',
+          source: 'carto',
+          'source-layer': 'building',
+          paint: {
+            'fill-color': '#a5b4fc', // Light indigo
+            'fill-opacity': 0.4,
+          },
+          filter: ['==', ['id'], -999999], // Start hidden
+        })
+      }
+
+      if (!map.current.getLayer('proposal-hover-line')) {
+        map.current.addLayer({
+          id: 'proposal-hover-line',
+          type: 'line',
+          source: 'carto',
+          'source-layer': 'transportation',
+          paint: {
+            'line-color': '#a5b4fc', // Light indigo
+            'line-width': 4,
+            'line-opacity': 0.6,
+          },
+          filter: ['==', ['id'], -999999], // Start hidden
+        })
+      }
+
+      // Update filters to show the hovered feature
+      if (sourceLayer === 'building') {
+        map.current.setFilter('proposal-hover-fill', ['==', ['id'], Number(hoveredProposal.osmId)])
+      } else {
+        map.current.setFilter('proposal-hover-line', ['==', ['id'], Number(hoveredProposal.osmId)])
+      }
+    } else {
+      // Clear proposal hover highlights
+      if (map.current.getLayer('proposal-hover-fill')) {
+        map.current.setFilter('proposal-hover-fill', ['==', ['id'], -999999])
+      }
+      if (map.current.getLayer('proposal-hover-line')) {
+        map.current.setFilter('proposal-hover-line', ['==', ['id'], -999999])
+      }
+    }
+  }, [hoveredProposal])
+
+  // Update point preview radius in real-time when radius changes
+  useEffect(() => {
+    if (!map.current || selectionMode !== 'point' || mapMode !== 'create') return
+    if (!previewRadiusCoords.current) return
+
+    // Helper function to create a circle geometry
+    const createCircle = (center: [number, number], radiusInMeters: number): GeoJSON.Feature => {
+      const points = 64
+      const coords = []
+      const distanceX = radiusInMeters / (111320 * Math.cos(center[1] * Math.PI / 180))
+      const distanceY = radiusInMeters / 110540
+
+      for (let i = 0; i < points; i++) {
+        const angle = (i / points) * 2 * Math.PI
+        const dx = distanceX * Math.cos(angle)
+        const dy = distanceY * Math.sin(angle)
+        coords.push([center[0] + dx, center[1] + dy])
+      }
+      coords.push(coords[0]) // Close the circle
+
+      return {
+        type: 'Feature',
+        properties: {},
+        geometry: {
+          type: 'Polygon',
+          coordinates: [coords]
+        }
+      }
+    }
+
+    const circleFeature = createCircle(
+      [previewRadiusCoords.current.lng, previewRadiusCoords.current.lat],
+      pointRadius
+    )
+
+    // Update or create preview radius source
+    if (map.current.getSource('point-radius-preview')) {
+      (map.current.getSource('point-radius-preview') as maplibregl.GeoJSONSource).setData({
+        type: 'FeatureCollection',
+        features: [circleFeature]
+      })
+    } else {
+      map.current.addSource('point-radius-preview', {
+        type: 'geojson',
+        data: {
+          type: 'FeatureCollection',
+          features: [circleFeature]
+        }
+      })
+
+      // Add circle fill layer
+      map.current.addLayer({
+        id: 'point-radius-preview-fill',
+        type: 'fill',
+        source: 'point-radius-preview',
+        paint: {
+          'fill-color': '#818cf8',
+          'fill-opacity': 0.15
+        }
+      })
+
+      // Add circle outline layer
+      map.current.addLayer({
+        id: 'point-radius-preview-line',
+        type: 'line',
+        source: 'point-radius-preview',
+        paint: {
+          'line-color': '#6366f1',
+          'line-width': 2,
+          'line-opacity': 0.6,
+          'line-dasharray': [2, 2]
+        }
+      })
+    }
+  }, [pointRadius, selectionMode, mapMode])
+
   // Toggle 3D view
   useEffect(() => {
     if (!map.current) return
@@ -291,14 +450,23 @@ export default function MapView() {
       if (map.current.getLayer('building')) {
         map.current.setLayoutProperty('building', 'visibility', 'none')
       }
+      if (map.current.getLayer('building-border')) {
+        map.current.setLayoutProperty('building-border', 'visibility', 'none')
+      }
       if (map.current.getLayer('building-top')) {
         map.current.setLayoutProperty('building-top', 'visibility', 'none')
       }
       if (map.current.getLayer('building-hover')) {
         map.current.setLayoutProperty('building-hover', 'visibility', 'none')
       }
+      if (map.current.getLayer('building-hover-border')) {
+        map.current.setLayoutProperty('building-hover-border', 'visibility', 'none')
+      }
       if (map.current.getLayer('building-selected')) {
         map.current.setLayoutProperty('building-selected', 'visibility', 'none')
+      }
+      if (map.current.getLayer('building-selected-border')) {
+        map.current.setLayoutProperty('building-selected-border', 'visibility', 'none')
       }
 
       // Show 3D building layers (will be created in map load)
@@ -323,14 +491,23 @@ export default function MapView() {
       if (map.current.getLayer('building')) {
         map.current.setLayoutProperty('building', 'visibility', 'visible')
       }
+      if (map.current.getLayer('building-border')) {
+        map.current.setLayoutProperty('building-border', 'visibility', 'visible')
+      }
       if (map.current.getLayer('building-top')) {
         map.current.setLayoutProperty('building-top', 'visibility', 'visible')
       }
       if (map.current.getLayer('building-hover')) {
         map.current.setLayoutProperty('building-hover', 'visibility', 'visible')
       }
+      if (map.current.getLayer('building-hover-border')) {
+        map.current.setLayoutProperty('building-hover-border', 'visibility', 'visible')
+      }
       if (map.current.getLayer('building-selected')) {
         map.current.setLayoutProperty('building-selected', 'visibility', 'visible')
+      }
+      if (map.current.getLayer('building-selected-border')) {
+        map.current.setLayoutProperty('building-selected-border', 'visibility', 'visible')
       }
 
       // Hide 3D building layers
@@ -353,12 +530,12 @@ export default function MapView() {
     map.current = new maplibregl.Map({
       container: mapContainer.current,
       style: 'https://basemaps.cartocdn.com/gl/positron-gl-style/style.json',
-      center: [-58.4600, -34.5450],
-      zoom: 14,
+      center: [-58.4173, -34.6037], // Center of Buenos Aires
+      zoom: 11, // Zoom out to show whole city
       attributionControl: false,
     })
 
-    map.current.addControl(new maplibregl.NavigationControl(), 'top-right')
+    map.current.addControl(new maplibregl.NavigationControl(), 'bottom-left')
     map.current.addControl(new maplibregl.AttributionControl({ compact: true }), 'bottom-right')
 
     // Add OSM Vector Tiles source and layers after the style loads
@@ -418,76 +595,130 @@ export default function MapView() {
       console.log('OSM Vector Tiles source and layers added successfully')
 
       // REFINED: Only small vectors (buildings, roads, small features)
-      // Soft indigo by default → Strong indigo on hover
+      // Light indigo BORDER by default → Expanded darker border on hover → Dark indigo fill when selected
 
-      // First, make buildings visible with soft indigo
-      map.current.setPaintProperty('building', 'fill-color', '#818cf8') // Soft indigo
-      map.current.setPaintProperty('building', 'fill-opacity', 0.3)
+      // Add light indigo border to buildings (not fill)
+      map.current.setPaintProperty('building', 'fill-color', 'transparent')
+      map.current.setPaintProperty('building', 'fill-opacity', 0)
 
-      // Building SELECTION layer (persistent indigo for selected buildings)
+      // Add building border layer (light indigo)
+      map.current.addLayer({
+        id: 'building-border',
+        type: 'line',
+        source: 'carto',
+        'source-layer': 'building',
+        paint: {
+          'line-color': '#a5b4fc', // Light indigo
+          'line-width': 1,
+          'line-opacity': 0.6,
+        },
+      })
+
+      // Building SELECTION layer (dark indigo fill for selected buildings)
       map.current.addLayer({
         id: 'building-selected',
         type: 'fill',
         source: 'carto',
         'source-layer': 'building',
         paint: {
-          'fill-color': '#6366f1', // Medium indigo
-          'fill-opacity': 0.6,
+          'fill-color': '#4338ca', // Dark indigo
+          'fill-opacity': 0.7,
         },
         filter: ['in', ['id'], ['literal', []]], // Start with empty array
       })
 
-      // Building hover (strong indigo on top)
+      // Building selected BORDER (dark indigo stroke)
+      map.current.addLayer({
+        id: 'building-selected-border',
+        type: 'line',
+        source: 'carto',
+        'source-layer': 'building',
+        paint: {
+          'line-color': '#4338ca', // Dark indigo
+          'line-width': 2,
+          'line-opacity': 0.9,
+        },
+        filter: ['in', ['id'], ['literal', []]], // Start with empty array
+      })
+
+      // Building hover (expanded darker border + subtle fill)
       map.current.addLayer({
         id: 'building-hover',
         type: 'fill',
         source: 'carto',
         'source-layer': 'building',
         paint: {
-          'fill-color': '#4f46e5', // Strong indigo
-          'fill-opacity': 0.8,
+          'fill-color': '#6366f1', // Medium indigo
+          'fill-opacity': 0.3,
         },
         filter: ['==', ['id'], -999999], // Start hidden
       })
 
-      // Transportation SELECTION layer
+      // Building hover BORDER (expanded + darker)
+      map.current.addLayer({
+        id: 'building-hover-border',
+        type: 'line',
+        source: 'carto',
+        'source-layer': 'building',
+        paint: {
+          'line-color': '#4f46e5', // Darker indigo
+          'line-width': 2.5, // Expanded stroke
+          'line-opacity': 0.8,
+        },
+        filter: ['==', ['id'], -999999], // Start hidden
+      })
+
+      // Add light indigo borders to roads/transportation
+      map.current.addLayer({
+        id: 'transportation-border',
+        type: 'line',
+        source: 'carto',
+        'source-layer': 'transportation',
+        paint: {
+          'line-color': '#a5b4fc', // Light indigo
+          'line-width': 1.5,
+          'line-opacity': 0.5,
+        },
+      })
+
+      // Transportation SELECTION layer (dark indigo)
       map.current.addLayer({
         id: 'transportation-selected',
         type: 'line',
         source: 'carto',
         'source-layer': 'transportation',
         paint: {
-          'line-color': '#6366f1', // Medium indigo
+          'line-color': '#4338ca', // Dark indigo
           'line-width': 4,
-          'line-opacity': 0.7,
+          'line-opacity': 0.8,
         },
         filter: ['in', ['id'], ['literal', []]], // Start with empty array
       })
 
-      // Transportation hover (strong indigo on top)
+      // Transportation hover (expanded + darker)
       map.current.addLayer({
         id: 'transportation-hover',
         type: 'line',
         source: 'carto',
         'source-layer': 'transportation',
         paint: {
-          'line-color': '#4f46e5', // Strong indigo
-          'line-width': 5,
-          'line-opacity': 0.9,
+          'line-color': '#4f46e5', // Darker indigo
+          'line-width': 5, // Expanded stroke
+          'line-opacity': 0.7,
         },
         filter: ['==', ['id'], -999999], // Start hidden
       })
 
       // 3D BUILDING LAYERS (fill-extrusion type)
-      // Base 3D buildings (soft indigo)
+      // Base 3D buildings (light indigo outline)
       map.current.addLayer({
         id: 'building-3d',
         type: 'fill-extrusion',
         source: 'carto',
         'source-layer': 'building',
         paint: {
-          'fill-extrusion-color': '#818cf8', // Soft indigo
-          'fill-extrusion-opacity': 0.6,
+          'fill-extrusion-color': '#f0f0f0', // Light gray
+          'fill-extrusion-opacity': 0.7,
           'fill-extrusion-height': [
             'case',
             ['has', 'render_height'], ['get', 'render_height'],
@@ -495,21 +726,22 @@ export default function MapView() {
             10 // Default height for buildings without height data
           ],
           'fill-extrusion-base': 0,
+          'fill-extrusion-vertical-gradient': true,
         },
         layout: {
           'visibility': 'none' // Start hidden (2D view by default)
         }
       })
 
-      // 3D buildings SELECTED layer
+      // 3D buildings SELECTED layer (dark indigo)
       map.current.addLayer({
         id: 'building-3d-selected',
         type: 'fill-extrusion',
         source: 'carto',
         'source-layer': 'building',
         paint: {
-          'fill-extrusion-color': '#6366f1', // Medium indigo
-          'fill-extrusion-opacity': 0.8,
+          'fill-extrusion-color': '#4338ca', // Dark indigo
+          'fill-extrusion-opacity': 0.85,
           'fill-extrusion-height': [
             'case',
             ['has', 'render_height'], ['get', 'render_height'],
@@ -517,6 +749,7 @@ export default function MapView() {
             10
           ],
           'fill-extrusion-base': 0,
+          'fill-extrusion-vertical-gradient': true,
         },
         filter: ['in', ['id'], ['literal', []]],
         layout: {
@@ -524,15 +757,15 @@ export default function MapView() {
         }
       })
 
-      // 3D buildings HOVER layer
+      // 3D buildings HOVER layer (medium indigo)
       map.current.addLayer({
         id: 'building-3d-hover',
         type: 'fill-extrusion',
         source: 'carto',
         'source-layer': 'building',
         paint: {
-          'fill-extrusion-color': '#4f46e5', // Strong indigo
-          'fill-extrusion-opacity': 0.9,
+          'fill-extrusion-color': '#6366f1', // Medium indigo
+          'fill-extrusion-opacity': 0.75,
           'fill-extrusion-height': [
             'case',
             ['has', 'render_height'], ['get', 'render_height'],
@@ -540,6 +773,7 @@ export default function MapView() {
             10
           ],
           'fill-extrusion-base': 0,
+          'fill-extrusion-vertical-gradient': true,
         },
         filter: ['==', ['id'], -999999],
         layout: {
@@ -551,23 +785,49 @@ export default function MapView() {
       let hoveredFeature: { layer: string; id: any } | null = null
 
       // Map of source-layers to hover layer IDs (only small vectors)
-      const hoverLayerMap: Record<string, string> = {
-        'building': 'building-hover',
-        'transportation': 'transportation-hover',
+      const hoverLayerMap: Record<string, string[]> = {
+        'building': ['building-hover', 'building-hover-border'],
+        'transportation': ['transportation-hover'],
       }
 
       const hoverLayerMap3D: Record<string, string> = {
         'building': 'building-3d-hover',
       }
 
-      // Helper function to update hover highlight
+      // Helper function to update hover highlight (only in create mode)
       const updateHover = (newFeature: { layer: string; id: any } | null) => {
+        // Only show hover in create mode
+        if (mapModeRef.current !== 'create') {
+          // Clear all hovers in navigate mode
+          if (hoveredFeature) {
+            const hoverLayerIds = hoverLayerMap[hoveredFeature.layer]
+            if (hoverLayerIds) {
+              hoverLayerIds.forEach(hoverLayerId => {
+                if (map.current!.getLayer(hoverLayerId)) {
+                  map.current!.setFilter(hoverLayerId, ['==', ['id'], -999999])
+                }
+              })
+            }
+
+            const hoverLayerId3D = hoverLayerMap3D[hoveredFeature.layer]
+            if (hoverLayerId3D && map.current!.getLayer(hoverLayerId3D)) {
+              map.current!.setFilter(hoverLayerId3D, ['==', ['id'], -999999])
+            }
+            hoveredFeature = null
+          }
+          return
+        }
+
         // Clear previous hover
         if (hoveredFeature) {
-          const hoverLayerId = hoverLayerMap[hoveredFeature.layer]
-          if (hoverLayerId && map.current!.getLayer(hoverLayerId)) {
-            // Set to empty - no features shown
-            map.current!.setFilter(hoverLayerId, ['==', ['id'], -999999])
+          const hoverLayerIds = hoverLayerMap[hoveredFeature.layer]
+          if (hoverLayerIds) {
+            hoverLayerIds.forEach(hoverLayerId => {
+              if (map.current!.getLayer(hoverLayerId)) {
+                // Set to empty - no features shown
+                map.current!.setFilter(hoverLayerId, ['==', ['id'], -999999])
+              }
+            })
           }
 
           // Also clear 3D hover if it exists
@@ -581,11 +841,15 @@ export default function MapView() {
 
         // Set new hover
         if (newFeature && newFeature.id !== undefined) {
-          const hoverLayerId = hoverLayerMap[newFeature.layer]
-          if (hoverLayerId && map.current!.getLayer(hoverLayerId)) {
-            // Match by feature ID (not property)
-            console.log('Setting hover for', newFeature.layer, 'ID:', newFeature.id)
-            map.current!.setFilter(hoverLayerId, ['==', ['id'], newFeature.id])
+          const hoverLayerIds = hoverLayerMap[newFeature.layer]
+          if (hoverLayerIds) {
+            hoverLayerIds.forEach(hoverLayerId => {
+              if (map.current!.getLayer(hoverLayerId)) {
+                // Match by feature ID (not property)
+                console.log('Setting hover for', newFeature.layer, 'ID:', newFeature.id)
+                map.current!.setFilter(hoverLayerId, ['==', ['id'], newFeature.id])
+              }
+            })
           }
 
           // Also set 3D hover if it exists
@@ -772,17 +1036,86 @@ export default function MapView() {
     // Point mode: preview circle on mousemove
     map.current.on('mousemove', (e) => {
       if (mapModeRef.current === 'create' && selectionModeRef.current === 'point') {
+        // Update preview radius coordinates
+        previewRadiusCoords.current = { lng: e.lngLat.lng, lat: e.lngLat.lat }
+
+        // Helper function to create a circle geometry
+        const createCircle = (center: [number, number], radiusInMeters: number): GeoJSON.Feature => {
+          const points = 64
+          const coords = []
+          const distanceX = radiusInMeters / (111320 * Math.cos(center[1] * Math.PI / 180))
+          const distanceY = radiusInMeters / 110540
+
+          for (let i = 0; i < points; i++) {
+            const angle = (i / points) * 2 * Math.PI
+            const dx = distanceX * Math.cos(angle)
+            const dy = distanceY * Math.sin(angle)
+            coords.push([center[0] + dx, center[1] + dy])
+          }
+          coords.push(coords[0]) // Close the circle
+
+          return {
+            type: 'Feature',
+            properties: {},
+            geometry: {
+              type: 'Polygon',
+              coordinates: [coords]
+            }
+          }
+        }
+
+        const circleFeature = createCircle([e.lngLat.lng, e.lngLat.lat], pointRadius)
+
+        // Update or create preview radius source
+        if (map.current!.getSource('point-radius-preview')) {
+          (map.current!.getSource('point-radius-preview') as maplibregl.GeoJSONSource).setData({
+            type: 'FeatureCollection',
+            features: [circleFeature]
+          })
+        } else {
+          map.current!.addSource('point-radius-preview', {
+            type: 'geojson',
+            data: {
+              type: 'FeatureCollection',
+              features: [circleFeature]
+            }
+          })
+
+          // Add circle fill layer
+          map.current!.addLayer({
+            id: 'point-radius-preview-fill',
+            type: 'fill',
+            source: 'point-radius-preview',
+            paint: {
+              'fill-color': '#818cf8',
+              'fill-opacity': 0.15
+            }
+          })
+
+          // Add circle outline layer
+          map.current!.addLayer({
+            id: 'point-radius-preview-line',
+            type: 'line',
+            source: 'point-radius-preview',
+            paint: {
+              'line-color': '#6366f1',
+              'line-width': 2,
+              'line-opacity': 0.6,
+              'line-dasharray': [2, 2]
+            }
+          })
+        }
+
         // Create or update preview marker
         if (!previewMarkerRef.current) {
           const el = document.createElement('div')
-          el.style.width = '24px'
-          el.style.height = '24px'
+          el.style.width = '12px'
+          el.style.height = '12px'
           el.style.borderRadius = '50%'
-          el.style.backgroundColor = '#818cf8' // Soft indigo
-          el.style.border = '3px solid white'
+          el.style.backgroundColor = '#6366f1'
+          el.style.border = '2px solid white'
           el.style.boxShadow = '0 2px 8px rgba(0,0,0,0.3)'
-          el.style.opacity = '0.7'
-          el.style.transition = 'all 0.2s'
+          el.style.opacity = '0.8'
 
           previewMarkerRef.current = new maplibregl.Marker({ element: el })
             .setLngLat(e.lngLat)
@@ -791,10 +1124,22 @@ export default function MapView() {
           previewMarkerRef.current.setLngLat(e.lngLat)
         }
       } else {
-        // Remove preview marker if not in point mode
+        // Remove preview marker and radius if not in point mode
         if (previewMarkerRef.current) {
           previewMarkerRef.current.remove()
           previewMarkerRef.current = null
+        }
+        previewRadiusCoords.current = null
+
+        // Remove preview radius layers
+        if (map.current!.getLayer('point-radius-preview-fill')) {
+          map.current!.removeLayer('point-radius-preview-fill')
+        }
+        if (map.current!.getLayer('point-radius-preview-line')) {
+          map.current!.removeLayer('point-radius-preview-line')
+        }
+        if (map.current!.getSource('point-radius-preview')) {
+          map.current!.removeSource('point-radius-preview')
         }
       }
     })
@@ -805,25 +1150,51 @@ export default function MapView() {
 
       const point = map.current!.project(e.lngLat)
 
-      // MODE 1: Building/Road (multi-select)
+      // MODE 1: Building/Road selection
       if (selectionModeRef.current === 'building') {
-        const features = detectFeaturesAtPoint(map.current!, point, 5)
+        console.log('🖱️ Building mode click at:', e.lngLat)
+
+        // Query buildings directly from the CartoDB source (both 2D and 3D layers)
+        const buildingLayers = is3DViewRef.current ? ['building-3d'] : ['building', 'building-top']
+
+        const features = map.current!.queryRenderedFeatures(
+          [
+            [point.x - 5, point.y - 5],
+            [point.x + 5, point.y + 5],
+          ],
+          { layers: buildingLayers }
+        )
+
+        console.log(`📍 Found ${features.length} building features at click point`)
 
         if (features.length > 0) {
-          const feature = features[0]
-          console.log('✅ Feature selected:', feature)
-
-          // Add to selection (toggle if already selected)
-          setSelectedFeatures(prev => {
-            const exists = prev.find(f => f.id === feature.id)
-            if (exists) {
-              // Remove if clicking again
-              return prev.filter(f => f.id !== feature.id)
-            } else {
-              // Add to selection
-              return [...prev, feature]
-            }
+          const mapFeature = features[0]
+          console.log('✅ Raw MapLibre feature:', {
+            id: mapFeature.id,
+            layer: mapFeature.layer.id,
+            sourceLayer: mapFeature.sourceLayer,
+            source: mapFeature.source,
+            properties: mapFeature.properties
           })
+
+          // Convert to our DetectedFeature format
+          const detectedFeature: DetectedFeature = {
+            id: mapFeature.id?.toString() || `${mapFeature.layer.id}-${Date.now()}`,
+            type: 'building',
+            geometry: mapFeature.geometry as GeoJSON.Geometry,
+            properties: mapFeature.properties || {},
+            layer: mapFeature.layer.id,
+            name: mapFeature.properties?.name,
+          }
+
+          console.log('✅ Detected feature:', detectedFeature)
+
+          // Single selection (replace previous selection)
+          setSelectedFeatures([detectedFeature])
+        } else {
+          console.log('❌ No buildings found at click point')
+          // Click on empty space - deselect
+          setSelectedFeatures([])
         }
       }
 
@@ -938,55 +1309,6 @@ export default function MapView() {
     }
   }, [])
 
-  useEffect(() => {
-    if (!map.current || pois.length === 0) return
-
-    const markers: maplibregl.Marker[] = []
-
-    pois.forEach((poi) => {
-      const [lng, lat] = poi.geom.coordinates
-      const el = document.createElement('div')
-      el.style.width = '32px'
-      el.style.height = '32px'
-      el.style.borderRadius = '50%'
-      el.style.cursor = 'pointer'
-      el.style.display = 'flex'
-      el.style.alignItems = 'center'
-      el.style.justifyContent = 'center'
-      el.style.fontSize = '18px'
-      
-      const poiStyles = {
-        espacio_verde: { bg: '#22c55e', emoji: '🌳' },
-        salud: { bg: '#ef4444', emoji: '🏥' },
-        educacion: { bg: '#3b82f6', emoji: '🎓' },
-        transporte: { bg: '#f59e0b', emoji: '🚉' },
-        default: { bg: '#6366f1', emoji: '📍' },
-      }
-
-      const style = poiStyles[poi.type as keyof typeof poiStyles] || poiStyles.default
-      el.style.backgroundColor = style.bg
-      el.textContent = style.emoji
-
-      const popup = new maplibregl.Popup({ offset: 25 }).setHTML(`
-        <div style="padding: 8px; min-width: 200px;">
-          <h3 style="margin: 0 0 8px 0; font-weight: 600; font-size: 14px;">${poi.name}</h3>
-          <p style="margin: 0 0 4px 0; font-size: 12px; color: #666;">${poi.type.replace('_', ' ')}</p>
-          ${poi.address ? `<p style="margin: 0; font-size: 12px; color: #999;">${poi.address}</p>` : ''}
-        </div>
-      `)
-
-      const marker = new maplibregl.Marker({ element: el })
-        .setLngLat([lng, lat])
-        .setPopup(popup)
-        .addTo(map.current!)
-
-      markers.push(marker)
-    })
-
-    return () => {
-      markers.forEach((marker) => marker.remove())
-    }
-  }, [pois])
 
   // Add proposal markers
   useEffect(() => {
@@ -1001,39 +1323,59 @@ export default function MapView() {
 
       const [lng, lat] = proposal.geom.coordinates
 
-      // Create custom marker element
+      // Create custom marker element (simple circle without emoji)
       const el = document.createElement('div')
-      el.style.width = '36px'
-      el.style.height = '36px'
+      el.style.width = '16px'
+      el.style.height = '16px'
       el.style.borderRadius = '50%'
       el.style.cursor = 'pointer'
-      el.style.display = 'flex'
-      el.style.alignItems = 'center'
-      el.style.justifyContent = 'center'
-      el.style.fontSize = '20px'
       el.style.backgroundColor = '#6366f1'
       el.style.border = '2px solid white'
       el.style.boxShadow = '0 2px 4px rgba(0,0,0,0.2)'
-      el.textContent = '💡'
+      el.style.transition = 'transform 0.2s, box-shadow 0.2s'
 
-      // Hover effect
+      // Hover effect (no scale transform to prevent movement)
       el.addEventListener('mouseenter', () => {
-        el.style.transform = 'scale(1.1)'
-        el.style.transition = 'transform 0.2s'
+        el.style.boxShadow = '0 4px 8px rgba(99, 102, 241, 0.4)'
+        // Set hovered proposal to highlight related features
+        setHoveredProposal(proposal)
       })
       el.addEventListener('mouseleave', () => {
-        el.style.transform = 'scale(1)'
+        el.style.boxShadow = '0 2px 4px rgba(0,0,0,0.2)'
+        // Clear hovered proposal
+        setHoveredProposal(null)
       })
 
-      const popup = new maplibregl.Popup({ offset: 25 }).setHTML(`
-        <div style="padding: 8px; min-width: 200px;">
-          <h3 style="margin: 0 0 8px 0; font-weight: 600; font-size: 14px;">${proposal.title}</h3>
-          ${proposal.summary ? `<p style="margin: 0 0 4px 0; font-size: 12px; color: #666;">${proposal.summary.substring(0, 80)}${proposal.summary.length > 80 ? '...' : ''}</p>` : ''}
-          <p style="margin: 4px 0 0 0; font-size: 11px; color: #999;">Click para ver detalles</p>
+      // Format date
+      const createdDate = new Date(proposal.createdAt || Date.now())
+      const formattedDate = createdDate.toLocaleDateString('es-AR', {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric'
+      })
+
+      const popup = new maplibregl.Popup({
+        offset: 15,
+        closeButton: false,
+        className: 'proposal-tooltip'
+      }).setHTML(`
+        <div style="padding: 12px; min-width: 240px; max-width: 300px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;">
+          <h3 style="margin: 0 0 8px 0; font-weight: 600; font-size: 15px; color: #1f2937;">${proposal.title}</h3>
+          <div style="margin: 0 0 8px 0; font-size: 12px; color: #6b7280; line-height: 1.5;">
+            ${proposal.summary ? proposal.summary.substring(0, 120) + (proposal.summary.length > 120 ? '...' : '') : 'Sin descripción'}
+          </div>
+          <div style="display: flex; justify-content: space-between; align-items: center; padding-top: 8px; border-top: 1px solid #e5e7eb;">
+            <span style="font-size: 11px; color: #9ca3af;">Por ${proposal.author?.name || 'Usuario'}</span>
+            <span style="font-size: 11px; color: #9ca3af;">${formattedDate}</span>
+          </div>
         </div>
       `)
 
-      const marker = new maplibregl.Marker({ element: el })
+      // Create marker with proper anchor (center, center) to prevent movement
+      const marker = new maplibregl.Marker({
+        element: el,
+        anchor: 'center' // This prevents the marker from moving
+      })
         .setLngLat([lng, lat])
         .setPopup(popup)
         .addTo(map.current!)
@@ -1073,6 +1415,17 @@ export default function MapView() {
       confirmedMarkerRef.current = null
     }
 
+    // Remove confirmed point radius circle
+    if (map.current && map.current.getSource('point-radius')) {
+      if (map.current.getLayer('point-radius-fill')) {
+        map.current.removeLayer('point-radius-fill')
+      }
+      if (map.current.getLayer('point-radius-line')) {
+        map.current.removeLayer('point-radius-line')
+      }
+      map.current.removeSource('point-radius')
+    }
+
     setMapMode('navigate') // Ensure return to navigation mode
   }
 
@@ -1086,26 +1439,24 @@ export default function MapView() {
           </div>
         </div>
       )}
-      
+
       <div
         ref={mapContainer}
         className={`w-full h-full ${
           mapMode === 'create'
-            ? selectionMode === 'polygon'
-              ? 'cursor-crosshair'
-              : 'cursor-pointer'
+            ? selectionMode === 'polygon' ? 'cursor-crosshair' : 'cursor-pointer'
             : 'cursor-grab active:cursor-grabbing'
         }`}
       />
 
-      {/* 2D/3D Toggle */}
-      <div className="absolute top-4 right-20 z-30">
+      {/* 2D/3D Toggle - Material Design */}
+      <div className="absolute top-4 right-4 z-30">
         <button
           onClick={() => setIs3DView(!is3DView)}
-          className={`px-4 py-2 rounded-lg shadow-lg text-sm font-medium transition ${
+          className={`px-4 py-2 rounded-xl shadow-md text-sm font-medium transition-all ${
             is3DView
-              ? 'bg-indigo-600 text-white'
-              : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50'
+              ? 'bg-indigo-600 text-white shadow-indigo-200'
+              : 'bg-white/95 backdrop-blur-sm text-gray-700 border border-gray-200 hover:bg-gray-50'
           }`}
           title={is3DView ? 'Switch to 2D view' : 'Switch to 3D view'}
         >
@@ -1113,201 +1464,112 @@ export default function MapView() {
         </button>
       </div>
 
-      {/* Selection mode controls */}
-      {mapMode === 'create' && (
-        <div className="fixed top-6 left-1/2 -translate-x-1/2 z-40 bg-white border-2 border-indigo-500 rounded-lg shadow-lg p-4">
-          <div className="flex flex-col gap-3">
-            {/* Mode selector */}
-            <div className="flex gap-2">
-              <button
-                onClick={() => setSelectionMode('building')}
-                className={`px-4 py-2 rounded-lg text-sm font-medium transition ${
-                  selectionMode === 'building'
-                    ? 'bg-indigo-600 text-white'
-                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                }`}
-              >
-                🏢 Buildings
-              </button>
-              <button
-                onClick={() => setSelectionMode('point')}
-                className={`px-4 py-2 rounded-lg text-sm font-medium transition ${
-                  selectionMode === 'point'
-                    ? 'bg-indigo-600 text-white'
-                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                }`}
-              >
-                📍 Point
-              </button>
-              <button
-                onClick={() => setSelectionMode('polygon')}
-                className={`px-4 py-2 rounded-lg text-sm font-medium transition ${
-                  selectionMode === 'polygon'
-                    ? 'bg-indigo-600 text-white'
-                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                }`}
-              >
-                ⬡ Area
-              </button>
-            </div>
-
-            {/* Instructions */}
-            <div className="text-sm text-gray-600">
-              {selectionMode === 'building' && (
-                <>Click buildings/roads to select (multiple). Click again to deselect.</>
-              )}
-              {selectionMode === 'point' && <>Click anywhere to place a point with radius</>}
-              {selectionMode === 'polygon' && <>Draw an area by clicking points. Double-click to finish.</>}
-            </div>
-
-            {/* Radius control for point mode */}
-            {selectionMode === 'point' && (
-              <div className="bg-blue-50 border border-blue-200 rounded px-3 py-2">
-                <label className="text-sm text-blue-900 font-medium mb-2 block">
-                  Radius: {pointRadius}m
-                </label>
-                <input
-                  type="range"
-                  min="1"
-                  max="500"
-                  value={pointRadius}
-                  onChange={(e) => setPointRadius(Number(e.target.value))}
-                  className="w-full h-2 bg-blue-200 rounded-lg appearance-none cursor-pointer"
-                  style={{
-                    background: `linear-gradient(to right, #3b82f6 0%, #3b82f6 ${((pointRadius - 1) / 499) * 100}%, #dbeafe ${((pointRadius - 1) / 499) * 100}%, #dbeafe 100%)`
-                  }}
-                />
-                <div className="flex justify-between text-xs text-blue-700 mt-1">
-                  <span>1m</span>
-                  <span>500m</span>
-                </div>
-              </div>
-            )}
-
-            {/* Selection counter for building mode */}
-            {selectionMode === 'building' && selectedFeatures.length > 0 && (
-              <div className="bg-indigo-50 border border-indigo-200 rounded px-3 py-2 text-sm text-indigo-900 font-medium">
-                {selectedFeatures.length} feature{selectedFeatures.length > 1 ? 's' : ''} selected
-              </div>
-            )}
-
-            {/* Polygon points counter */}
-            {selectionMode === 'polygon' && polygonPoints.length > 0 && (
-              <div className="bg-purple-50 border border-purple-200 rounded px-3 py-2 text-sm text-purple-900 font-medium">
-                {polygonPoints.length} point{polygonPoints.length > 1 ? 's' : ''} •
-                {polygonPoints.length < 3 && ' Need 3+ for polygon'}
-                {polygonPoints.length >= 3 && ' Polygon ready'}
-              </div>
-            )}
-
-            {/* Action buttons */}
-            <div className="flex gap-2">
-              {/* Building mode - Create Proposal */}
-              {selectionMode === 'building' && selectedFeatures.length > 0 && (
-                <button
-                  onClick={() => {
-                    // Calculate centroid from all selected features
-                    const allCoords = selectedFeatures.flatMap(f => {
-                      const centroid = getCentroid(f.geometry)
-                      return [[centroid.lng, centroid.lat]]
-                    })
-                    const avgLng = allCoords.reduce((sum, c) => sum + c[0], 0) / allCoords.length
-                    const avgLat = allCoords.reduce((sum, c) => sum + c[1], 0) / allCoords.length
-
-                    setSelectedCoords({ lng: avgLng, lat: avgLat })
-                    setDrawerMode('create')
-                    setDrawerOpen(true)
-                  }}
-                  className="flex-1 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition font-medium"
-                >
-                  Create Proposal
-                </button>
-              )}
-
-              {/* Polygon mode - Listo button */}
-              {selectionMode === 'polygon' && polygonPoints.length >= 3 && (
-                <button
-                  onClick={() => {
-                    // Create polygon from points
-                    const closedRing = [...polygonPoints, polygonPoints[0]]
-                    const polygon: GeoJSON.Polygon = {
-                      type: 'Polygon',
-                      coordinates: [closedRing]
-                    }
-
-                    // Calculate centroid
-                    let sumLng = 0
-                    let sumLat = 0
-                    polygonPoints.forEach(point => {
-                      sumLng += point[0]
-                      sumLat += point[1]
-                    })
-                    const centroidLng = sumLng / polygonPoints.length
-                    const centroidLat = sumLat / polygonPoints.length
-
-                    setDrawnPolygon(polygon)
-                    setSelectedCoords({ lng: centroidLng, lat: centroidLat })
-                    setDrawerMode('create')
-                    setDrawerOpen(true)
-                  }}
-                  className="flex-1 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition font-medium"
-                >
-                  ✓ Listo
-                </button>
-              )}
-
-              <button
-                onClick={() => {
-                  setMapMode('navigate')
-                  setSelectedFeatures([])
-                  setDrawnPolygon(null)
-                  setPolygonPoints([])
-                }}
-                className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition font-medium"
-              >
-                Cancel
-              </button>
+      {/* Point mode radius control - Material Design */}
+      {mapMode === 'create' && selectionMode === 'point' && (
+        <div className="absolute top-6 left-1/2 -translate-x-1/2 z-40 bg-white/95 backdrop-blur-sm border border-gray-200 rounded-xl shadow-lg p-5">
+          <div className="bg-indigo-50 border border-indigo-200 rounded-lg px-4 py-3">
+            <label className="text-sm text-indigo-900 font-semibold mb-3 block">
+              Radio: {pointRadius}m
+            </label>
+            <input
+              type="range"
+              min="1"
+              max="100"
+              value={pointRadius}
+              onChange={(e) => setPointRadius(Number(e.target.value))}
+              className="w-full h-2 bg-indigo-200 rounded-lg appearance-none cursor-pointer"
+              style={{
+                background: `linear-gradient(to right, #4f46e5 0%, #4f46e5 ${((pointRadius - 1) / 99) * 100}%, #e0e7ff ${((pointRadius - 1) / 99) * 100}%, #e0e7ff 100%)`
+              }}
+            />
+            <div className="flex justify-between text-xs text-indigo-600 mt-2 font-medium">
+              <span>1m</span>
+              <span>100m</span>
             </div>
           </div>
         </div>
       )}
 
-      {/* Add Proposal button */}
-      {mapMode === 'navigate' && (
-        <button
-          onClick={() => setMapMode('create')}
-          className="fixed bottom-6 right-6 z-30 flex items-center gap-2 px-6 py-3 bg-indigo-600 text-white rounded-full shadow-lg hover:bg-indigo-700 transition-all hover:scale-105"
-        >
-          <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-          </svg>
-          <span className="font-medium">Add Proposal</span>
-        </button>
-      )}
+      {/* Selection info - bottom center - Material Design */}
+      {mapMode === 'create' && (
+        <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-40 bg-white/95 backdrop-blur-sm border border-gray-200 rounded-xl shadow-lg px-5 py-3.5">
+          {selectionMode === 'building' && (
+            <div className="flex items-center gap-3">
+              {selectedFeatures.length > 0 ? (
+                <>
+                  <span className="text-sm text-indigo-900 font-medium">
+                    {selectedFeatures.length} building{selectedFeatures.length > 1 ? 's' : ''} selected
+                  </span>
+                  <button
+                    onClick={() => {
+                      // Calculate centroid from all selected features
+                      const allCoords = selectedFeatures.flatMap(f => {
+                        const centroid = getCentroid(f.geometry)
+                        return [[centroid.lng, centroid.lat]]
+                      })
+                      const avgLng = allCoords.reduce((sum, c) => sum + c[0], 0) / allCoords.length
+                      const avgLat = allCoords.reduce((sum, c) => sum + c[1], 0) / allCoords.length
 
-      <div className="absolute bottom-8 left-4 bg-white rounded-lg shadow-lg p-4 z-10">
-        <h4 className="text-xs font-semibold text-gray-700 mb-2">Puntos de Interés</h4>
-        <div className="space-y-2 text-xs">
-          <div className="flex items-center gap-2"><span>🌳</span><span>Espacio Verde</span></div>
-          <div className="flex items-center gap-2"><span>🏥</span><span>Salud</span></div>
-          <div className="flex items-center gap-2"><span>🎓</span><span>Educación</span></div>
-          <div className="flex items-center gap-2"><span>🚉</span><span>Transporte</span></div>
-        </div>
-      </div>
+                      setSelectedCoords({ lng: avgLng, lat: avgLat })
+                      setDrawerMode('create')
+                      setDrawerOpen(true)
+                    }}
+                    className="px-5 py-2.5 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 transition-all shadow-md shadow-indigo-200 font-medium text-sm"
+                  >
+                    Create Proposal
+                  </button>
+                </>
+              ) : (
+                <span className="text-sm text-gray-600">Click a building to select</span>
+              )}
+            </div>
+          )}
+          {selectionMode === 'point' && (
+            <span className="text-sm text-gray-600">Click anywhere to place a point</span>
+          )}
+          {selectionMode === 'polygon' && polygonPoints.length === 0 && (
+            <span className="text-sm text-gray-600">Click to draw an area</span>
+          )}
+          {selectionMode === 'polygon' && polygonPoints.length > 0 && polygonPoints.length < 3 && (
+            <span className="text-sm text-purple-900 font-medium">
+              {polygonPoints.length} point{polygonPoints.length > 1 ? 's' : ''} • Need 3+ for polygon
+            </span>
+          )}
+          {selectionMode === 'polygon' && polygonPoints.length >= 3 && (
+            <div className="flex items-center gap-3">
+              <span className="text-sm text-purple-900 font-medium">
+                {polygonPoints.length} points • Polygon ready
+              </span>
+              <button
+                onClick={() => {
+                  // Create polygon from points
+                  const closedRing = [...polygonPoints, polygonPoints[0]]
+                  const polygon: GeoJSON.Polygon = {
+                    type: 'Polygon',
+                    coordinates: [closedRing]
+                  }
 
-      {pois.length > 0 && (
-        <div className="absolute top-4 left-4 bg-white rounded-lg shadow-lg px-3 py-2 z-10">
-          <p className="text-xs text-gray-600">
-            <span className="font-semibold text-gray-900">{pois.length}</span> POIs cargados
-          </p>
-        </div>
-      )}
+                  // Calculate centroid
+                  let sumLng = 0
+                  let sumLat = 0
+                  polygonPoints.forEach(point => {
+                    sumLng += point[0]
+                    sumLat += point[1]
+                  })
+                  const centroidLng = sumLng / polygonPoints.length
+                  const centroidLat = sumLat / polygonPoints.length
 
-      {proposals.length > 0 && (
-        <div className="absolute top-16 left-4 bg-indigo-100 border border-indigo-300 rounded-lg shadow-lg px-3 py-2 z-10">
-          <p className="text-xs text-indigo-900">
-            <span className="font-semibold">{proposals.length}</span> propuestas 💡
-          </p>
+                  setDrawnPolygon(polygon)
+                  setSelectedCoords({ lng: centroidLng, lat: centroidLat })
+                  setDrawerMode('create')
+                  setDrawerOpen(true)
+                }}
+                className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition font-medium text-sm"
+              >
+                Create Proposal
+              </button>
+            </div>
+          )}
         </div>
       )}
 

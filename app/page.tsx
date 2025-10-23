@@ -69,7 +69,7 @@ export default function Home() {
             href="/map"
             className="block w-full text-center bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-3 px-4 rounded-lg transition-colors duration-200"
           >
-            🗺️ Abrir Scene Viewer
+            🗺️ Abrir Mapa
           </a>
           <a
             href="/api/health"
@@ -80,7 +80,7 @@ export default function Home() {
             Verificar Estado del Sistema
           </a>
           <p className="mt-4 text-center text-sm text-gray-500">
-            Versión actual: <strong className="text-gray-700">v0.101 — Scene Viewer</strong>
+            Versión actual: <strong className="text-gray-700">v0.101 — Map View</strong>
           </p>
         </div>
 
