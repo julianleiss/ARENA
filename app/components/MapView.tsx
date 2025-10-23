@@ -459,7 +459,8 @@ export default function MapViewDeck({
   const [polygonPoints, setPolygonPoints] = useState<[number, number][]>([])
   const [drawnPolygon, setDrawnPolygon] = useState<GeoJSON.Polygon | null>(null)
 
-  // 3D view state - removed to fix performance
+  // 3D view state
+  const [is3D, setIs3D] = useState(true)
 
   // Drawer state
   const [drawerOpen, setDrawerOpen] = useState(false)
@@ -525,6 +526,7 @@ export default function MapViewDeck({
     setProposals((prev) => [newProposal, ...prev])
     setSelectedBuildingIds([])
     setSelectedCoords(undefined)
+    setMapMode('navigate') // Return to navigate mode after creating
   }
 
   // Close drawer handler
@@ -561,8 +563,8 @@ export default function MapViewDeck({
         <Map
           defaultCenter={{ lat: -34.545, lng: -58.46 }} // Núñez area
           defaultZoom={17}
-          defaultTilt={45} // 3D tilt - fixed for performance
-          defaultHeading={0} // Rotation - fixed for performance
+          tilt={is3D ? 45 : 0}
+          heading={0}
           gestureHandling="greedy"
           disableDefaultUI={false}
           className="w-full h-full"
@@ -583,6 +585,19 @@ export default function MapViewDeck({
           />
         </Map>
       </APIProvider>
+
+      {/* 2D/3D Toggle - top right */}
+      <button
+        onClick={() => setIs3D(!is3D)}
+        className="absolute top-6 right-6 z-40 bg-white/95 backdrop-blur-sm border border-gray-200 rounded-xl shadow-lg px-4 py-2.5 hover:bg-gray-50 transition-all flex items-center gap-2"
+      >
+        <span className="text-sm font-medium text-gray-700">
+          {is3D ? '3D' : '2D'}
+        </span>
+        <svg className="w-4 h-4 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4" />
+        </svg>
+      </button>
 
       {/* Point mode radius control */}
       {mapMode === 'create' && selectionMode === 'point' && (
