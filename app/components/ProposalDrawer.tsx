@@ -14,7 +14,8 @@ interface DrawerProps {
   coordinates?: { lng: number; lat: number }
   proposalId?: string
   onProposalCreated?: (proposal: any) => void
-  selectedFeature?: DetectedFeature | null
+  selectedFeatures?: DetectedFeature[]
+  drawnPolygon?: GeoJSON.Polygon | null
 }
 
 interface ProposalData {
@@ -43,7 +44,8 @@ export default function ProposalDrawer({
   coordinates,
   proposalId,
   onProposalCreated,
-  selectedFeature,
+  selectedFeatures = [],
+  drawnPolygon = null,
 }: DrawerProps) {
   const [formData, setFormData] = useState({
     title: '',
@@ -133,14 +135,17 @@ export default function ProposalDrawer({
           .split(',')
           .map((t) => t.trim())
           .filter((t) => t),
-        // OSM Feature Data
-        ...(selectedFeature && {
-          feature: {
-            type: selectedFeature.type,
-            osmId: selectedFeature.osmId,
-            name: selectedFeature.name,
-            properties: selectedFeature.properties,
-          },
+        // OSM Feature Data (multiple features or polygon)
+        ...(selectedFeatures.length > 0 && {
+          features: selectedFeatures.map(f => ({
+            type: f.type,
+            osmId: f.osmId,
+            name: f.name,
+            properties: f.properties,
+          })),
+        }),
+        ...(drawnPolygon && {
+          polygon: drawnPolygon,
         }),
         // Temporarily disabled - images column doesn't exist in DB
         // ...(images.length > 0 && { images: images }),
@@ -220,42 +225,52 @@ export default function ProposalDrawer({
           <div className="flex-1 overflow-y-auto">
             {mode === 'create' && coordinates && (
               <form onSubmit={handleSubmit} className="p-6 space-y-6">
-                {/* Selected Feature Display */}
-                {selectedFeature ? (
+                {/* Selected Features/Polygon Display */}
+                {selectedFeatures.length > 0 ? (
                   <div className="bg-green-50 border border-green-200 rounded-lg p-4">
                     <p className="text-xs font-medium text-green-900 mb-2">
-                      ✓ Feature seleccionado
+                      ✓ {selectedFeatures.length} feature{selectedFeatures.length > 1 ? 's' : ''} selected
                     </p>
-                    <div className="space-y-1">
-                      <p className="text-sm text-green-800 font-semibold">
-                        {selectedFeature.name || `${selectedFeature.type} (sin nombre)`}
-                      </p>
-                      <p className="text-xs text-green-700">
-                        Tipo: <span className="font-mono">{selectedFeature.type}</span>
-                      </p>
-                      {selectedFeature.description && (
-                        <p className="text-xs text-green-700">
-                          {selectedFeature.description}
-                        </p>
-                      )}
-                      <p className="text-xs text-green-600 font-mono mt-2">
-                        {coordinates.lat.toFixed(6)}, {coordinates.lng.toFixed(6)}
-                      </p>
+                    <div className="space-y-2 max-h-32 overflow-y-auto">
+                      {selectedFeatures.map((feature, idx) => (
+                        <div key={feature.id} className="text-xs bg-white rounded px-2 py-1">
+                          <span className="font-semibold text-green-800">
+                            {idx + 1}. {feature.name || `${feature.type}`}
+                          </span>
+                          <span className="text-green-600 ml-2">({feature.type})</span>
+                        </div>
+                      ))}
                     </div>
+                    {coordinates && (
+                      <p className="text-xs text-green-600 font-mono mt-2">
+                        Center: {coordinates.lat.toFixed(6)}, {coordinates.lng.toFixed(6)}
+                      </p>
+                    )}
                   </div>
-                ) : (
+                ) : drawnPolygon ? (
+                  <div className="bg-purple-50 border border-purple-200 rounded-lg p-4">
+                    <p className="text-xs font-medium text-purple-900 mb-1">
+                      ⬡ Polygon area selected
+                    </p>
+                    <p className="text-xs text-purple-700">
+                      {drawnPolygon.coordinates[0].length} points
+                    </p>
+                    {coordinates && (
+                      <p className="text-xs text-purple-600 font-mono mt-2">
+                        Center: {coordinates.lat.toFixed(6)}, {coordinates.lng.toFixed(6)}
+                      </p>
+                    )}
+                  </div>
+                ) : coordinates ? (
                   <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
                     <p className="text-xs font-medium text-blue-900 mb-1">
-                      Ubicación seleccionada
+                      📍 Point selected
                     </p>
                     <p className="text-sm text-blue-800 font-mono">
                       {coordinates.lat.toFixed(6)}, {coordinates.lng.toFixed(6)}
                     </p>
-                    <p className="text-xs text-blue-600 mt-1">
-                      No hay feature asociado (punto exacto)
-                    </p>
                   </div>
-                )}
+                ) : null}
 
                 {/* Title */}
                 <div>

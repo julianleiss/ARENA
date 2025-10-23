@@ -41,14 +41,18 @@ export default function MapView() {
   // Map mode state
   const [mapMode, setMapMode] = useState<'navigate' | 'create'>('navigate')
 
+  // Selection mode: building (multi-select vectors), point (single coordinate), polygon (drawn area)
+  const [selectionMode, setSelectionMode] = useState<'building' | 'point' | 'polygon'>('building')
+
   // Drawer state
   const [drawerOpen, setDrawerOpen] = useState(false)
   const [drawerMode, setDrawerMode] = useState<'create' | 'view'>('create')
   const [selectedCoords, setSelectedCoords] = useState<{ lng: number; lat: number } | undefined>()
   const [selectedProposalId, setSelectedProposalId] = useState<string | undefined>()
 
-  // Feature selection state
-  const [selectedFeature, setSelectedFeature] = useState<DetectedFeature | null>(null)
+  // Feature selection state (multi-selection)
+  const [selectedFeatures, setSelectedFeatures] = useState<DetectedFeature[]>([])
+  const [drawnPolygon, setDrawnPolygon] = useState<GeoJSON.Polygon | null>(null)
 
   // Store markers references
   const proposalMarkersRef = useRef<maplibregl.Marker[]>([])
@@ -87,11 +91,17 @@ export default function MapView() {
     fetchProposals()
   }, [])
 
-  // Store mapMode in a ref to avoid reinitialization
+  // Store mapMode and selectionMode in refs to avoid reinitialization
   const mapModeRef = useRef(mapMode)
+  const selectionModeRef = useRef(selectionMode)
+
   useEffect(() => {
     mapModeRef.current = mapMode
   }, [mapMode])
+
+  useEffect(() => {
+    selectionModeRef.current = selectionMode
+  }, [selectionMode])
 
   // Initialize map
   useEffect(() => {
@@ -401,38 +411,43 @@ export default function MapView() {
       }, 3000)
     })
 
-    // Add click handler for creating proposals
+    // Add click handler for creating proposals with 3 selection modes
     map.current.on('click', (e) => {
-      if (mapModeRef.current === 'create') {
-        // Detect features at click point
-        const point = map.current!.project(e.lngLat)
-        const features = detectFeaturesAtPoint(map.current!, point, 5) // Smaller radius for precision
+      if (mapModeRef.current !== 'create') return
 
-        console.log('Features detectadas:', features)
+      const point = map.current!.project(e.lngLat)
+
+      // MODE 1: Building/Road (multi-select)
+      if (selectionModeRef.current === 'building') {
+        const features = detectFeaturesAtPoint(map.current!, point, 5)
 
         if (features.length > 0) {
-          // Directly use the first (top-most) feature
           const feature = features[0]
           console.log('✅ Feature selected:', feature)
 
-          // Get centroid of feature geometry
-          const centroid = getCentroid(feature.geometry)
-
-          setSelectedFeature(feature)
-          setSelectedCoords(centroid)
-          setDrawerMode('create')
-          setDrawerOpen(true)
-          setMapMode('navigate') // Return to navigation mode
-        } else {
-          // No features detected, proceed directly with exact point
-          setSelectedFeature(null)
-          setSelectedCoords({ lng: e.lngLat.lng, lat: e.lngLat.lat })
-          setDrawerMode('create')
-          setDrawerOpen(true)
-          setMapMode('navigate') // Return to navigation mode
+          // Add to selection (toggle if already selected)
+          setSelectedFeatures(prev => {
+            const exists = prev.find(f => f.id === feature.id)
+            if (exists) {
+              // Remove if clicking again
+              return prev.filter(f => f.id !== feature.id)
+            } else {
+              // Add to selection
+              return [...prev, feature]
+            }
+          })
         }
       }
-      // If mapMode === 'navigate', do nothing (just navigate)
+
+      // MODE 2: Point (single coordinate)
+      else if (selectionModeRef.current === 'point') {
+        setSelectedCoords({ lng: e.lngLat.lng, lat: e.lngLat.lat })
+        setDrawerMode('create')
+        setDrawerOpen(true)
+        setMapMode('navigate')
+      }
+
+      // MODE 3: Polygon drawing handled by MapLibre Draw
     })
 
     return () => {
@@ -565,7 +580,8 @@ export default function MapView() {
   // Handler for closing drawer
   const handleCloseDrawer = () => {
     setDrawerOpen(false)
-    setSelectedFeature(null) // Clear selected feature
+    setSelectedFeatures([]) // Clear selected features
+    setDrawnPolygon(null) // Clear drawn polygon
     setMapMode('navigate') // Ensure return to navigation mode
   }
 
@@ -585,18 +601,94 @@ export default function MapView() {
         className={`w-full h-full ${mapMode === 'create' ? 'cursor-crosshair' : 'cursor-grab active:cursor-grabbing'}`}
       />
 
-      {/* Feedback banner for creation mode */}
+      {/* Selection mode controls */}
       {mapMode === 'create' && (
-        <div className="fixed top-6 left-1/2 -translate-x-1/2 z-40 bg-indigo-100 border-2 border-indigo-500 rounded-lg px-6 py-3 shadow-lg flex items-center gap-4">
-          <span className="text-indigo-900 font-medium">
-            🏢 Hover over buildings/roads and click to select
-          </span>
-          <button
-            onClick={() => setMapMode('navigate')}
-            className="text-indigo-700 hover:text-indigo-900 font-medium transition"
-          >
-            Cancel ✕
-          </button>
+        <div className="fixed top-6 left-1/2 -translate-x-1/2 z-40 bg-white border-2 border-indigo-500 rounded-lg shadow-lg p-4">
+          <div className="flex flex-col gap-3">
+            {/* Mode selector */}
+            <div className="flex gap-2">
+              <button
+                onClick={() => setSelectionMode('building')}
+                className={`px-4 py-2 rounded-lg text-sm font-medium transition ${
+                  selectionMode === 'building'
+                    ? 'bg-indigo-600 text-white'
+                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                }`}
+              >
+                🏢 Buildings
+              </button>
+              <button
+                onClick={() => setSelectionMode('point')}
+                className={`px-4 py-2 rounded-lg text-sm font-medium transition ${
+                  selectionMode === 'point'
+                    ? 'bg-indigo-600 text-white'
+                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                }`}
+              >
+                📍 Point
+              </button>
+              <button
+                onClick={() => setSelectionMode('polygon')}
+                className={`px-4 py-2 rounded-lg text-sm font-medium transition ${
+                  selectionMode === 'polygon'
+                    ? 'bg-indigo-600 text-white'
+                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                }`}
+              >
+                ⬡ Area
+              </button>
+            </div>
+
+            {/* Instructions */}
+            <div className="text-sm text-gray-600">
+              {selectionMode === 'building' && (
+                <>Click buildings/roads to select (multiple). Click again to deselect.</>
+              )}
+              {selectionMode === 'point' && <>Click anywhere to place a point</>}
+              {selectionMode === 'polygon' && <>Draw an area by clicking points. Double-click to finish.</>}
+            </div>
+
+            {/* Selection counter for building mode */}
+            {selectionMode === 'building' && selectedFeatures.length > 0 && (
+              <div className="bg-indigo-50 border border-indigo-200 rounded px-3 py-2 text-sm text-indigo-900 font-medium">
+                {selectedFeatures.length} feature{selectedFeatures.length > 1 ? 's' : ''} selected
+              </div>
+            )}
+
+            {/* Action buttons */}
+            <div className="flex gap-2">
+              {selectionMode === 'building' && selectedFeatures.length > 0 && (
+                <button
+                  onClick={() => {
+                    // Calculate centroid from all selected features
+                    const allCoords = selectedFeatures.flatMap(f => {
+                      const centroid = getCentroid(f.geometry)
+                      return [[centroid.lng, centroid.lat]]
+                    })
+                    const avgLng = allCoords.reduce((sum, c) => sum + c[0], 0) / allCoords.length
+                    const avgLat = allCoords.reduce((sum, c) => sum + c[1], 0) / allCoords.length
+
+                    setSelectedCoords({ lng: avgLng, lat: avgLat })
+                    setDrawerMode('create')
+                    setDrawerOpen(true)
+                  }}
+                  className="flex-1 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition font-medium"
+                >
+                  Create Proposal
+                </button>
+              )}
+              <button
+                onClick={() => {
+                  setMapMode('navigate')
+                  setSelectedFeatures([])
+                  setDrawnPolygon(null)
+                }}
+                className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition font-medium"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
         </div>
       )}
 
@@ -646,7 +738,8 @@ export default function MapView() {
         coordinates={selectedCoords}
         proposalId={selectedProposalId}
         onProposalCreated={handleProposalCreated}
-        selectedFeature={selectedFeature}
+        selectedFeatures={selectedFeatures}
+        drawnPolygon={drawnPolygon}
       />
     </div>
   )
