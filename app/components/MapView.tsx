@@ -56,6 +56,8 @@ export default function MapView() {
 
   // Store markers references
   const proposalMarkersRef = useRef<maplibregl.Marker[]>([])
+  const previewMarkerRef = useRef<maplibregl.Marker | null>(null)
+  const confirmedMarkerRef = useRef<maplibregl.Marker | null>(null)
 
   // Fetch POIs
   useEffect(() => {
@@ -102,6 +104,32 @@ export default function MapView() {
   useEffect(() => {
     selectionModeRef.current = selectionMode
   }, [selectionMode])
+
+  // Update selected features visualization
+  useEffect(() => {
+    if (!map.current) return
+
+    // Get IDs of selected features by type
+    const buildingIds = selectedFeatures
+      .filter(f => f.layer === 'building')
+      .map(f => f.properties?.id || f.id)
+      .filter(id => id !== undefined)
+
+    const roadIds = selectedFeatures
+      .filter(f => f.layer === 'transportation')
+      .map(f => f.properties?.id || f.id)
+      .filter(id => id !== undefined)
+
+    // Update building selection layer
+    if (map.current.getLayer('building-selected')) {
+      map.current.setFilter('building-selected', ['in', ['get', 'id'], ['literal', buildingIds]])
+    }
+
+    // Update transportation selection layer
+    if (map.current.getLayer('transportation-selected')) {
+      map.current.setFilter('transportation-selected', ['in', ['get', 'id'], ['literal', roadIds]])
+    }
+  }, [selectedFeatures])
 
   // Initialize map
   useEffect(() => {
@@ -181,7 +209,20 @@ export default function MapView() {
       map.current.setPaintProperty('building', 'fill-color', '#818cf8') // Soft indigo
       map.current.setPaintProperty('building', 'fill-opacity', 0.3)
 
-      // Building hover (strong indigo)
+      // Building SELECTION layer (persistent indigo for selected buildings)
+      map.current.addLayer({
+        id: 'building-selected',
+        type: 'fill',
+        source: 'carto',
+        'source-layer': 'building',
+        paint: {
+          'fill-color': '#6366f1', // Medium indigo
+          'fill-opacity': 0.6,
+        },
+        filter: ['in', ['get', 'id'], ['literal', []]], // Start with empty array
+      })
+
+      // Building hover (strong indigo on top)
       map.current.addLayer({
         id: 'building-hover',
         type: 'fill',
@@ -191,10 +232,24 @@ export default function MapView() {
           'fill-color': '#4f46e5', // Strong indigo
           'fill-opacity': 0.8,
         },
-        filter: ['==', ['id'], ''],
+        filter: ['==', ['get', 'id'], '___NONE___'],
       })
 
-      // Transportation hover (strong indigo line)
+      // Transportation SELECTION layer
+      map.current.addLayer({
+        id: 'transportation-selected',
+        type: 'line',
+        source: 'carto',
+        'source-layer': 'transportation',
+        paint: {
+          'line-color': '#6366f1', // Medium indigo
+          'line-width': 4,
+          'line-opacity': 0.7,
+        },
+        filter: ['in', ['get', 'id'], ['literal', []]], // Start with empty array
+      })
+
+      // Transportation hover (strong indigo on top)
       map.current.addLayer({
         id: 'transportation-hover',
         type: 'line',
@@ -205,7 +260,7 @@ export default function MapView() {
           'line-width': 5,
           'line-opacity': 0.9,
         },
-        filter: ['==', ['id'], ''],
+        filter: ['==', ['get', 'id'], '___NONE___'],
       })
 
       // Track currently hovered feature
@@ -223,17 +278,19 @@ export default function MapView() {
         if (hoveredFeature) {
           const hoverLayerId = hoverLayerMap[hoveredFeature.layer]
           if (hoverLayerId && map.current!.getLayer(hoverLayerId)) {
-            map.current!.setFilter(hoverLayerId, ['==', ['id'], ''])
+            // Use false to show nothing
+            map.current!.setFilter(hoverLayerId, ['==', ['get', 'id'], '___NONE___'])
           }
         }
 
         hoveredFeature = newFeature
 
         // Set new hover
-        if (newFeature) {
+        if (newFeature && newFeature.id !== undefined) {
           const hoverLayerId = hoverLayerMap[newFeature.layer]
           if (hoverLayerId && map.current!.getLayer(hoverLayerId)) {
-            map.current!.setFilter(hoverLayerId, ['==', ['id'], newFeature.id])
+            // Match by ID properly
+            map.current!.setFilter(hoverLayerId, ['==', ['get', 'id'], newFeature.id])
           }
         }
       }
@@ -411,6 +468,36 @@ export default function MapView() {
       }, 3000)
     })
 
+    // Point mode: preview circle on mousemove
+    map.current.on('mousemove', (e) => {
+      if (mapModeRef.current === 'create' && selectionModeRef.current === 'point') {
+        // Create or update preview marker
+        if (!previewMarkerRef.current) {
+          const el = document.createElement('div')
+          el.style.width = '24px'
+          el.style.height = '24px'
+          el.style.borderRadius = '50%'
+          el.style.backgroundColor = '#818cf8' // Soft indigo
+          el.style.border = '3px solid white'
+          el.style.boxShadow = '0 2px 8px rgba(0,0,0,0.3)'
+          el.style.opacity = '0.7'
+          el.style.transition = 'all 0.2s'
+
+          previewMarkerRef.current = new maplibregl.Marker({ element: el })
+            .setLngLat(e.lngLat)
+            .addTo(map.current!)
+        } else {
+          previewMarkerRef.current.setLngLat(e.lngLat)
+        }
+      } else {
+        // Remove preview marker if not in point mode
+        if (previewMarkerRef.current) {
+          previewMarkerRef.current.remove()
+          previewMarkerRef.current = null
+        }
+      }
+    })
+
     // Add click handler for creating proposals with 3 selection modes
     map.current.on('click', (e) => {
       if (mapModeRef.current !== 'create') return
@@ -441,6 +528,29 @@ export default function MapView() {
 
       // MODE 2: Point (single coordinate)
       else if (selectionModeRef.current === 'point') {
+        // Remove preview marker
+        if (previewMarkerRef.current) {
+          previewMarkerRef.current.remove()
+          previewMarkerRef.current = null
+        }
+
+        // Create confirmed marker (darker)
+        if (confirmedMarkerRef.current) {
+          confirmedMarkerRef.current.remove()
+        }
+
+        const el = document.createElement('div')
+        el.style.width = '28px'
+        el.style.height = '28px'
+        el.style.borderRadius = '50%'
+        el.style.backgroundColor = '#4f46e5' // Strong indigo
+        el.style.border = '3px solid white'
+        el.style.boxShadow = '0 3px 12px rgba(79, 70, 229, 0.5)'
+
+        confirmedMarkerRef.current = new maplibregl.Marker({ element: el })
+          .setLngLat(e.lngLat)
+          .addTo(map.current!)
+
         setSelectedCoords({ lng: e.lngLat.lng, lat: e.lngLat.lat })
         setDrawerMode('create')
         setDrawerOpen(true)
@@ -582,6 +692,13 @@ export default function MapView() {
     setDrawerOpen(false)
     setSelectedFeatures([]) // Clear selected features
     setDrawnPolygon(null) // Clear drawn polygon
+
+    // Remove confirmed point marker
+    if (confirmedMarkerRef.current) {
+      confirmedMarkerRef.current.remove()
+      confirmedMarkerRef.current = null
+    }
+
     setMapMode('navigate') // Ensure return to navigation mode
   }
 
@@ -598,7 +715,13 @@ export default function MapView() {
       
       <div
         ref={mapContainer}
-        className={`w-full h-full ${mapMode === 'create' ? 'cursor-crosshair' : 'cursor-grab active:cursor-grabbing'}`}
+        className={`w-full h-full ${
+          mapMode === 'create'
+            ? selectionMode === 'polygon'
+              ? 'cursor-crosshair'
+              : 'cursor-pointer'
+            : 'cursor-grab active:cursor-grabbing'
+        }`}
       />
 
       {/* Selection mode controls */}
