@@ -1,117 +1,60 @@
-// ARENA V1.0 - Database Seeder
-// Populate database with initial test data
-
+// ARENA - Database Seeder (iteration 1 - proposals)
 import 'dotenv/config'
 import { PrismaClient } from '@prisma/client'
 
 const prisma = new PrismaClient()
 
 async function main() {
-  console.log('🌱 Seeding database...')
+  console.log('🌱 Seeding database (iteration 1)...')
 
-  // Create test users
-  const citizen = await prisma.user.upsert({
-    where: { email: 'citizen@arena.test' },
-    update: {},
-    create: {
-      email: 'citizen@arena.test',
-      name: 'María González',
-      role: 'citizen',
-    },
-  })
-
-  const expert = await prisma.user.upsert({
-    where: { email: 'expert@arena.test' },
-    update: {},
-    create: {
-      email: 'expert@arena.test',
-      name: 'Juan Arquitecto',
-      role: 'expert',
-    },
-  })
-
-  console.log('✅ Created users:', { citizen: citizen.email, expert: expert.email })
-
-  // Create sample POIs in Buenos Aires (Núñez area)
-  const pois = [
+  // Insert 5 proposals with authorId="demo"
+  const proposals = [
     {
-      name: 'Plaza Balcarce',
-      type: 'espacio_verde',
-      geom: { type: 'Point', coordinates: [-58.4583, -34.5447] },
-      address: 'Av. del Libertador 7800',
-      source: 'manual',
+      id: 'prop-1',
+      title: 'New Community Park in Downtown',
+      description: 'Proposal to transform the vacant lot on Main Street into a vibrant community park with playgrounds, walking paths, and green spaces for residents to enjoy.',
+      status: 'published',
+      authorId: 'demo',
     },
     {
-      name: 'Hospital Rivadavia',
-      type: 'salud',
-      geom: { type: 'Point', coordinates: [-58.4520, -34.5460] },
-      address: 'Av. Las Heras 2670',
-      source: 'manual',
+      id: 'prop-2',
+      title: 'Bike Lane Expansion Project',
+      description: 'Expand the existing bike lane network by adding 15 miles of protected bike lanes connecting residential areas to commercial districts and public transit hubs.',
+      status: 'published',
+      authorId: 'demo',
     },
     {
-      name: 'Escuela Primaria Común N° 12',
-      type: 'educacion',
-      geom: { type: 'Point', coordinates: [-58.4600, -34.5470] },
-      address: 'Cabildo 3500',
-      source: 'manual',
+      id: 'prop-3',
+      title: 'Public Library Renovation',
+      description: 'Renovate and modernize the central public library with updated technology, expanded study spaces, and improved accessibility features for all community members.',
+      status: 'published',
+      authorId: 'demo',
     },
     {
-      name: 'Estación Núñez',
-      type: 'transporte',
-      geom: { type: 'Point', coordinates: [-58.4650, -34.5420] },
-      address: 'Av. del Libertador 8000',
-      source: 'manual',
+      id: 'prop-4',
+      title: 'Urban Garden Initiative',
+      description: 'Create 10 community urban gardens throughout the city to promote local food production, environmental education, and neighborhood gathering spaces.',
+      status: 'draft',
+      authorId: 'demo',
+    },
+    {
+      id: 'prop-5',
+      title: 'Street Lighting Upgrade',
+      description: 'Replace outdated street lighting with energy-efficient LED fixtures to improve public safety, reduce energy costs, and minimize light pollution.',
+      status: 'published',
+      authorId: 'demo',
     },
   ]
 
-  for (const poi of pois) {
-    await prisma.pOI.upsert({
-      where: { id: poi.name.toLowerCase().replace(/\s+/g, '-') },
+  for (const proposal of proposals) {
+    await prisma.proposal.upsert({
+      where: { id: proposal.id },
       update: {},
-      create: poi,
+      create: proposal,
     })
   }
 
-  console.log(`✅ Created ${pois.length} POIs`)
-
-  // Create sample proposal
-  const proposal = await prisma.proposal.create({
-    data: {
-      authorId: expert.id,
-      title: 'Corredor Verde Av. del Libertador',
-      summary: 'Propuesta para crear un corredor verde con ciclovía protegida en Av. del Libertador entre Congreso y La Pampa.',
-      body: 'Esta propuesta busca mejorar la conectividad peatonal y ciclista mediante la creación de un corredor verde arbolado con bicisenda protegida, ampliación de veredas y nuevos espacios de permanencia.',
-      geom: {
-        type: 'LineString',
-        coordinates: [
-          [-58.4650, -34.5420],
-          [-58.4583, -34.5447],
-        ],
-      },
-      layer: 'meso',
-      status: 'public',
-      tags: ['movilidad', 'espacio-publico', 'verde'],
-    },
-  })
-
-  console.log('✅ Created sample proposal:', proposal.title)
-
-  // Create audit log entry
-  await prisma.auditLog.create({
-    data: {
-      userId: expert.id,
-      action: 'create_proposal',
-      entity: 'proposal',
-      entityId: proposal.id,
-      metadata: {
-        title: proposal.title,
-        status: proposal.status,
-      },
-    },
-  })
-
-  console.log('✅ Created audit log entry')
-
+  console.log(`✅ Created ${proposals.length} proposals`)
   console.log('🎉 Seeding completed successfully!')
 }
 
