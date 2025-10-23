@@ -54,6 +54,9 @@ export default function MapView() {
   const [selectedFeatures, setSelectedFeatures] = useState<DetectedFeature[]>([])
   const [drawnPolygon, setDrawnPolygon] = useState<GeoJSON.Polygon | null>(null)
 
+  // Polygon drawing state
+  const [polygonPoints, setPolygonPoints] = useState<[number, number][]>([])
+
   // Store markers references
   const proposalMarkersRef = useRef<maplibregl.Marker[]>([])
   const previewMarkerRef = useRef<maplibregl.Marker | null>(null)
@@ -109,10 +112,16 @@ export default function MapView() {
   useEffect(() => {
     if (!map.current) return
 
+    console.log('🔍 Selected features:', selectedFeatures)
+
     // Get IDs of selected features by type
     const buildingIds = selectedFeatures
       .filter(f => f.layer === 'building')
-      .map(f => f.properties?.id || f.id)
+      .map(f => {
+        const id = f.properties?.id || f.id
+        console.log('Building feature ID:', id, 'from', f)
+        return id
+      })
       .filter(id => id !== undefined)
 
     const roadIds = selectedFeatures
@@ -120,16 +129,135 @@ export default function MapView() {
       .map(f => f.properties?.id || f.id)
       .filter(id => id !== undefined)
 
+    console.log('🏢 Building IDs for selection:', buildingIds)
+    console.log('🛣️ Road IDs for selection:', roadIds)
+
     // Update building selection layer
     if (map.current.getLayer('building-selected')) {
-      map.current.setFilter('building-selected', ['in', ['get', 'id'], ['literal', buildingIds]])
+      if (buildingIds.length > 0) {
+        map.current.setFilter('building-selected', ['in', ['id'], ['literal', buildingIds]])
+      } else {
+        map.current.setFilter('building-selected', ['in', ['id'], ['literal', []]])
+      }
     }
 
     // Update transportation selection layer
     if (map.current.getLayer('transportation-selected')) {
-      map.current.setFilter('transportation-selected', ['in', ['get', 'id'], ['literal', roadIds]])
+      if (roadIds.length > 0) {
+        map.current.setFilter('transportation-selected', ['in', ['id'], ['literal', roadIds]])
+      } else {
+        map.current.setFilter('transportation-selected', ['in', ['id'], ['literal', []]])
+      }
     }
   }, [selectedFeatures])
+
+  // Visualize polygon drawing
+  useEffect(() => {
+    if (!map.current || polygonPoints.length === 0) {
+      // Remove polygon layer if no points
+      if (map.current?.getLayer('polygon-drawing')) {
+        map.current.removeLayer('polygon-drawing')
+      }
+      if (map.current?.getLayer('polygon-points')) {
+        map.current.removeLayer('polygon-points')
+      }
+      if (map.current?.getSource('polygon-drawing')) {
+        map.current.removeSource('polygon-drawing')
+      }
+      return
+    }
+
+    // Create GeoJSON for polygon visualization
+    const polygonGeoJSON: GeoJSON.FeatureCollection = {
+      type: 'FeatureCollection',
+      features: []
+    }
+
+    // Add points
+    polygonPoints.forEach((point, idx) => {
+      polygonGeoJSON.features.push({
+        type: 'Feature',
+        geometry: {
+          type: 'Point',
+          coordinates: point
+        },
+        properties: { index: idx }
+      })
+    })
+
+    // Add lines if we have 2+ points
+    if (polygonPoints.length >= 2) {
+      polygonGeoJSON.features.push({
+        type: 'Feature',
+        geometry: {
+          type: 'LineString',
+          coordinates: polygonPoints
+        },
+        properties: {}
+      })
+    }
+
+    // Add polygon fill if we have 3+ points
+    if (polygonPoints.length >= 3) {
+      const closedRing = [...polygonPoints, polygonPoints[0]]
+      polygonGeoJSON.features.push({
+        type: 'Feature',
+        geometry: {
+          type: 'Polygon',
+          coordinates: [closedRing]
+        },
+        properties: {}
+      })
+    }
+
+    // Add or update source
+    if (map.current.getSource('polygon-drawing')) {
+      (map.current.getSource('polygon-drawing') as maplibregl.GeoJSONSource).setData(polygonGeoJSON)
+    } else {
+      map.current.addSource('polygon-drawing', {
+        type: 'geojson',
+        data: polygonGeoJSON
+      })
+
+      // Add polygon fill layer
+      map.current.addLayer({
+        id: 'polygon-fill',
+        type: 'fill',
+        source: 'polygon-drawing',
+        paint: {
+          'fill-color': '#6366f1',
+          'fill-opacity': 0.3
+        },
+        filter: ['==', ['geometry-type'], 'Polygon']
+      })
+
+      // Add line layer
+      map.current.addLayer({
+        id: 'polygon-lines',
+        type: 'line',
+        source: 'polygon-drawing',
+        paint: {
+          'line-color': '#4f46e5',
+          'line-width': 3
+        },
+        filter: ['==', ['geometry-type'], 'LineString']
+      })
+
+      // Add points layer
+      map.current.addLayer({
+        id: 'polygon-points',
+        type: 'circle',
+        source: 'polygon-drawing',
+        paint: {
+          'circle-radius': 6,
+          'circle-color': '#4f46e5',
+          'circle-stroke-color': '#ffffff',
+          'circle-stroke-width': 2
+        },
+        filter: ['==', ['geometry-type'], 'Point']
+      })
+    }
+  }, [polygonPoints])
 
   // Initialize map
   useEffect(() => {
@@ -219,7 +347,7 @@ export default function MapView() {
           'fill-color': '#6366f1', // Medium indigo
           'fill-opacity': 0.6,
         },
-        filter: ['in', ['get', 'id'], ['literal', []]], // Start with empty array
+        filter: ['in', ['id'], ['literal', []]], // Start with empty array
       })
 
       // Building hover (strong indigo on top)
@@ -232,7 +360,7 @@ export default function MapView() {
           'fill-color': '#4f46e5', // Strong indigo
           'fill-opacity': 0.8,
         },
-        filter: ['==', ['get', 'id'], '___NONE___'],
+        filter: ['==', ['id'], -999999], // Start hidden
       })
 
       // Transportation SELECTION layer
@@ -246,7 +374,7 @@ export default function MapView() {
           'line-width': 4,
           'line-opacity': 0.7,
         },
-        filter: ['in', ['get', 'id'], ['literal', []]], // Start with empty array
+        filter: ['in', ['id'], ['literal', []]], // Start with empty array
       })
 
       // Transportation hover (strong indigo on top)
@@ -260,7 +388,7 @@ export default function MapView() {
           'line-width': 5,
           'line-opacity': 0.9,
         },
-        filter: ['==', ['get', 'id'], '___NONE___'],
+        filter: ['==', ['id'], -999999], // Start hidden
       })
 
       // Track currently hovered feature
@@ -278,8 +406,8 @@ export default function MapView() {
         if (hoveredFeature) {
           const hoverLayerId = hoverLayerMap[hoveredFeature.layer]
           if (hoverLayerId && map.current!.getLayer(hoverLayerId)) {
-            // Use false to show nothing
-            map.current!.setFilter(hoverLayerId, ['==', ['get', 'id'], '___NONE___'])
+            // Set to empty - no features shown
+            map.current!.setFilter(hoverLayerId, ['==', ['id'], -999999])
           }
         }
 
@@ -289,8 +417,9 @@ export default function MapView() {
         if (newFeature && newFeature.id !== undefined) {
           const hoverLayerId = hoverLayerMap[newFeature.layer]
           if (hoverLayerId && map.current!.getLayer(hoverLayerId)) {
-            // Match by ID properly
-            map.current!.setFilter(hoverLayerId, ['==', ['get', 'id'], newFeature.id])
+            // Match by feature ID (not property)
+            console.log('Setting hover for', newFeature.layer, 'ID:', newFeature.id)
+            map.current!.setFilter(hoverLayerId, ['==', ['id'], newFeature.id])
           }
         }
       }
@@ -557,7 +686,13 @@ export default function MapView() {
         setMapMode('navigate')
       }
 
-      // MODE 3: Polygon drawing handled by MapLibre Draw
+      // MODE 3: Polygon drawing (manual point-by-point)
+      else if (selectionModeRef.current === 'polygon') {
+        const newPoint: [number, number] = [e.lngLat.lng, e.lngLat.lat]
+        console.log('📍 Adding polygon point:', newPoint)
+
+        setPolygonPoints(prev => [...prev, newPoint])
+      }
     })
 
     return () => {
@@ -692,6 +827,7 @@ export default function MapView() {
     setDrawerOpen(false)
     setSelectedFeatures([]) // Clear selected features
     setDrawnPolygon(null) // Clear drawn polygon
+    setPolygonPoints([]) // Clear polygon points
 
     // Remove confirmed point marker
     if (confirmedMarkerRef.current) {
@@ -778,8 +914,18 @@ export default function MapView() {
               </div>
             )}
 
+            {/* Polygon points counter */}
+            {selectionMode === 'polygon' && polygonPoints.length > 0 && (
+              <div className="bg-purple-50 border border-purple-200 rounded px-3 py-2 text-sm text-purple-900 font-medium">
+                {polygonPoints.length} point{polygonPoints.length > 1 ? 's' : ''} •
+                {polygonPoints.length < 3 && ' Need 3+ for polygon'}
+                {polygonPoints.length >= 3 && ' Polygon ready'}
+              </div>
+            )}
+
             {/* Action buttons */}
             <div className="flex gap-2">
+              {/* Building mode - Create Proposal */}
               {selectionMode === 'building' && selectedFeatures.length > 0 && (
                 <button
                   onClick={() => {
@@ -800,11 +946,45 @@ export default function MapView() {
                   Create Proposal
                 </button>
               )}
+
+              {/* Polygon mode - Listo button */}
+              {selectionMode === 'polygon' && polygonPoints.length >= 3 && (
+                <button
+                  onClick={() => {
+                    // Create polygon from points
+                    const closedRing = [...polygonPoints, polygonPoints[0]]
+                    const polygon: GeoJSON.Polygon = {
+                      type: 'Polygon',
+                      coordinates: [closedRing]
+                    }
+
+                    // Calculate centroid
+                    let sumLng = 0
+                    let sumLat = 0
+                    polygonPoints.forEach(point => {
+                      sumLng += point[0]
+                      sumLat += point[1]
+                    })
+                    const centroidLng = sumLng / polygonPoints.length
+                    const centroidLat = sumLat / polygonPoints.length
+
+                    setDrawnPolygon(polygon)
+                    setSelectedCoords({ lng: centroidLng, lat: centroidLat })
+                    setDrawerMode('create')
+                    setDrawerOpen(true)
+                  }}
+                  className="flex-1 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition font-medium"
+                >
+                  ✓ Listo
+                </button>
+              )}
+
               <button
                 onClick={() => {
                   setMapMode('navigate')
                   setSelectedFeatures([])
                   setDrawnPolygon(null)
+                  setPolygonPoints([])
                 }}
                 className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition font-medium"
               >
