@@ -264,12 +264,12 @@ export default function MapView() {
       })
 
       // Log building layer details from CartoDB
-      const buildingLayer = style.layers.find(l => l.id === 'building')
+      const buildingLayerInfo = style.layers.find(l => l.id === 'building')
       console.log('🏢 Building layer from CartoDB:', {
-        id: buildingLayer?.id,
-        type: buildingLayer?.type,
-        source: (buildingLayer as any)?.source,
-        sourceLayer: (buildingLayer as any)?.['source-layer']
+        id: buildingLayerInfo?.id,
+        type: buildingLayerInfo?.type,
+        source: (buildingLayerInfo as any)?.source,
+        sourceLayer: (buildingLayerInfo as any)?.['source-layer']
       })
 
       // Verify osm-vector source has data
