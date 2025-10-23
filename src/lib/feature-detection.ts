@@ -56,19 +56,12 @@ export function detectFeaturesAtPoint(
   if (features.length === 0) {
     console.log('⚠️ No features from OSM layers, falling back to CartoDB basemap...')
 
-    // ALL CartoDB basemap layers - maximum vector density
+    // REFINED: Only small vectors (buildings and roads)
+    // NO large areas (landuse, boundaries, etc)
     const cartoLayers = [
-      // Buildings
+      // Buildings only
       'building', 'building-top',
-      // Water
-      'water', 'water_shadow',
-      // Parks
-      'park_national_park', 'park_nature_reserve',
-      // Landuse
-      'landuse', 'landuse_residential',
-      // Landcover
-      'landcover',
-      // Roads (all types)
+      // Roads (all types) - individual segments are small
       'road_service_fill', 'road_minor_fill',
       'road_sec_fill_noramp', 'road_pri_fill_noramp',
       'road_trunk_fill_noramp', 'road_mot_fill_noramp',
@@ -80,13 +73,7 @@ export function detectFeaturesAtPoint(
       'bridge_service_fill', 'bridge_minor_fill', 'bridge_sec_fill',
       'bridge_pri_fill', 'bridge_trunk_fill', 'bridge_mot_fill',
       // Rail
-      'rail', 'tunnel_rail', 'bridge_path',
-      // Waterways
-      'waterway',
-      // Aeroways
-      'aeroway-runway', 'aeroway-taxiway',
-      // Boundaries
-      'boundary_county', 'boundary_state', 'boundary_country_outline', 'boundary_country_inner'
+      'rail', 'tunnel_rail', 'bridge_path'
     ].filter(layerId => availableLayers.includes(layerId))
 
     console.log('🔄 Trying CartoDB layers:', cartoLayers)

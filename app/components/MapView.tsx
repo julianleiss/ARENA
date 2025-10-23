@@ -164,126 +164,36 @@ export default function MapView() {
 
       console.log('OSM Vector Tiles source and layers added successfully')
 
-      // Add violet highlight layers for ALL features
-      // MAXIMIZING vector density - every possible feature is selectable
+      // REFINED: Only small vectors (buildings, roads, small features)
+      // Soft indigo by default → Strong indigo on hover
 
-      // Building hover (violet fill)
+      // First, make buildings visible with soft indigo
+      map.current.setPaintProperty('building', 'fill-color', '#818cf8') // Soft indigo
+      map.current.setPaintProperty('building', 'fill-opacity', 0.3)
+
+      // Building hover (strong indigo)
       map.current.addLayer({
         id: 'building-hover',
         type: 'fill',
         source: 'carto',
         'source-layer': 'building',
         paint: {
-          'fill-color': '#8b5cf6',
-          'fill-opacity': 0.7,
+          'fill-color': '#4f46e5', // Strong indigo
+          'fill-opacity': 0.8,
         },
         filter: ['==', ['id'], ''],
       })
 
-      // Water hover (violet fill)
-      map.current.addLayer({
-        id: 'water-hover',
-        type: 'fill',
-        source: 'carto',
-        'source-layer': 'water',
-        paint: {
-          'fill-color': '#8b5cf6',
-          'fill-opacity': 0.5,
-        },
-        filter: ['==', ['id'], ''],
-      })
-
-      // Park hover (violet fill)
-      map.current.addLayer({
-        id: 'park-hover',
-        type: 'fill',
-        source: 'carto',
-        'source-layer': 'park',
-        paint: {
-          'fill-color': '#8b5cf6',
-          'fill-opacity': 0.5,
-        },
-        filter: ['==', ['id'], ''],
-      })
-
-      // Landuse hover (violet fill)
-      map.current.addLayer({
-        id: 'landuse-hover',
-        type: 'fill',
-        source: 'carto',
-        'source-layer': 'landuse',
-        paint: {
-          'fill-color': '#8b5cf6',
-          'fill-opacity': 0.5,
-        },
-        filter: ['==', ['id'], ''],
-      })
-
-      // Landcover hover (violet fill) - natural features
-      map.current.addLayer({
-        id: 'landcover-hover',
-        type: 'fill',
-        source: 'carto',
-        'source-layer': 'landcover',
-        paint: {
-          'fill-color': '#8b5cf6',
-          'fill-opacity': 0.4,
-        },
-        filter: ['==', ['id'], ''],
-      })
-
-      // Transportation (roads) hover (violet line)
+      // Transportation hover (strong indigo line)
       map.current.addLayer({
         id: 'transportation-hover',
         type: 'line',
         source: 'carto',
         'source-layer': 'transportation',
         paint: {
-          'line-color': '#8b5cf6',
+          'line-color': '#4f46e5', // Strong indigo
           'line-width': 5,
-          'line-opacity': 0.8,
-        },
-        filter: ['==', ['id'], ''],
-      })
-
-      // Waterway hover (violet line)
-      map.current.addLayer({
-        id: 'waterway-hover',
-        type: 'line',
-        source: 'carto',
-        'source-layer': 'waterway',
-        paint: {
-          'line-color': '#8b5cf6',
-          'line-width': 4,
-          'line-opacity': 0.7,
-        },
-        filter: ['==', ['id'], ''],
-      })
-
-      // Aeroway hover (violet line/fill)
-      map.current.addLayer({
-        id: 'aeroway-hover',
-        type: 'line',
-        source: 'carto',
-        'source-layer': 'aeroway',
-        paint: {
-          'line-color': '#8b5cf6',
-          'line-width': 6,
-          'line-opacity': 0.7,
-        },
-        filter: ['==', ['id'], ''],
-      })
-
-      // Boundary hover (violet line)
-      map.current.addLayer({
-        id: 'boundary-hover',
-        type: 'line',
-        source: 'carto',
-        'source-layer': 'boundary',
-        paint: {
-          'line-color': '#8b5cf6',
-          'line-width': 3,
-          'line-opacity': 0.6,
+          'line-opacity': 0.9,
         },
         filter: ['==', ['id'], ''],
       })
@@ -291,17 +201,10 @@ export default function MapView() {
       // Track currently hovered feature
       let hoveredFeature: { layer: string; id: any } | null = null
 
-      // Map of source-layers to hover layer IDs
+      // Map of source-layers to hover layer IDs (only small vectors)
       const hoverLayerMap: Record<string, string> = {
         'building': 'building-hover',
-        'water': 'water-hover',
-        'park': 'park-hover',
-        'landuse': 'landuse-hover',
-        'landcover': 'landcover-hover',
         'transportation': 'transportation-hover',
-        'waterway': 'waterway-hover',
-        'aeroway': 'aeroway-hover',
-        'boundary': 'boundary-hover',
       }
 
       // Helper function to update hover highlight
@@ -325,15 +228,11 @@ export default function MapView() {
         }
       }
 
-      // Add hover events for ALL CartoDB basemap layers
-      // This makes EVERYTHING selectable as individual vectors
+      // Add hover events ONLY for small vectors (buildings and roads)
+      // NO large areas like blocks, landuse, boundaries
 
       const selectableLayerGroups = {
         'building': ['building', 'building-top'],
-        'water': ['water', 'water_shadow'],
-        'park': ['park_national_park', 'park_nature_reserve'],
-        'landuse': ['landuse', 'landuse_residential'],
-        'landcover': ['landcover'],
         'transportation': [
           'road_service_fill', 'road_minor_fill',
           'road_sec_fill_noramp', 'road_pri_fill_noramp',
@@ -344,10 +243,7 @@ export default function MapView() {
           'bridge_service_fill', 'bridge_minor_fill', 'bridge_sec_fill',
           'bridge_pri_fill', 'bridge_trunk_fill', 'bridge_mot_fill',
           'rail', 'tunnel_rail', 'bridge_path'
-        ],
-        'waterway': ['waterway'],
-        'aeroway': ['aeroway-runway', 'aeroway-taxiway'],
-        'boundary': ['boundary_county', 'boundary_state', 'boundary_country_outline', 'boundary_country_inner']
+        ]
       }
 
       // For each group, add hover listeners to all related layers
