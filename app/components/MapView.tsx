@@ -390,10 +390,10 @@ export default function MapView() {
           console.log('✅ Feature selected:', feature)
 
           // Get centroid of feature geometry
-          const centroid = getCentroid(feature.geometry)
+          const [lng, lat] = getCentroid(feature.geometry)
 
           setSelectedFeature(feature)
-          setSelectedCoords({ lng: centroid[0], lat: centroid[1] })
+          setSelectedCoords({ lng, lat })
           setDrawerMode('create')
           setDrawerOpen(true)
           setMapMode('navigate') // Return to navigation mode
