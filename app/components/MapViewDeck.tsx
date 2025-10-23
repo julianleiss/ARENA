@@ -275,7 +275,7 @@ function DeckGLOverlay({
       layers.push(
         new GeoJsonLayer({
           id: 'proposals',
-          data: proposalFeatures,
+          data: proposalFeatures as any,
           pointType: 'circle',
           getPointRadius: 10,
           pointRadiusMinPixels: 10,
@@ -309,7 +309,7 @@ function DeckGLOverlay({
       layers.push(
         new GeoJsonLayer({
           id: 'buildings',
-          data: buildingData,
+          data: buildingData as any,
           extruded: true,
           wireframe: false, // Solid buildings for better lighting
           filled: true,
@@ -386,7 +386,7 @@ function DeckGLOverlay({
       layers.push(
         new GeoJsonLayer({
           id: 'point-radius-circle',
-          data: circleData,
+          data: circleData as any,
           filled: true,
           stroked: true,
           getFillColor: [99, 102, 241, 50], // Indigo with transparency
@@ -404,7 +404,7 @@ function DeckGLOverlay({
       layers.push(
         new GeoJsonLayer({
           id: 'polygon-preview',
-          data: polygonData,
+          data: polygonData as any,
           filled: true,
           stroked: true,
           pointRadiusMinPixels: 6,
