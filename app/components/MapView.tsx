@@ -475,7 +475,7 @@ export default function MapViewDeck({
         const response = await fetch('/api/proposals?status=public')
         if (response.ok) {
           const data = await response.json()
-          setProposals(data)
+          setProposals(data.proposals || [])
         }
       } catch (error) {
         console.error('Failed to fetch proposals:', error)
