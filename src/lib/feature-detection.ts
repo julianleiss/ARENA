@@ -56,18 +56,37 @@ export function detectFeaturesAtPoint(
   if (features.length === 0) {
     console.log('⚠️ No features from OSM layers, falling back to CartoDB basemap...')
 
-    // CartoDB Positron basemap layers for buildings, roads, landuse
+    // ALL CartoDB basemap layers - maximum vector density
     const cartoLayers = [
-      'building',
-      'building-top',
-      'road_service_fill',
-      'road_minor_fill',
-      'road_sec_fill_noramp',
-      'road_pri_fill_noramp',
-      'road_trunk_fill_noramp',
-      'road_mot_fill_noramp',
-      'landuse',
-      'landuse_residential'
+      // Buildings
+      'building', 'building-top',
+      // Water
+      'water', 'water_shadow',
+      // Parks
+      'park_national_park', 'park_nature_reserve',
+      // Landuse
+      'landuse', 'landuse_residential',
+      // Landcover
+      'landcover',
+      // Roads (all types)
+      'road_service_fill', 'road_minor_fill',
+      'road_sec_fill_noramp', 'road_pri_fill_noramp',
+      'road_trunk_fill_noramp', 'road_mot_fill_noramp',
+      'road_pri_fill_ramp', 'road_trunk_fill_ramp', 'road_mot_fill_ramp',
+      // Tunnels
+      'tunnel_service_fill', 'tunnel_minor_fill', 'tunnel_sec_fill',
+      'tunnel_pri_fill', 'tunnel_trunk_fill', 'tunnel_mot_fill',
+      // Bridges
+      'bridge_service_fill', 'bridge_minor_fill', 'bridge_sec_fill',
+      'bridge_pri_fill', 'bridge_trunk_fill', 'bridge_mot_fill',
+      // Rail
+      'rail', 'tunnel_rail', 'bridge_path',
+      // Waterways
+      'waterway',
+      // Aeroways
+      'aeroway-runway', 'aeroway-taxiway',
+      // Boundaries
+      'boundary_county', 'boundary_state', 'boundary_country_outline', 'boundary_country_inner'
     ].filter(layerId => availableLayers.includes(layerId))
 
     console.log('🔄 Trying CartoDB layers:', cartoLayers)

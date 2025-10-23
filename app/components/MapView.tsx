@@ -164,145 +164,226 @@ export default function MapView() {
 
       console.log('OSM Vector Tiles source and layers added successfully')
 
-      // Add violet highlight layers for hover effects
-      // These layers will show violet fill/stroke when hovering over features
+      // Add violet highlight layers for ALL features
+      // MAXIMIZING vector density - every possible feature is selectable
 
-      // Building hover layer (violet highlight)
+      // Building hover (violet fill)
       map.current.addLayer({
         id: 'building-hover',
         type: 'fill',
         source: 'carto',
         'source-layer': 'building',
         paint: {
-          'fill-color': '#8b5cf6', // Violet
-          'fill-opacity': 0.6,
+          'fill-color': '#8b5cf6',
+          'fill-opacity': 0.7,
         },
-        filter: ['==', ['id'], ''], // Initially show nothing
+        filter: ['==', ['id'], ''],
       })
 
-      // Road hover layer (violet highlight)
+      // Water hover (violet fill)
       map.current.addLayer({
-        id: 'road-hover',
-        type: 'line',
+        id: 'water-hover',
+        type: 'fill',
         source: 'carto',
-        'source-layer': 'transportation',
+        'source-layer': 'water',
         paint: {
-          'line-color': '#8b5cf6', // Violet
-          'line-width': 4,
-          'line-opacity': 0.8,
+          'fill-color': '#8b5cf6',
+          'fill-opacity': 0.5,
         },
-        filter: ['==', ['id'], ''], // Initially show nothing
+        filter: ['==', ['id'], ''],
       })
 
-      // Landuse hover layer (violet highlight)
+      // Park hover (violet fill)
+      map.current.addLayer({
+        id: 'park-hover',
+        type: 'fill',
+        source: 'carto',
+        'source-layer': 'park',
+        paint: {
+          'fill-color': '#8b5cf6',
+          'fill-opacity': 0.5,
+        },
+        filter: ['==', ['id'], ''],
+      })
+
+      // Landuse hover (violet fill)
       map.current.addLayer({
         id: 'landuse-hover',
         type: 'fill',
         source: 'carto',
         'source-layer': 'landuse',
         paint: {
-          'fill-color': '#8b5cf6', // Violet
+          'fill-color': '#8b5cf6',
+          'fill-opacity': 0.5,
+        },
+        filter: ['==', ['id'], ''],
+      })
+
+      // Landcover hover (violet fill) - natural features
+      map.current.addLayer({
+        id: 'landcover-hover',
+        type: 'fill',
+        source: 'carto',
+        'source-layer': 'landcover',
+        paint: {
+          'fill-color': '#8b5cf6',
           'fill-opacity': 0.4,
         },
-        filter: ['==', ['id'], ''], // Initially show nothing
+        filter: ['==', ['id'], ''],
+      })
+
+      // Transportation (roads) hover (violet line)
+      map.current.addLayer({
+        id: 'transportation-hover',
+        type: 'line',
+        source: 'carto',
+        'source-layer': 'transportation',
+        paint: {
+          'line-color': '#8b5cf6',
+          'line-width': 5,
+          'line-opacity': 0.8,
+        },
+        filter: ['==', ['id'], ''],
+      })
+
+      // Waterway hover (violet line)
+      map.current.addLayer({
+        id: 'waterway-hover',
+        type: 'line',
+        source: 'carto',
+        'source-layer': 'waterway',
+        paint: {
+          'line-color': '#8b5cf6',
+          'line-width': 4,
+          'line-opacity': 0.7,
+        },
+        filter: ['==', ['id'], ''],
+      })
+
+      // Aeroway hover (violet line/fill)
+      map.current.addLayer({
+        id: 'aeroway-hover',
+        type: 'line',
+        source: 'carto',
+        'source-layer': 'aeroway',
+        paint: {
+          'line-color': '#8b5cf6',
+          'line-width': 6,
+          'line-opacity': 0.7,
+        },
+        filter: ['==', ['id'], ''],
+      })
+
+      // Boundary hover (violet line)
+      map.current.addLayer({
+        id: 'boundary-hover',
+        type: 'line',
+        source: 'carto',
+        'source-layer': 'boundary',
+        paint: {
+          'line-color': '#8b5cf6',
+          'line-width': 3,
+          'line-opacity': 0.6,
+        },
+        filter: ['==', ['id'], ''],
       })
 
       // Track currently hovered feature
       let hoveredFeature: { layer: string; id: any } | null = null
 
+      // Map of source-layers to hover layer IDs
+      const hoverLayerMap: Record<string, string> = {
+        'building': 'building-hover',
+        'water': 'water-hover',
+        'park': 'park-hover',
+        'landuse': 'landuse-hover',
+        'landcover': 'landcover-hover',
+        'transportation': 'transportation-hover',
+        'waterway': 'waterway-hover',
+        'aeroway': 'aeroway-hover',
+        'boundary': 'boundary-hover',
+      }
+
       // Helper function to update hover highlight
       const updateHover = (newFeature: { layer: string; id: any } | null) => {
-        if (hoveredFeature?.layer === 'building') {
-          map.current!.setFilter('building-hover', ['==', ['id'], ''])
-        } else if (hoveredFeature?.layer === 'road') {
-          map.current!.setFilter('road-hover', ['==', ['id'], ''])
-        } else if (hoveredFeature?.layer === 'landuse') {
-          map.current!.setFilter('landuse-hover', ['==', ['id'], ''])
+        // Clear previous hover
+        if (hoveredFeature) {
+          const hoverLayerId = hoverLayerMap[hoveredFeature.layer]
+          if (hoverLayerId && map.current!.getLayer(hoverLayerId)) {
+            map.current!.setFilter(hoverLayerId, ['==', ['id'], ''])
+          }
         }
 
         hoveredFeature = newFeature
 
+        // Set new hover
         if (newFeature) {
-          if (newFeature.layer === 'building') {
-            map.current!.setFilter('building-hover', ['==', ['id'], newFeature.id])
-          } else if (newFeature.layer === 'road') {
-            map.current!.setFilter('road-hover', ['==', ['id'], newFeature.id])
-          } else if (newFeature.layer === 'landuse') {
-            map.current!.setFilter('landuse-hover', ['==', ['id'], newFeature.id])
+          const hoverLayerId = hoverLayerMap[newFeature.layer]
+          if (hoverLayerId && map.current!.getLayer(hoverLayerId)) {
+            map.current!.setFilter(hoverLayerId, ['==', ['id'], newFeature.id])
           }
         }
       }
 
-      // Buildings - violet hover
-      map.current.on('mousemove', 'building', (e) => {
-        if (e.features && e.features.length > 0) {
-          map.current!.getCanvas().style.cursor = 'pointer'
-          const feature = e.features[0]
-          if (feature.id !== undefined) {
-            updateHover({ layer: 'building', id: feature.id })
+      // Add hover events for ALL CartoDB basemap layers
+      // This makes EVERYTHING selectable as individual vectors
+
+      const selectableLayerGroups = {
+        'building': ['building', 'building-top'],
+        'water': ['water', 'water_shadow'],
+        'park': ['park_national_park', 'park_nature_reserve'],
+        'landuse': ['landuse', 'landuse_residential'],
+        'landcover': ['landcover'],
+        'transportation': [
+          'road_service_fill', 'road_minor_fill',
+          'road_sec_fill_noramp', 'road_pri_fill_noramp',
+          'road_trunk_fill_noramp', 'road_mot_fill_noramp',
+          'road_pri_fill_ramp', 'road_trunk_fill_ramp', 'road_mot_fill_ramp',
+          'tunnel_service_fill', 'tunnel_minor_fill', 'tunnel_sec_fill',
+          'tunnel_pri_fill', 'tunnel_trunk_fill', 'tunnel_mot_fill',
+          'bridge_service_fill', 'bridge_minor_fill', 'bridge_sec_fill',
+          'bridge_pri_fill', 'bridge_trunk_fill', 'bridge_mot_fill',
+          'rail', 'tunnel_rail', 'bridge_path'
+        ],
+        'waterway': ['waterway'],
+        'aeroway': ['aeroway-runway', 'aeroway-taxiway'],
+        'boundary': ['boundary_county', 'boundary_state', 'boundary_country_outline', 'boundary_country_inner']
+      }
+
+      // For each group, add hover listeners to all related layers
+      Object.entries(selectableLayerGroups).forEach(([sourceLayerName, layerIds]) => {
+        layerIds.forEach(layerId => {
+          if (map.current!.getLayer(layerId)) {
+            map.current!.on('mousemove', layerId, (e) => {
+              if (e.features && e.features.length > 0) {
+                map.current!.getCanvas().style.cursor = 'pointer'
+                const feature = e.features[0]
+                if (feature.id !== undefined) {
+                  updateHover({ layer: sourceLayerName, id: feature.id })
+                }
+              }
+            })
+
+            map.current!.on('mouseleave', layerId, () => {
+              map.current!.getCanvas().style.cursor = ''
+              updateHover(null)
+            })
           }
-        }
-      })
-
-      map.current.on('mouseleave', 'building', () => {
-        map.current!.getCanvas().style.cursor = ''
-        updateHover(null)
-      })
-
-      // Roads - violet hover
-      const roadLayers = [
-        'road_service_fill',
-        'road_minor_fill',
-        'road_sec_fill_noramp',
-        'road_pri_fill_noramp',
-        'road_trunk_fill_noramp',
-        'road_mot_fill_noramp'
-      ]
-
-      roadLayers.forEach(layerId => {
-        if (map.current!.getLayer(layerId)) {
-          map.current!.on('mousemove', layerId, (e) => {
-            if (e.features && e.features.length > 0) {
-              map.current!.getCanvas().style.cursor = 'pointer'
-              const feature = e.features[0]
-              if (feature.id !== undefined) {
-                updateHover({ layer: 'road', id: feature.id })
-              }
-            }
-          })
-
-          map.current!.on('mouseleave', layerId, () => {
-            map.current!.getCanvas().style.cursor = ''
-            updateHover(null)
-          })
-        }
-      })
-
-      // Landuse - violet hover
-      const landuseLayers = ['landuse', 'landuse_residential']
-      landuseLayers.forEach(layerId => {
-        if (map.current!.getLayer(layerId)) {
-          map.current!.on('mousemove', layerId, (e) => {
-            if (e.features && e.features.length > 0) {
-              map.current!.getCanvas().style.cursor = 'pointer'
-              const feature = e.features[0]
-              if (feature.id !== undefined) {
-                updateHover({ layer: 'landuse', id: feature.id })
-              }
-            }
-          })
-
-          map.current!.on('mouseleave', layerId, () => {
-            map.current!.getCanvas().style.cursor = ''
-            updateHover(null)
-          })
-        }
+        })
       })
 
       // Diagnostic logging
       const style = map.current.getStyle()
       console.log('🗺️ Available layers:', style.layers.map(l => l.id))
       console.log('📦 Available sources:', Object.keys(style.sources))
+
+      // Log all layers with their types and source-layers
+      console.log('📋 All layers details:', style.layers.map(l => ({
+        id: l.id,
+        type: l.type,
+        source: (l as any).source,
+        sourceLayer: (l as any)['source-layer']
+      })))
 
       // Log CartoDB source details
       const cartoSource = style.sources['carto'] as any
