@@ -287,11 +287,19 @@ function DeckGLOverlay({
           onClick: (info: any) => {
             if (info.object) {
               console.log('📍 Proposal clicked:', info.object.properties)
-              // TODO: Open proposal details drawer
-              window.location.href = `/proposals/${info.object.properties.id}`
+              setViewedProposalId(info.object.properties.id)
+              setDrawerMode('view')
+              setDrawerOpen(true)
             }
           },
           onHover: (info: any) => {
+            // Set hovered proposal for tooltip
+            if (info.object) {
+              setHoveredProposal(info.object.properties)
+            } else {
+              setHoveredProposal(null)
+            }
+
             // Change cursor on hover
             if (map) {
               const googleMap = map as any
@@ -468,6 +476,8 @@ export default function MapViewDeck({
 
   // Proposals state
   const [proposals, setProposals] = useState<Proposal[]>([])
+  const [viewedProposalId, setViewedProposalId] = useState<string | null>(null)
+  const [hoveredProposal, setHoveredProposal] = useState<any>(null)
 
   // Fetch proposals
   useEffect(() => {
@@ -563,12 +573,13 @@ export default function MapViewDeck({
         <Map
           defaultCenter={{ lat: -34.545, lng: -58.46 }} // Núñez area
           defaultZoom={18}
-          tilt={is3D ? 45 : 0}
+          tilt={is3D ? 67.5 : 0}
           heading={0}
           gestureHandling="greedy"
           disableDefaultUI={false}
           className="w-full h-full"
-          mapTypeId="satellite"
+          mapId="bf51a910020fa25a"
+          mapTypeId="roadmap"
           onClick={handleMapClick}
         >
           <DeckGLOverlay
@@ -679,12 +690,33 @@ export default function MapViewDeck({
         </div>
       )}
 
+      {/* Hover tooltip for proposals */}
+      {hoveredProposal && (
+        <div
+          className="absolute pointer-events-none z-50 bg-white/95 backdrop-blur-sm border border-gray-200 rounded-xl shadow-xl p-4 max-w-sm"
+          style={{
+            left: '50%',
+            top: '50%',
+            transform: 'translate(-50%, -120px)'
+          }}
+        >
+          <h3 className="font-semibold text-gray-900 text-sm mb-1">{hoveredProposal.title}</h3>
+          <p className="text-xs text-gray-500 mb-2">
+            {hoveredProposal.author} • {new Date().toLocaleDateString('es-AR')}
+          </p>
+          {hoveredProposal.summary && (
+            <p className="text-xs text-gray-700 line-clamp-2">{hoveredProposal.summary}</p>
+          )}
+        </div>
+      )}
+
       <ProposalDrawer
         isOpen={drawerOpen}
         mode={drawerMode}
         onClose={handleCloseDrawer}
         coordinates={selectedCoords}
         onProposalCreated={handleProposalCreated}
+        viewedProposalId={viewedProposalId}
         selectedFeatures={selectedBuildingIds.map(id => ({
           id,
           type: 'building',

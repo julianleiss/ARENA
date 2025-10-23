@@ -13,6 +13,7 @@ interface DrawerProps {
   onClose: () => void
   coordinates?: { lng: number; lat: number }
   proposalId?: string
+  viewedProposalId?: string | null
   onProposalCreated?: (proposal: any) => void
   selectedFeatures?: DetectedFeature[]
   drawnPolygon?: GeoJSON.Polygon | null
@@ -44,11 +45,13 @@ export default function ProposalDrawer({
   onClose,
   coordinates,
   proposalId,
+  viewedProposalId,
   onProposalCreated,
   selectedFeatures = [],
   drawnPolygon = null,
   pointRadius,
 }: DrawerProps) {
+  const activeProposalId = viewedProposalId || proposalId
   const [formData, setFormData] = useState({
     title: '',
     summary: '',
@@ -60,10 +63,10 @@ export default function ProposalDrawer({
 
   // Fetch proposal data when in view mode
   useEffect(() => {
-    if (mode === 'view' && proposalId && isOpen) {
+    if (mode === 'view' && activeProposalId && isOpen) {
       fetchProposal()
     }
-  }, [mode, proposalId, isOpen])
+  }, [mode, activeProposalId, isOpen])
 
   // Reset form when drawer closes
   useEffect(() => {
@@ -75,9 +78,11 @@ export default function ProposalDrawer({
   }, [isOpen])
 
   const fetchProposal = async () => {
+    if (!activeProposalId) return
+
     try {
       setLoading(true)
-      const response = await fetch(`/api/proposals/${proposalId}`)
+      const response = await fetch(`/api/proposals/${activeProposalId}`)
       if (response.ok) {
         const data = await response.json()
         setProposalData(data)
