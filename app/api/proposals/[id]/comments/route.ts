@@ -29,7 +29,6 @@ export async function GET(
     const comments = await prisma.comment.findMany({
       where: {
         proposalId,
-        parentId: null, // Only root comments (nested threads for later)
       },
       include: {
         author: {
@@ -38,12 +37,6 @@ export async function GET(
             name: true,
             email: true,
             role: true,
-          },
-        },
-        // Include replies count (for future threading)
-        _count: {
-          select: {
-            replies: true,
           },
         },
       },
@@ -76,7 +69,7 @@ export async function POST(
   try {
     const { id: proposalId } = await params
     const body = await request.json()
-    const { userId, content, parentId } = body
+    const { userId, content } = body
 
     if (!userId || !content) {
       return NextResponse.json(
@@ -97,34 +90,12 @@ export async function POST(
       )
     }
 
-    // If parentId provided, check if parent comment exists
-    if (parentId) {
-      const parentComment = await prisma.comment.findUnique({
-        where: { id: parentId },
-      })
-
-      if (!parentComment) {
-        return NextResponse.json(
-          { error: 'Parent comment not found' },
-          { status: 404 }
-        )
-      }
-
-      if (parentComment.proposalId !== proposalId) {
-        return NextResponse.json(
-          { error: 'Parent comment belongs to a different proposal' },
-          { status: 400 }
-        )
-      }
-    }
-
     // Create the comment
     const comment = await prisma.comment.create({
       data: {
         proposalId,
         authorId: userId,
-        content,
-        ...(parentId && { parentId }),
+        body: content,
       },
       include: {
         author: {
@@ -133,11 +104,6 @@ export async function POST(
             name: true,
             email: true,
             role: true,
-          },
-        },
-        _count: {
-          select: {
-            replies: true,
           },
         },
       },
@@ -152,7 +118,6 @@ export async function POST(
         entityId: proposalId,
         metadata: {
           commentId: comment.id,
-          parentId: parentId || null,
         },
       },
     })

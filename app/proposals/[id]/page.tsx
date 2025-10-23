@@ -34,16 +34,13 @@ interface Proposal {
 
 interface Comment {
   id: string
-  content: string
+  body: string
   createdAt: string
   author: {
     id: string
     name: string | null
     email: string
     role: string
-  }
-  _count: {
-    replies: number
   }
 }
 
@@ -421,7 +418,7 @@ export default function ProposalDetailPage() {
                           </span>
                         )}
                       </div>
-                      <p className="text-gray-700 whitespace-pre-wrap">{comment.content}</p>
+                      <p className="text-gray-700 whitespace-pre-wrap">{comment.body}</p>
                     </div>
                   </div>
                 </div>
