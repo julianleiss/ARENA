@@ -1,9 +1,11 @@
-# ARENA — Prefabs 2.5D + Sandbox + Proposals
+# ARENA — Publish + Previews + Prefabs 2.5D
 
-Civic engagement platform for urban transformations. Next.js 15 + React 19 + Tailwind 4 + Prisma 6 + Supabase PostgreSQL + deck.gl 9.2 + MapLibre GL.
+Civic engagement platform for urban transformations. Next.js 15 + React 19 + Tailwind 4 + Prisma 6 + Supabase PostgreSQL + deck.gl 9.2 + MapLibre GL + Turf.js.
 
 ## Features
 
+- ✅ **Publish System (i4)** - Export sandbox to proposal with version tracking and geometry simplification
+- ✅ **Proposal Previews (i4)** - Simplified/clipped FeatureCollection snapshots with metadata
 - ✅ **Prefabs 2.5D (i3)** - Place and edit 3D building prefabs with deck.gl extruded rendering
 - ✅ **Instance CRUD** - Create, update, delete instances with real-time 2.5D visualization
 - ✅ **Inspector Panel** - Edit instance parameters (floors, height, scale, rotation)
