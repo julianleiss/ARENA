@@ -33,14 +33,44 @@ model Proposal {
   createdAt   DateTime @default(now()) @map("created_at")
   updatedAt   DateTime @updatedAt @map("updated_at")
 
-  author   User      @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  author   User              @relation(fields: [authorId], references: [id], onDelete: Cascade)
   votes    Vote[]
   comments Comment[]
   metrics  Metric[]
+  versions ProposalVersion[] // Iteration 4
+  preview  ProposalPreview?  // Iteration 4
 
   @@index([authorId])
   @@index([status])
   @@map("proposals")
+}
+
+model ProposalVersion {
+  id         String   @id @default(cuid())
+  proposalId String   @map("proposal_id")
+  sandboxId  String   @map("sandbox_id")
+  hash       String
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  proposal Proposal @relation(fields: [proposalId], references: [id], onDelete: Cascade)
+
+  @@index([proposalId])
+  @@index([sandboxId])
+  @@map("proposal_versions")
+}
+
+model ProposalPreview {
+  id         String  @id @default(cuid())
+  proposalId String  @unique @map("proposal_id")
+  geom       Json    // FeatureCollection (simplified/clipped)
+  mask       Json    // Polygon (Sandbox.geometry)
+  meshUrl    String? @map("mesh_url")
+  imgUrl     String? @map("img_url")
+  lod        Int     @default(0)
+
+  proposal Proposal @relation(fields: [proposalId], references: [id], onDelete: Cascade)
+
+  @@map("proposal_previews")
 }
 
 model Vote {

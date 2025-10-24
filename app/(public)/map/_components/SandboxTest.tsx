@@ -26,7 +26,10 @@ export default function SandboxTest() {
 
     try {
       await createSandbox(testPolygon)
+      // If redirect() is called in server action, this line won't execute
+      // The redirect happens automatically on the client
     } catch (error) {
+      // Only catch actual errors, not NEXT_REDIRECT
       console.error('Failed to create sandbox:', error)
       alert('Failed to create sandbox')
       setLoading(false)

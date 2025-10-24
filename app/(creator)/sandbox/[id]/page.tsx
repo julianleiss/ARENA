@@ -75,6 +75,7 @@ export default async function SandboxPage({
         {/* Client Component with Prefab System */}
         <SandboxClient
           sandboxId={id}
+          sandboxStatus={sandbox.status}
           sandboxGeometry={sandbox.geometry}
           initialInstances={instances || []}
           initialAssets={assets || []}

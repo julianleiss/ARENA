@@ -5,6 +5,7 @@ import { useState } from 'react'
 import PrefabPalette from '../../_components/PrefabPalette'
 import SandboxLayer from '../../_components/SandboxLayer'
 import Inspector from '../../_components/Inspector'
+import PublishBar from '../../_components/PublishBar'
 import {
   createInstance,
   updateInstance,
@@ -31,6 +32,7 @@ type Asset = {
 
 type SandboxClientProps = {
   sandboxId: string
+  sandboxStatus: string
   sandboxGeometry: any
   initialInstances: any[]
   initialAssets: any[]
@@ -38,6 +40,7 @@ type SandboxClientProps = {
 
 export default function SandboxClient({
   sandboxId,
+  sandboxStatus,
   sandboxGeometry,
   initialInstances,
   initialAssets,
@@ -207,12 +210,19 @@ export default function SandboxClient({
 
       {/* Help Text */}
       {!selectedInstanceId && selectedAssetId && (
-        <div className="absolute bottom-6 left-1/2 transform -translate-x-1/2 z-30 bg-indigo-600 text-white px-4 py-2 rounded-lg shadow-lg">
+        <div className="absolute bottom-20 left-1/2 transform -translate-x-1/2 z-30 bg-indigo-600 text-white px-4 py-2 rounded-lg shadow-lg">
           <p className="text-sm font-medium">
             Click on the map to place {assets.find((a) => a.id === selectedAssetId)?.name}
           </p>
         </div>
       )}
+
+      {/* Publish Bar */}
+      <PublishBar
+        sandboxId={sandboxId}
+        sandboxStatus={sandboxStatus}
+        instanceCount={instances.length}
+      />
     </>
   )
 }
