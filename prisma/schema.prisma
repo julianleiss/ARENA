@@ -90,7 +90,7 @@ model Vote {
 }
 
 model Comment {
-  id         String   @id @default(uuid())
+  id         String   @id @default(cuid())
   proposalId String   @map("proposal_id")
   authorId   String   @map("author_id")
   body       String   @db.Text
