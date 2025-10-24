@@ -122,6 +122,38 @@ model Sandbox {
   status    String   @default("draft") // "draft" | "published"
   createdAt DateTime @default(now()) @map("created_at")
 
+  instances Instance[]
+
   @@index([status])
   @@map("sandboxes")
+}
+
+model Asset {
+  id            String @id @default(cuid())
+  name          String
+  kind          String // "building" | "tree" | "lamp" | "road" | "custom"
+  modelUrl      String? @map("model_url")
+  defaultParams Json    @map("default_params")
+
+  instances Instance[]
+
+  @@index([kind])
+  @@map("assets")
+}
+
+model Instance {
+  id        String  @id @default(cuid())
+  sandboxId String  @map("sandbox_id")
+  assetId   String  @map("asset_id")
+  geom      Json    // Point/Line/Polygon (GeoJSON)
+  params    Json    // { floors: number, height?: number, ... }
+  transform Json    // { scale?: number|vec3, rotation?: number|vec3 }
+  state     String  @default("added") // "added" | "removed" | "modified"
+
+  sandbox Sandbox @relation(fields: [sandboxId], references: [id], onDelete: Cascade)
+  asset   Asset   @relation(fields: [assetId], references: [id])
+
+  @@index([sandboxId])
+  @@index([assetId])
+  @@map("instances")
 }

@@ -1,9 +1,12 @@
-# ARENA — Sandbox Lite + Proposals
+# ARENA — Prefabs 2.5D + Sandbox + Proposals
 
-Civic engagement platform for urban transformations. Next.js 15 + React 19 + Tailwind 4 + Prisma 6 + Supabase PostgreSQL + Server Actions.
+Civic engagement platform for urban transformations. Next.js 15 + React 19 + Tailwind 4 + Prisma 6 + Supabase PostgreSQL + deck.gl 9.2 + MapLibre GL.
 
 ## Features
 
+- ✅ **Prefabs 2.5D (i3)** - Place and edit 3D building prefabs with deck.gl extruded rendering
+- ✅ **Instance CRUD** - Create, update, delete instances with real-time 2.5D visualization
+- ✅ **Inspector Panel** - Edit instance parameters (floors, height, scale, rotation)
 - ✅ **Sandbox Lite (i2)** - Area selection and sandbox creation workflow
 - ✅ **Proposals CRUD** - Create, read, update, delete proposals
 - ✅ **Server Components** - Fast, SEO-friendly pages
@@ -56,18 +59,31 @@ Open [http://localhost:3000/proposals](http://localhost:3000/proposals) to view 
 ## Pages
 
 - `/map` - Map page with sandbox creation test button
-- `/sandbox/[id]` - Sandbox detail page with polygon info and side panel
+- `/sandbox/[id]` - **Sandbox editor with 2.5D prefab system** (Iteration 3)
 - `/proposals` - List of all proposals (last 20, with create form in development)
 - `/proposals/[id]` - Proposal detail page with full description and timestamps
 
 ## Manual Testing
 
+### Prefab System Flow (i3)
+1. Visit `/map` and create a test sandbox
+2. Visit `/sandbox/{id}` - Opens 2.5D editor with:
+   - **Prefab Palette** (left): Browse 8 assets (Casa, Torre, Bloque, Plaza, Árbol, Farola, Edificio Alto, Kiosko)
+   - **MapLibre + deck.gl**: 3D map with extruded buildings
+   - **Place Mode**: Select prefab → click map → creates 3D instance
+   - **Edit Mode**: Click instance → Inspector panel appears
+   - **Inspector** (right): Adjust floors (1-30), height, scale (0.5-3x), rotation (0-360°)
+   - **Delete**: Remove instance via Inspector
+
+3. Test CRUD operations:
+   - Create: Select "Torre" → click map → 12-floor building appears
+   - Update: Click building → change floors to 20 → click "Update Instance"
+   - Delete: Click building → click "Delete Instance"
+
 ### Sandbox Flow (i2-lite)
 1. Visit `/map` - Map placeholder with test button
 2. Click "Create Test Sandbox" - Creates sandbox with hardcoded polygon (Núñez area)
-3. Redirects to `/sandbox/{id}` - Shows sandbox detail with:
-   - Left: Map placeholder for polygon visualization
-   - Right: Side panel with status badge, polygon info (point count), metadata, and publish button
+3. Redirects to `/sandbox/{id}` - Opens 2.5D editor
 
 ### Proposals Flow
 1. Visit `/proposals` - Should show 5 seeded proposals
@@ -79,6 +95,7 @@ Open [http://localhost:3000/proposals](http://localhost:3000/proposals) to view 
 
 - **Framework**: Next.js 15 (App Router)
 - **UI**: React 19 + Tailwind CSS 4
+- **3D Visualization**: deck.gl 9.2 (GeoJsonLayer with extrusion) + MapLibre GL
 - **Database**: Supabase PostgreSQL (via REST API + Prisma 6 schema)
 - **Validation**: Zod (including GeoJSON schemas)
 - **Type Safety**: TypeScript (strict mode)
@@ -87,10 +104,33 @@ Open [http://localhost:3000/proposals](http://localhost:3000/proposals) to view 
 
 ```prisma
 model Sandbox {
-  id        String   @id @default(cuid())
-  geometry  Json     // GeoJSON Polygon
-  status    String   @default("draft") // "draft" | "published"
-  createdAt DateTime @default(now())
+  id        String     @id @default(cuid())
+  geometry  Json       // GeoJSON Polygon
+  status    String     @default("draft") // "draft" | "published"
+  createdAt DateTime   @default(now())
+  instances Instance[] // Iteration 3
+}
+
+model Asset {
+  id            String     @id @default(cuid())
+  name          String
+  kind          String     // "building" | "tree" | "lamp" | "road" | "custom"
+  modelUrl      String?
+  defaultParams Json       // { floors, height, color, etc. }
+  instances     Instance[] // Iteration 3
+}
+
+model Instance {
+  id        String  @id @default(cuid())
+  sandboxId String
+  assetId   String
+  geom      Json    // Point/Line/Polygon (GeoJSON)
+  params    Json    // { floors: number, height?: number, ... }
+  transform Json    // { scale?: number|vec3, rotation?: number|vec3 }
+  state     String  @default("added") // "added" | "removed" | "modified"
+
+  sandbox   Sandbox @relation(fields: [sandboxId], references: [id], onDelete: Cascade)
+  asset     Asset   @relation(fields: [assetId], references: [id])
 }
 
 model Proposal {
@@ -125,8 +165,16 @@ model Proposal {
 │   │           └── CreateProposalForm.tsx  # Form (client)
 │   ├── (creator)/
 │   │   └── sandbox/
-│   │       └── [id]/
-│   │           └── page.tsx          # Sandbox detail page
+│   │       ├── [id]/
+│   │       │   ├── page.tsx          # Sandbox editor page (i3)
+│   │       │   └── _components/
+│   │       │       └── SandboxClient.tsx  # Orchestrator
+│   │       ├── _actions/
+│   │       │   └── instances.ts      # Instance CRUD actions (i3)
+│   │       └── _components/
+│   │           ├── PrefabPalette.tsx # Asset selector (i3)
+│   │           ├── SandboxLayer.tsx  # deck.gl 2.5D layer (i3)
+│   │           └── Inspector.tsx     # Instance editor (i3)
 │   └── lib/
 │       ├── db.ts                     # Prisma client
 │       ├── supabase-client.ts        # Supabase REST client
@@ -135,7 +183,8 @@ model Proposal {
 │   └── schema.prisma                 # Database schema
 └── scripts/
     ├── seed.ts                       # Seed 5 proposals
-    └── rollback.ts                   # Clear database
+    ├── rollback.ts                   # Clear database
+    └── i3-create-tables.sql          # Iteration 3 SQL (assets + instances)
 ```
 
 ## Learn More
