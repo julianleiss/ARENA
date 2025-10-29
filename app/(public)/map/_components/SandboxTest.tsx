@@ -2,10 +2,12 @@
 'use client'
 
 import { useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { createSandbox } from '../_actions/createSandbox'
 
 export default function SandboxTest() {
   const [loading, setLoading] = useState(false)
+  const router = useRouter()
 
   async function handleCreateTestSandbox() {
     setLoading(true)
@@ -24,14 +26,14 @@ export default function SandboxTest() {
       ],
     }
 
-    try {
-      await createSandbox(testPolygon)
-      // If redirect() is called in server action, this line won't execute
-      // The redirect happens automatically on the client
-    } catch (error) {
-      // Only catch actual errors, not NEXT_REDIRECT
-      console.error('Failed to create sandbox:', error)
-      alert('Failed to create sandbox')
+    const result = await createSandbox(testPolygon)
+
+    if (result.ok) {
+      // Redirect to the sandbox page
+      router.push(`/sandbox/${result.data.id}`)
+    } else {
+      console.error('Failed to create sandbox:', result.error)
+      alert(`Failed to create sandbox: ${result.error}`)
       setLoading(false)
     }
   }

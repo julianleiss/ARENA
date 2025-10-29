@@ -33,8 +33,8 @@ const _createSandbox = async (geometry: unknown) => {
     throw new Error('Failed to create sandbox')
   }
 
-  // Redirect to sandbox page
-  redirect(`/sandbox/${id}`)
+  // Return the sandbox ID so the component can handle redirect
+  return { id }
 }
 
 export const createSandbox = safe(_createSandbox)
