@@ -75,6 +75,40 @@ Fetches building data from external sources.
 - `i3-create-tables.sql` - Iteration 3 database schema
 - `i4-create-tables.sql` - Iteration 4 database schema
 
+## API Endpoints
+
+### GET /api/health
+
+Health check endpoint that validates database connectivity.
+
+**Usage**:
+```bash
+curl http://localhost:3000/api/health
+```
+
+**Successful Response (200)**:
+```json
+{
+  "status": "ok",
+  "database": "connected",
+  "time": "2025-01-15T10:30:00.000Z"
+}
+```
+
+**Error Response (500)**:
+```json
+{
+  "status": "error",
+  "error": "Connection refused"
+}
+```
+
+**Implementation**:
+- Executes `SELECT 1 AS ok` query to verify database connection
+- Returns 200 if database responds correctly
+- Returns 500 if database is unreachable or returns invalid response
+- Used for monitoring deployment health in production
+
 ## CI/CD Pipeline
 
 The project uses GitHub Actions for continuous integration:
@@ -92,6 +126,7 @@ The project uses GitHub Actions for continuous integration:
 4. Generate Prisma client
 5. Run linter
 6. Type checking (`tsc --noEmit`)
-7. Build project
+7. Run unit tests (`npm test`)
+8. Build project
 
 **Node Version**: Enforced via `package.json` engines field and CI configuration.

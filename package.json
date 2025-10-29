@@ -15,7 +15,7 @@
     "db:studio": "prisma studio",
     "db:seed": "tsx scripts/seed.ts",
     "db:rollback": "tsx scripts/rollback.ts",
-    "test": "vitest",
+    "test": "vitest run",
     "test:e2e": "playwright test"
   },
   "dependencies": {
