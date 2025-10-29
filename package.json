@@ -16,7 +16,7 @@
     "db:seed": "tsx scripts/seed.ts",
     "db:rollback": "tsx scripts/rollback.ts",
     "test": "vitest run",
-    "test:e2e": "playwright test"
+    "test:e2e": "playwright test --reporter=line"
   },
   "dependencies": {
     "@deck.gl/google-maps": "^9.2.2",

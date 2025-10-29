@@ -42,3 +42,18 @@ jobs:
           NEXT_PUBLIC_SUPABASE_URL: https://placeholder.supabase.co
           NEXT_PUBLIC_SUPABASE_ANON_KEY: placeholder
           NEXT_PUBLIC_GOOGLE_MAPS_API_KEY: placeholder
+
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps
+
+      - name: Run E2E tests
+        run: |
+          npm run build
+          npx next start -p 3000 &
+          sleep 5
+          npm run test:e2e
+        env:
+          DATABASE_URL: postgresql://placeholder
+          NEXT_PUBLIC_SUPABASE_URL: https://placeholder.supabase.co
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: placeholder
+          NEXT_PUBLIC_GOOGLE_MAPS_API_KEY: placeholder
