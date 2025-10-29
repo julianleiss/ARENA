@@ -33,6 +33,38 @@ npm test                 # Run unit tests with Vitest
 npm run test:e2e         # Run end-to-end tests with Playwright
 ```
 
+### Iteration Workflow (One-Command Routine)
+```bash
+# Start new iteration
+npm run iteration -- start <type> <id> <desc>
+# Example: npm run iteration -- start feat i12 user-profiles
+
+# Build and verify
+npm run iteration -- build
+
+# Start dev server for smoke test
+npm run iteration -- dev
+
+# Commit changes
+npm run iteration -- commit "Your commit message"
+
+# Push to origin
+npm run iteration -- push
+
+# Create pull request (requires gh CLI)
+npm run iteration -- pr
+
+# Complete workflow (build + commit + push + pr)
+npm run iteration -- complete "Your commit message"
+```
+
+**Global Acceptance Criteria:**
+- `npm run build` without errors
+- `npm run dev` runs successfully
+- ESLint clean (no blocking errors)
+- Each iteration leaves visible path/action
+- PR per iteration with checklist + evidence
+
 ### Environment Setup
 1. Copy `.env.example` to `.env.local`
 2. Fill in Supabase credentials from your project dashboard
