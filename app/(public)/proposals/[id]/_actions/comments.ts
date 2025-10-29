@@ -98,7 +98,11 @@ export async function getCommentsByProposal(proposalId: string) {
       return []
     }
 
-    return (data || []) as Comment[]
+    // Transform data to ensure author is not an array
+    return (data || []).map((comment: any) => ({
+      ...comment,
+      author: Array.isArray(comment.author) ? comment.author[0] : comment.author,
+    })) as Comment[]
   } catch (error) {
     console.error('Failed to fetch comments:', error)
     return []
