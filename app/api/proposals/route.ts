@@ -4,6 +4,7 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import prisma from '@/app/lib/db'
+import { enforce } from '@/app/lib/rate-limit'
 
 // GET /api/proposals - Get all proposals with optional filtering
 export async function GET(request: NextRequest) {
@@ -71,6 +72,21 @@ export async function GET(request: NextRequest) {
 // POST /api/proposals - Create a new proposal
 export async function POST(request: NextRequest) {
   try {
+    // Rate limiting: 60 requests per 5 minutes
+    const rateLimitResult = await enforce(request, 'proposals:create', 60, 300000)
+    if (!rateLimitResult.allowed) {
+      const retryAfterSeconds = Math.ceil(rateLimitResult.retryAfterMs / 1000)
+      return NextResponse.json(
+        { error: 'Too many requests. Please try again later.' },
+        {
+          status: 429,
+          headers: {
+            'Retry-After': retryAfterSeconds.toString(),
+          },
+        }
+      )
+    }
+
     const body = await request.json()
     console.log('POST /api/proposals - Received body:', JSON.stringify(body, null, 2))
 

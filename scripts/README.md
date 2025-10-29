@@ -130,3 +130,60 @@ The project uses GitHub Actions for continuous integration:
 8. Build project
 
 **Node Version**: Enforced via `package.json` engines field and CI configuration.
+
+## Security
+
+### Security Headers
+
+The application sets security headers on all responses via `middleware.ts`:
+
+- **X-Frame-Options**: `DENY` - Prevents clickjacking attacks
+- **X-Content-Type-Options**: `nosniff` - Prevents MIME-type sniffing
+- **Referrer-Policy**: `strict-origin-when-cross-origin` - Controls referrer information
+- **Permissions-Policy**: `geolocation=(), microphone=()` - Restricts feature access
+
+Headers are applied to all routes except static assets (`_next/static`, `_next/image`, images).
+
+### Rate Limiting
+
+Fixed-window in-memory rate limiting protects public POST endpoints:
+
+**Implementation**: `app/lib/rate-limit.ts`
+- Fixed-window algorithm (in-memory Map)
+- IP-based tracking via `x-forwarded-for` and `x-real-ip` headers
+- Automatic cleanup of expired entries every 10 minutes
+
+**Protected Endpoints**:
+- `POST /api/proposals` - Create proposal (60 requests / 5 minutes)
+- `POST /api/proposals/[id]/comments` - Create comment (60 requests / 5 minutes)
+
+**Rate Limit Response (429)**:
+```json
+{
+  "error": "Too many requests. Please try again later."
+}
+```
+Headers: `Retry-After: <seconds>`
+
+**Usage**:
+```typescript
+import { enforce } from '@/app/lib/rate-limit'
+
+const rateLimitResult = await enforce(request, 'endpoint-key', 60, 300000)
+if (!rateLimitResult.allowed) {
+  return NextResponse.json(
+    { error: 'Too many requests. Please try again later.' },
+    {
+      status: 429,
+      headers: {
+        'Retry-After': Math.ceil(rateLimitResult.retryAfterMs / 1000).toString(),
+      },
+    }
+  )
+}
+```
+
+**Limitations**:
+- In-memory storage (resets on server restart)
+- Not suitable for multi-instance deployments without external store (Redis)
+- Sufficient for MVP and single-instance production deployments
