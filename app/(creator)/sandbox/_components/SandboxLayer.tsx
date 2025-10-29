@@ -152,11 +152,11 @@ export default function SandboxLayer({
         }
         return f.properties.height || 3
       },
-      getFillColor: (f: any) => {
+      getFillColor: (f: any): [number, number, number, number] => {
         if (f.properties.selected) {
           return [99, 102, 241, 255] // Indigo for selected
         }
-        return [...f.properties.color, 200]
+        return [...f.properties.color, 200] as [number, number, number, number]
       },
       getLineColor: [80, 80, 80, 200],
       getLineWidth: 1,

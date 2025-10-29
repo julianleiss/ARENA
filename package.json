@@ -2,6 +2,9 @@
   "name": "arena",
   "version": "0.1.0",
   "private": true,
+  "engines": {
+    "node": ">=20 <21"
+  },
   "scripts": {
     "dev": "next dev",
     "build": "prisma generate && next build",
