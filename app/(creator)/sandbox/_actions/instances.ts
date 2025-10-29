@@ -3,7 +3,7 @@
 
 import { supabase } from '@/app/lib/supabase-client'
 import { z } from 'zod'
-import { GeometrySchema } from '@/app/lib/zod-geo'
+import { Geometry } from '@/app/lib/zod-geo'
 import { revalidatePath } from 'next/cache'
 
 // Validation schemas
@@ -15,16 +15,16 @@ const TransformSchema = z.object({
 const CreateInstanceSchema = z.object({
   sandboxId: z.string(),
   assetId: z.string(),
-  geom: GeometrySchema,
-  params: z.record(z.any()).optional().default({}),
+  geom: Geometry,
+  params: z.record(z.string(), z.any()).optional().default({}),
   transform: TransformSchema.optional().default({}),
 })
 
 const UpdateInstanceSchema = z.object({
   id: z.string(),
-  params: z.record(z.any()).optional(),
+  params: z.record(z.string(), z.any()).optional(),
   transform: TransformSchema.optional(),
-  geom: GeometrySchema.optional(),
+  geom: Geometry.optional(),
 })
 
 const DeleteInstanceSchema = z.object({

@@ -6,6 +6,7 @@ import { z } from 'zod'
 import { revalidatePath } from 'next/cache'
 import * as turf from '@turf/turf'
 import { v4 as uuidv4 } from 'uuid'
+import { safe } from '@/app/lib/safe-action'
 
 const PublishSchema = z.object({
   sandboxId: z.string(),
@@ -14,50 +15,40 @@ const PublishSchema = z.object({
   authorId: z.string(),
 })
 
-export async function publishSandbox(input: unknown) {
-  try {
-    const validated = PublishSchema.parse(input)
+const _publishSandbox = async (input: unknown) => {
+  const validated = PublishSchema.parse(input)
 
-    // Check if sandbox already published (idempotency)
-    const { data: existingVersions } = await supabase
-      .from('proposal_versions')
-      .select('proposal_id')
-      .eq('sandbox_id', validated.sandboxId)
-      .limit(1)
+  // Check if sandbox already published (idempotency)
+  const { data: existingVersions } = await supabase
+    .from('proposal_versions')
+    .select('proposal_id')
+    .eq('sandbox_id', validated.sandboxId)
+    .limit(1)
 
-    if (existingVersions && existingVersions.length > 0) {
-      return {
-        success: false,
-        error: 'This sandbox has already been published',
-      }
-    }
+  if (existingVersions && existingVersions.length > 0) {
+    throw new Error('This sandbox has already been published')
+  }
 
-    // Step 1: Fetch sandbox
-    const { data: sandbox, error: sandboxError } = await supabase
-      .from('sandboxes')
-      .select('id, geometry')
-      .eq('id', validated.sandboxId)
-      .single()
+  // Step 1: Fetch sandbox
+  const { data: sandbox, error: sandboxError } = await supabase
+    .from('sandboxes')
+    .select('id, geometry')
+    .eq('id', validated.sandboxId)
+    .single()
 
-    if (sandboxError || !sandbox) {
-      return {
-        success: false,
-        error: 'Sandbox not found',
-      }
-    }
+  if (sandboxError || !sandbox) {
+    throw new Error('Sandbox not found')
+  }
 
-    // Step 2: Fetch all instances
-    const { data: instances, error: instancesError } = await supabase
-      .from('instances')
-      .select('id, asset_id, geom, params, transform, state')
-      .eq('sandbox_id', validated.sandboxId)
+  // Step 2: Fetch all instances
+  const { data: instances, error: instancesError } = await supabase
+    .from('instances')
+    .select('id, asset_id, geom, params, transform, state')
+    .eq('sandbox_id', validated.sandboxId)
 
-    if (instancesError) {
-      return {
-        success: false,
-        error: 'Failed to fetch instances',
-      }
-    }
+  if (instancesError) {
+    throw new Error('Failed to fetch instances')
+  }
 
     // Step 3: Build FeatureCollection from instances
     const features = (instances || []).map((instance: any) => ({
@@ -115,10 +106,7 @@ export async function publishSandbox(input: unknown) {
 
     if (proposalError) {
       console.error('Failed to create proposal:', proposalError)
-      return {
-        success: false,
-        error: 'Failed to create proposal',
-      }
+      throw new Error('Failed to create proposal')
     }
 
     // Step 7: Create ProposalVersion with hash
@@ -171,25 +159,10 @@ export async function publishSandbox(input: unknown) {
     revalidatePath(`/proposals/${proposalId}`)
 
     return {
-      success: true,
-      data: {
-        proposalId,
-        versionHash,
-        featureCount: features.length,
-      },
+      proposalId,
+      versionHash,
+      featureCount: features.length,
     }
-  } catch (error) {
-    if (error instanceof z.ZodError) {
-      return {
-        success: false,
-        error: error.issues[0].message,
-      }
-    }
-
-    console.error('Failed to publish sandbox:', error)
-    return {
-      success: false,
-      error: 'Failed to publish sandbox',
-    }
-  }
 }
+
+export const publishSandbox = safe(_publishSandbox)

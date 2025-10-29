@@ -3,7 +3,8 @@
 // POST /api/proposals - Create a new proposal
 
 import { NextRequest, NextResponse } from 'next/server'
-import prisma from '@/app/lib/db'
+import { prisma } from '@/app/lib/prisma'
+import { Point } from '@/app/lib/zod-geo'
 
 // GET /api/proposals - Get all proposals with optional filtering
 export async function GET(request: NextRequest) {
@@ -97,11 +98,12 @@ export async function POST(request: NextRequest) {
     }
 
     // Validate geom format if provided
-    if (geom && geom.type === 'Point') {
-      if (!Array.isArray(geom.coordinates) || geom.coordinates.length !== 2) {
-        console.error('POST /api/proposals - Invalid geom format:', geom)
+    if (geom) {
+      const geomValidation = Point.safeParse(geom)
+      if (!geomValidation.success) {
+        console.error('POST /api/proposals - Invalid geom format:', geom, geomValidation.error)
         return NextResponse.json(
-          { error: 'Invalid geom format: Point must have [lng, lat] coordinates' },
+          { error: 'Invalid geom format: Must be a valid GeoJSON Point', details: geomValidation.error.issues },
           { status: 400 }
         )
       }

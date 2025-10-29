@@ -2,7 +2,7 @@
 // GET /api/pois - Returns all Points of Interest
 
 import { NextResponse } from 'next/server'
-import prisma from '@/app/lib/db'
+import { prisma } from '@/app/lib/prisma'
 
 // Mock POIs for local development when DB is unreachable
 const MOCK_POIS = [

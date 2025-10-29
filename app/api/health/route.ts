@@ -2,7 +2,7 @@
 // GET /api/health - Returns system status
 
 import { NextResponse } from 'next/server'
-import prisma from '@/app/lib/db'
+import { prisma } from '@/app/lib/prisma'
 
 export async function GET() {
   let dbStatus = 'disconnected'

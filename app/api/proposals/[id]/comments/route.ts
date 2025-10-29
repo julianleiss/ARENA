@@ -3,7 +3,7 @@
 // POST /api/proposals/[id]/comments - Create a new comment
 
 import { NextRequest, NextResponse } from 'next/server'
-import prisma from '@/app/lib/db'
+import { prisma } from '@/app/lib/prisma'
 
 // GET /api/proposals/[id]/comments - Get all comments for a proposal
 export async function GET(

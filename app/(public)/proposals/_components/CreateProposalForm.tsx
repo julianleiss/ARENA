@@ -19,7 +19,7 @@ export default function CreateProposalForm() {
     try {
       const result = await createProposal(formData)
 
-      if (result.success) {
+      if (result.ok) {
         // Reset form and close
         ;(e.target as HTMLFormElement).reset()
         setIsOpen(false)

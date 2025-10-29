@@ -52,7 +52,7 @@ export default function PublishBar({
 
     setLoading(false)
 
-    if (result.success && result.data) {
+    if (result.ok) {
       alert(
         `Proposal published successfully!\n${result.data.featureCount} instances exported.`
       )

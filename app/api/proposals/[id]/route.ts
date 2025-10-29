@@ -4,7 +4,7 @@
 // DELETE /api/proposals/[id] - Delete a specific proposal
 
 import { NextRequest, NextResponse } from 'next/server'
-import prisma from '@/app/lib/db'
+import { prisma } from '@/app/lib/prisma'
 
 // GET /api/proposals/[id] - Get a specific proposal with author and counts
 export async function GET(

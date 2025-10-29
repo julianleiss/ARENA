@@ -3,7 +3,7 @@
 // DELETE /api/proposals/[id]/votes - Remove vote from a proposal
 
 import { NextRequest, NextResponse } from 'next/server'
-import prisma from '@/app/lib/db'
+import { prisma } from '@/app/lib/prisma'
 
 // POST /api/proposals/[id]/votes - Vote for a proposal
 export async function POST(
