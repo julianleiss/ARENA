@@ -187,3 +187,50 @@ if (!rateLimitResult.allowed) {
 - In-memory storage (resets on server restart)
 - Not suitable for multi-instance deployments without external store (Redis)
 - Sufficient for MVP and single-instance production deployments
+
+## Authentication
+
+### Supabase Email OTP
+
+The application uses Supabase for authentication with email magic links (OTP).
+
+**Setup**:
+1. Create a Supabase project at https://supabase.com
+2. Add environment variables to `.env.local`:
+   ```
+   NEXT_PUBLIC_SUPABASE_URL=your_project_url
+   NEXT_PUBLIC_SUPABASE_ANON_KEY=your_anon_key
+   ```
+3. Enable Email auth provider in Supabase Dashboard:
+   - Go to Authentication > Providers
+   - Enable "Email" provider
+   - Configure email templates (optional)
+
+**Usage**:
+- Click "Sign In" button in header
+- Enter email address
+- Check email for magic link
+- Click link to sign in
+
+**Components**:
+- **AuthButton** (`app/components/auth/AuthButton.tsx`): Sign in/out UI
+- **Supabase Client** (`app/lib/supabase.ts`): Browser-side client
+
+**Auth Gates**:
+- Sandbox creation features disabled when not authenticated
+- "Add Instance" requires sign in
+- "Publish" button disabled until authenticated
+- UI shows clear CTA: "🔒 Please sign in"
+
+**Optional: OAuth Providers**:
+To enable Google/GitHub/etc OAuth:
+1. Go to Supabase Dashboard > Authentication > Providers
+2. Enable desired provider (e.g., Google)
+3. Add OAuth credentials from provider console
+4. Update AuthButton component to add OAuth sign-in options
+
+**Session Management**:
+- Sessions managed by Supabase client
+- Auto-refresh tokens
+- Persisted across page reloads
+- onAuthStateChange listener updates UI in real-time
