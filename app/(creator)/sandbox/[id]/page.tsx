@@ -1,6 +1,7 @@
 // ARENA - 3D Sandbox Editor (Proposal Viewer/Editor)
 import { notFound } from 'next/navigation'
 import SandboxClient from './_components/SandboxClient'
+import SandboxWrapper from './_components/SandboxWrapper'
 
 export const dynamic = 'force-dynamic'
 
@@ -111,57 +112,15 @@ export default async function SandboxPage({
       </header>
 
       {/* Main Content */}
-      <div className="flex-1 flex overflow-hidden">
-        {/* Left Sidebar - Prefab Palette */}
-        <aside className="w-64 bg-gray-800 border-r border-gray-700 overflow-y-auto">
-          <div className="p-4">
-            <h3 className="text-sm font-semibold text-gray-300 mb-3">Prefab Library</h3>
-            <p className="text-xs text-gray-500">Coming soon...</p>
-          </div>
-        </aside>
-
-        {/* Center - 3D Canvas */}
-        <main className="flex-1 relative">
-          <SandboxClient
-            proposalId={displayProposal.id}
-            proposalTitle={displayProposal.title}
-            proposalGeom={displayProposal.geom}
-            centerLng={centerLng}
-            centerLat={centerLat}
-          />
-        </main>
-
-        {/* Right Sidebar - Inspector */}
-        <aside className="w-80 bg-gray-800 border-l border-gray-700 overflow-y-auto">
-          <div className="p-4">
-            <h3 className="text-sm font-semibold text-gray-300 mb-3">Inspector</h3>
-            <div className="space-y-3 text-xs text-gray-400">
-              {isMock && (
-                <div className="p-3 bg-orange-500/10 border border-orange-500/30 rounded-lg">
-                  <p className="text-orange-400 font-medium mb-1">⚠️ Testing Mode</p>
-                  <p className="text-orange-300 text-xs">Database not connected. Using mock data to demonstrate 3D sandbox functionality.</p>
-                </div>
-              )}
-              <div>
-                <span className="text-gray-500">Proposal ID:</span>
-                <div className="mt-1 text-gray-300 font-mono text-xs break-all">{displayProposal.id}</div>
-              </div>
-              <div>
-                <span className="text-gray-500">Center:</span>
-                <div className="mt-1 text-gray-300 font-mono">
-                  {centerLng.toFixed(6)}, {centerLat.toFixed(6)}
-                </div>
-              </div>
-              {displayProposal.geom && (
-                <div>
-                  <span className="text-gray-500">Geometry Type:</span>
-                  <div className="mt-1 text-gray-300">{displayProposal.geom.type}</div>
-                </div>
-              )}
-            </div>
-          </div>
-        </aside>
-      </div>
+      <SandboxWrapper
+        proposalId={displayProposal.id}
+        proposalTitle={displayProposal.title}
+        proposalGeom={displayProposal.geom}
+        centerLng={centerLng}
+        centerLat={centerLat}
+        isMock={isMock}
+        displayProposal={displayProposal}
+      />
     </div>
   )
 }

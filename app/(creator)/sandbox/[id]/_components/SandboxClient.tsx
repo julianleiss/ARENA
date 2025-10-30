@@ -8,6 +8,7 @@ import { Deck } from '@deck.gl/core'
 import { GeoJsonLayer } from '@deck.gl/layers'
 import { GoogleMapsOverlay } from '@deck.gl/google-maps'
 import { AmbientLight, DirectionalLight, LightingEffect } from '@deck.gl/core'
+import type { Asset } from '../../_components/Palette'
 
 interface SandboxClientProps {
   proposalId: string
@@ -15,6 +16,7 @@ interface SandboxClientProps {
   proposalGeom: any
   centerLng: number
   centerLat: number
+  selectedAsset: Asset | null
 }
 
 export default function SandboxClient({
@@ -23,6 +25,7 @@ export default function SandboxClient({
   proposalGeom,
   centerLng,
   centerLat,
+  selectedAsset,
 }: SandboxClientProps) {
   const mapRef = useRef<google.maps.Map | null>(null)
   const deckOverlayRef = useRef<GoogleMapsOverlay | null>(null)
@@ -32,7 +35,29 @@ export default function SandboxClient({
   const [loadingBuildings, setLoadingBuildings] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
-  console.log('🎨 SandboxClient rendering:', { proposalId, centerLng, centerLat, hasGeom: !!proposalGeom })
+  console.log('🎨 SandboxClient rendering:', {
+    proposalId,
+    centerLng,
+    centerLat,
+    hasGeom: !!proposalGeom,
+    selectedAsset: selectedAsset?.id || 'none',
+  })
+
+  // Log when selectedAsset changes
+  useEffect(() => {
+    if (selectedAsset) {
+      console.log('🎯 Selected asset changed:', {
+        id: selectedAsset.id,
+        name: selectedAsset.name,
+        category: selectedAsset.category,
+        geometry: selectedAsset.geometry,
+        color: selectedAsset.color,
+        defaultScale: selectedAsset.defaultScale,
+      })
+    } else {
+      console.log('🔲 No asset selected')
+    }
+  }, [selectedAsset])
 
   // Fetch buildings from OSM Overpass API
   useEffect(() => {
