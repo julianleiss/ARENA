@@ -21,9 +21,9 @@ jobs:
           cache: 'npm'
 
       - name: Install dependencies
-          run: |
-            npm config set optional false
-            npm ci
+        run: |
+          npm config set optional false
+          npm ci
 
       - name: Set environment for Next.js build
         run: |
