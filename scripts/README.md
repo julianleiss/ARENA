@@ -38,6 +38,22 @@ node --version
 
 ## Available Scripts
 
+### postinstall
+
+Automatically runs after `npm install` to ensure Prisma client is always up to date:
+
+```bash
+npm run postinstall
+# Runs: prisma generate
+```
+
+**Why?**
+- Regenerates Prisma client after dependency changes
+- Ensures type safety for database queries
+- Required after schema changes or fresh clones
+
+This script is configured in `package.json` and runs automatically. You can also run it manually with `npm run db:generate`.
+
 ### seed.ts
 
 Populates database with test data:
@@ -90,8 +106,11 @@ curl http://localhost:3000/api/health
 ```json
 {
   "status": "ok",
+  "version": "0.1.0",
+  "timestamp": "2025-01-15T10:30:00.000Z",
   "database": "connected",
-  "time": "2025-01-15T10:30:00.000Z"
+  "service": "ARENA MVP",
+  "latencyMs": 45
 }
 ```
 
@@ -99,14 +118,20 @@ curl http://localhost:3000/api/health
 ```json
 {
   "status": "error",
-  "error": "Connection refused"
+  "version": "0.1.0",
+  "timestamp": "2025-01-15T10:30:00.000Z",
+  "database": "unreachable",
+  "service": "ARENA MVP",
+  "error": "ECONNREFUSED"
 }
 ```
 
 **Implementation**:
+- Measures query latency with `Date.now()` before and after DB ping
 - Executes `SELECT 1 AS ok` query to verify database connection
-- Returns 200 if database responds correctly
-- Returns 500 if database is unreachable or returns invalid response
+- Returns 200 with latency metrics if database responds correctly
+- Returns 500 with error details if database is unreachable
+- Includes version, timestamp, and service name for monitoring
 - Used for monitoring deployment health in production
 
 ## CI/CD Pipeline

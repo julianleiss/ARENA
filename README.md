@@ -24,7 +24,7 @@ npm install
 
 # 2. Configure environment
 cp .env.example .env.local
-# Edit .env.local with your DATABASE_URL
+# Edit .env.local with your DATABASE_URL and DIRECT_URL (see Supabase config below)
 
 # 3. Generate Prisma client and push schema
 npm run db:generate
@@ -35,6 +35,34 @@ npm run db:seed
 
 # 5. Run development server
 npm run dev
+```
+
+## Supabase Configuration
+
+### Pooled vs Direct Connection
+
+ARENA uses **two connection strings** for optimal performance and stability:
+
+- **`DATABASE_URL`** (Pooled): For application queries via PgBouncer
+  - Format: `postgresql://user:pass@db.PROJECT.supabase.co:6543/postgres?pgbouncer=true&sslmode=require`
+  - Port: `6543` (PgBouncer pooler)
+  - Use: All Prisma queries in the app
+  - Benefits: Connection pooling, handles high concurrency
+
+- **`DIRECT_URL`** (Direct): For schema migrations and introspection
+  - Format: `postgresql://user:pass@db.PROJECT.supabase.co:5432/postgres?sslmode=require`
+  - Port: `5432` (Direct PostgreSQL)
+  - Use: Prisma migrations, schema pushes, introspection
+  - Benefits: Required for DDL operations (CREATE TABLE, ALTER, etc.)
+
+**Why both?** Prisma needs direct access for schema changes but pooled connections for queries. See `prisma/schema.prisma`:
+
+```prisma
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")    // Pooled (6543)
+  directUrl = env("DIRECT_URL")      // Direct (5432)
+}
 ```
 
 Open [http://localhost:3000/proposals](http://localhost:3000/proposals) to view proposals.
