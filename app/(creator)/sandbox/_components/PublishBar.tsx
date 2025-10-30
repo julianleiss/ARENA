@@ -9,12 +9,14 @@ type PublishBarProps = {
   sandboxId: string
   sandboxStatus: string
   instanceCount: number
+  disabled?: boolean
 }
 
 export default function PublishBar({
   sandboxId,
   sandboxStatus,
   instanceCount,
+  disabled = false,
 }: PublishBarProps) {
   const router = useRouter()
   const [showModal, setShowModal] = useState(false)
@@ -73,7 +75,7 @@ export default function PublishBar({
           <div className="flex items-center gap-4">
             <div>
               <h3 className="text-sm font-semibold text-gray-900">
-                Ready to publish?
+                {disabled ? 'Sign in to publish' : 'Ready to publish?'}
               </h3>
               <p className="text-xs text-gray-600">
                 {instanceCount} instance{instanceCount !== 1 ? 's' : ''} in
@@ -83,16 +85,21 @@ export default function PublishBar({
           </div>
 
           <div className="flex items-center gap-3">
+            {disabled && (
+              <span className="px-3 py-1 bg-blue-100 text-blue-800 text-xs font-medium rounded-full">
+                🔒 Auth required
+              </span>
+            )}
             {isPublished && (
               <span className="px-3 py-1 bg-green-100 text-green-800 text-xs font-medium rounded-full">
                 Already Published
               </span>
             )}
             <button
-              onClick={() => setShowModal(true)}
-              disabled={isPublished || instanceCount === 0}
+              onClick={() => !disabled && setShowModal(true)}
+              disabled={disabled || isPublished || instanceCount === 0}
               className={`px-6 py-2 text-sm font-medium rounded-lg transition-colors ${
-                isPublished || instanceCount === 0
+                disabled || isPublished || instanceCount === 0
                   ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
                   : 'bg-indigo-600 hover:bg-indigo-700 text-white'
               }`}
