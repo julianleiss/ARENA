@@ -1,253 +1,355 @@
-// ARENA - Sandbox Client Component (Orchestrates Prefab System)
 'use client'
 
-import { useState, useEffect } from 'react'
-import { supabase } from '@/app/lib/supabase'
-import type { User } from '@supabase/supabase-js'
-import PrefabPalette from '../../_components/PrefabPalette'
-import SandboxLayer from '../../_components/SandboxLayer'
-import Inspector from '../../_components/Inspector'
-import PublishBar from '../../_components/PublishBar'
-import {
-  createInstance,
-  updateInstance,
-  deleteInstance,
-} from '../../_actions/instances'
+// ARENA - 3D Sandbox Client Component
+// Manages 3D canvas with deck.gl + Google Maps
 
-type Instance = {
-  id: string
-  sandboxId: string
-  assetId: string
-  geom: any
-  params: Record<string, any>
-  transform: Record<string, any>
-  state: string
-}
+import { useState, useEffect, useRef, useCallback } from 'react'
+import { Deck } from '@deck.gl/core'
+import { GeoJsonLayer } from '@deck.gl/layers'
+import { GoogleMapsOverlay } from '@deck.gl/google-maps'
+import { AmbientLight, DirectionalLight, LightingEffect } from '@deck.gl/core'
 
-type Asset = {
-  id: string
-  name: string
-  kind: string
-  modelUrl: string | null
-  defaultParams: Record<string, any>
-}
-
-type SandboxClientProps = {
-  sandboxId: string
-  sandboxStatus: string
-  sandboxGeometry: any
-  initialInstances: any[]
-  initialAssets: any[]
+interface SandboxClientProps {
+  proposalId: string
+  proposalTitle: string
+  proposalGeom: any
+  centerLng: number
+  centerLat: number
 }
 
 export default function SandboxClient({
-  sandboxId,
-  sandboxStatus,
-  sandboxGeometry,
-  initialInstances,
-  initialAssets,
+  proposalId,
+  proposalTitle,
+  proposalGeom,
+  centerLng,
+  centerLat,
 }: SandboxClientProps) {
-  const [assets] = useState<Asset[]>(
-    initialAssets.map((a: any) => ({
-      id: a.id,
-      name: a.name,
-      kind: a.kind,
-      modelUrl: a.model_url,
-      defaultParams: a.default_params,
-    }))
-  )
+  const mapRef = useRef<google.maps.Map | null>(null)
+  const deckOverlayRef = useRef<GoogleMapsOverlay | null>(null)
+  const containerRef = useRef<HTMLDivElement>(null)
 
-  const [instances, setInstances] = useState<Instance[]>(
-    initialInstances.map((i: any) => ({
-      id: i.id,
-      sandboxId: i.sandbox_id,
-      assetId: i.asset_id,
-      geom: i.geom,
-      params: i.params,
-      transform: i.transform,
-      state: i.state,
-    }))
-  )
+  const [buildingsData, setBuildingsData] = useState<any>(null)
+  const [loadingBuildings, setLoadingBuildings] = useState(true)
+  const [error, setError] = useState<string | null>(null)
 
-  const [selectedAssetId, setSelectedAssetId] = useState<string | null>(null)
-  const [selectedInstanceId, setSelectedInstanceId] = useState<string | null>(
-    null
-  )
-  const [loading, setLoading] = useState(false)
-  const [user, setUser] = useState<User | null>(null)
+  console.log('🎨 SandboxClient rendering:', { proposalId, centerLng, centerLat, hasGeom: !!proposalGeom })
 
-  // Check authentication status
+  // Fetch buildings from OSM Overpass API
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setUser(session?.user ?? null)
+    async function fetchBuildings() {
+      try {
+        setLoadingBuildings(true)
+        console.log('🏢 Fetching buildings around:', { lng: centerLng, lat: centerLat })
+
+        // Define bounding box (approx 500m radius)
+        const offset = 0.005 // roughly 500m
+        const bbox = `${centerLat - offset},${centerLng - offset},${centerLat + offset},${centerLng + offset}`
+
+        const query = `
+          [out:json][timeout:25];
+          (
+            way["building"](${bbox});
+          );
+          out geom;
+        `
+
+        const response = await fetch('https://overpass-api.de/api/interpreter', {
+          method: 'POST',
+          body: query,
+          headers: { 'Content-Type': 'text/plain' },
+        })
+
+        if (!response.ok) {
+          throw new Error(`Overpass API error: ${response.status}`)
+        }
+
+        const data = await response.json()
+        console.log('🏢 Fetched OSM data:', { elementCount: data.elements?.length || 0 })
+
+        // Convert OSM data to GeoJSON
+        const features = data.elements
+          .filter((el: any) => el.type === 'way' && el.geometry)
+          .map((el: any) => {
+            const coordinates = el.geometry.map((node: any) => [node.lon, node.lat])
+            // Close the polygon if not already closed
+            if (coordinates.length > 0 &&
+                (coordinates[0][0] !== coordinates[coordinates.length - 1][0] ||
+                 coordinates[0][1] !== coordinates[coordinates.length - 1][1])) {
+              coordinates.push([...coordinates[0]])
+            }
+
+            const height = parseFloat(el.tags?.['building:levels'] || el.tags?.height || '10')
+            const heightMeters = el.tags?.height ? height : height * 3 // levels to meters
+
+            return {
+              type: 'Feature',
+              properties: {
+                id: el.id,
+                height: heightMeters,
+                name: el.tags?.name || 'Building',
+                type: el.tags?.building || 'yes',
+              },
+              geometry: {
+                type: 'Polygon',
+                coordinates: [coordinates],
+              },
+            }
+          })
+
+        const geojson = {
+          type: 'FeatureCollection',
+          features,
+        }
+
+        console.log('🏢 Converted to GeoJSON:', { featureCount: features.length })
+        setBuildingsData(geojson)
+        setLoadingBuildings(false)
+      } catch (error) {
+        console.error('❌ Error fetching buildings:', error)
+        setError(error instanceof Error ? error.message : 'Failed to load buildings')
+        setLoadingBuildings(false)
+      }
+    }
+
+    fetchBuildings()
+  }, [centerLng, centerLat])
+
+  // Initialize Google Maps
+  useEffect(() => {
+    if (!containerRef.current) return
+
+    const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY
+    if (!apiKey) {
+      setError('Google Maps API key not configured')
+      return
+    }
+
+    console.log('🗺️ Initializing Google Maps...')
+
+    // Load Google Maps script
+    const loadGoogleMaps = () => {
+      if (window.google?.maps) {
+        initializeMap()
+        return
+      }
+
+      const script = document.createElement('script')
+      script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&v=weekly`
+      script.async = true
+      script.defer = true
+      script.onload = initializeMap
+      script.onerror = () => setError('Failed to load Google Maps')
+      document.head.appendChild(script)
+    }
+
+    const initializeMap = () => {
+      if (!containerRef.current) return
+
+      console.log('🗺️ Creating Google Maps instance')
+
+      const map = new google.maps.Map(containerRef.current, {
+        center: { lat: centerLat, lng: centerLng },
+        zoom: 18,
+        tilt: 60, // 3D view
+        heading: 0,
+        mapId: 'bf51a910020fa25a', // Enable 3D
+        mapTypeId: 'roadmap',
+        disableDefaultUI: false,
+        gestureHandling: 'greedy',
+      })
+
+      mapRef.current = map
+
+      // Initialize deck.gl overlay
+      initializeDeckOverlay(map)
+    }
+
+    loadGoogleMaps()
+  }, [centerLng, centerLat])
+
+  // Initialize deck.gl overlay
+  const initializeDeckOverlay = useCallback((map: google.maps.Map) => {
+    console.log('🎨 Initializing deck.gl overlay')
+
+    // Set up lighting
+    const ambientLight = new AmbientLight({
+      color: [255, 255, 255],
+      intensity: 0.3,
     })
 
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
-      setUser(session?.user ?? null)
+    const directionalLight = new DirectionalLight({
+      color: [255, 255, 255],
+      intensity: 0.7,
+      direction: [-1, -3, -1], // Sun from northeast
+      _shadow: true,
     })
 
-    return () => subscription.unsubscribe()
+    const lightingEffect = new LightingEffect({ ambientLight, directionalLight })
+
+    const overlay = new GoogleMapsOverlay({
+      effects: [lightingEffect],
+    })
+
+    overlay.setMap(map)
+    deckOverlayRef.current = overlay
+
+    console.log('✅ Deck.gl overlay initialized')
   }, [])
 
-  // Get selected instance and its asset
-  const selectedInstance = instances.find((i) => i.id === selectedInstanceId) || null
-  const selectedAsset = selectedInstance
-    ? assets.find((a) => a.id === selectedInstance.assetId) || null
-    : null
+  // Update deck.gl layers when data changes
+  useEffect(() => {
+    if (!deckOverlayRef.current) return
 
-  // Handle map click to place instance
-  const handleMapClick = async (lng: number, lat: number) => {
-    if (!user) {
-      alert('Please sign in to add instances')
-      return
-    }
-
-    if (!selectedAssetId || loading) return
-
-    setLoading(true)
-
-    const asset = assets.find((a) => a.id === selectedAssetId)
-    if (!asset) {
-      setLoading(false)
-      return
-    }
-
-    const result = await createInstance({
-      sandboxId,
-      assetId: selectedAssetId,
-      geom: {
-        type: 'Point',
-        coordinates: [lng, lat],
-      },
-      params: asset.defaultParams,
-      transform: {},
+    console.log('🔄 Updating deck.gl layers:', {
+      hasBuildingsData: !!buildingsData,
+      buildingCount: buildingsData?.features?.length || 0,
+      hasProposalGeom: !!proposalGeom
     })
 
-    if (result.success && result.data) {
-      setInstances([...instances, result.data as Instance])
-      // Show toast (optional - could add toast library)
-      console.log('Instance created successfully')
-    } else {
-      alert(result.error || 'Failed to create instance')
-    }
+    const layers = []
 
-    setLoading(false)
-  }
+    // Buildings layer
+    if (buildingsData) {
+      layers.push(
+        new GeoJsonLayer({
+          id: 'buildings-layer',
+          data: buildingsData,
+          extruded: true,
+          wireframe: false,
+          filled: true,
+          pickable: false,
 
-  // Handle instance update
-  const handleInstanceUpdate = async (
-    params: Record<string, any>,
-    transform: Record<string, any>
-  ) => {
-    if (!selectedInstanceId || loading) return
+          getElevation: (f: any) => f.properties.height || 10,
+          getFillColor: [148, 163, 184, 180], // gray-400 with transparency
+          getLineColor: [100, 116, 139, 255], // gray-500 border
+          lineWidthMinPixels: 1,
 
-    setLoading(true)
-
-    const result = await updateInstance({
-      id: selectedInstanceId,
-      params,
-      transform,
-    })
-
-    if (result.success) {
-      setInstances(
-        instances.map((i) =>
-          i.id === selectedInstanceId
-            ? { ...i, params, transform, state: 'modified' }
-            : i
-        )
+          // Lighting material
+          material: {
+            ambient: 0.35,
+            diffuse: 0.6,
+            shininess: 32,
+            specularColor: [60, 64, 70],
+          },
+        })
       )
-      console.log('Instance updated successfully')
-    } else {
-      alert(result.error || 'Failed to update instance')
     }
 
-    setLoading(false)
-  }
+    // Proposal highlight layer
+    if (proposalGeom) {
+      let highlightData: any = null
 
-  // Handle instance delete
-  const handleInstanceDelete = async () => {
-    if (!selectedInstanceId || loading) return
+      if (proposalGeom.type === 'Point') {
+        // Create circle around point (50m radius)
+        const radius = 50 / 111320 // Convert 50m to degrees (approx)
+        const [lng, lat] = proposalGeom.coordinates
+        const segments = 32
+        const coordinates = []
 
-    if (!confirm('Are you sure you want to delete this instance?')) {
-      return
+        for (let i = 0; i <= segments; i++) {
+          const angle = (i / segments) * 2 * Math.PI
+          coordinates.push([
+            lng + radius * Math.cos(angle),
+            lat + radius * Math.sin(angle),
+          ])
+        }
+
+        highlightData = {
+          type: 'Feature',
+          geometry: {
+            type: 'Polygon',
+            coordinates: [coordinates],
+          },
+          properties: { type: 'proposal-area' },
+        }
+      } else if (proposalGeom.type === 'Polygon') {
+        highlightData = {
+          type: 'Feature',
+          geometry: proposalGeom,
+          properties: { type: 'proposal-area' },
+        }
+      }
+
+      if (highlightData) {
+        layers.push(
+          new GeoJsonLayer({
+            id: 'proposal-highlight',
+            data: highlightData,
+            filled: true,
+            stroked: true,
+            pickable: false,
+
+            getFillColor: [251, 191, 36, 127], // yellow-400 with 50% opacity
+            getLineColor: [251, 191, 36, 255], // solid yellow
+            getLineWidth: 3,
+            lineWidthMinPixels: 3,
+          })
+        )
+      }
     }
 
-    setLoading(true)
-
-    const result = await deleteInstance({ id: selectedInstanceId })
-
-    if (result.success) {
-      setInstances(instances.filter((i) => i.id !== selectedInstanceId))
-      setSelectedInstanceId(null)
-      console.log('Instance deleted successfully')
-    } else {
-      alert(result.error || 'Failed to delete instance')
-    }
-
-    setLoading(false)
-  }
+    deckOverlayRef.current.setProps({ layers })
+    console.log('✅ Deck.gl layers updated:', { layerCount: layers.length })
+  }, [buildingsData, proposalGeom])
 
   return (
-    <>
-      {/* Prefab Palette */}
-      <PrefabPalette
-        assets={assets}
-        selectedAssetId={selectedAssetId}
-        onSelectAsset={setSelectedAssetId}
-        disabled={!user}
-      />
-
-      {/* Inspector (when instance selected) */}
-      {selectedInstance && selectedAsset && (
-        <Inspector
-          selectedInstance={selectedInstance}
-          asset={selectedAsset}
-          onUpdate={handleInstanceUpdate}
-          onDelete={handleInstanceDelete}
-          onClose={() => setSelectedInstanceId(null)}
-        />
-      )}
-
-      {/* 2.5D Map Layer */}
-      <SandboxLayer
-        sandboxGeometry={sandboxGeometry}
-        instances={instances}
-        assets={assets}
-        selectedInstanceId={selectedInstanceId}
-        onInstanceClick={setSelectedInstanceId}
-        onMapClick={handleMapClick}
-      />
+    <div className="relative w-full h-full">
+      {/* Map Container */}
+      <div ref={containerRef} className="absolute inset-0" />
 
       {/* Loading Overlay */}
-      {loading && (
-        <div className="absolute inset-0 bg-black/10 backdrop-blur-sm z-50 flex items-center justify-center pointer-events-none">
-          <div className="bg-white px-4 py-2 rounded-lg shadow-lg">
-            <span className="text-sm font-medium text-gray-700">
-              Processing...
-            </span>
+      {loadingBuildings && (
+        <div className="absolute top-4 right-4 bg-gray-800/90 backdrop-blur-sm border border-gray-700 rounded-lg px-4 py-3 shadow-lg">
+          <div className="flex items-center gap-3">
+            <div className="w-4 h-4 border-2 border-gray-600 border-t-indigo-500 rounded-full animate-spin" />
+            <span className="text-sm text-gray-300">Loading buildings...</span>
           </div>
         </div>
       )}
 
-      {/* Help Text */}
-      {!selectedInstanceId && selectedAssetId && (
-        <div className="absolute bottom-20 left-1/2 transform -translate-x-1/2 z-30 bg-indigo-600 text-white px-4 py-2 rounded-lg shadow-lg">
-          <p className="text-sm font-medium">
-            Click on the map to place {assets.find((a) => a.id === selectedAssetId)?.name}
-          </p>
+      {/* Error Message */}
+      {error && (
+        <div className="absolute top-4 right-4 bg-red-900/90 backdrop-blur-sm border border-red-700 rounded-lg px-4 py-3 shadow-lg max-w-sm">
+          <div className="flex items-center gap-2">
+            <svg className="w-5 h-5 text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <div>
+              <p className="text-sm font-medium text-red-200">Error</p>
+              <p className="text-xs text-red-300 mt-1">{error}</p>
+            </div>
+          </div>
         </div>
       )}
 
-      {/* Publish Bar */}
-      <PublishBar
-        sandboxId={sandboxId}
-        sandboxStatus={sandboxStatus}
-        instanceCount={instances.length}
-        disabled={!user}
-      />
-    </>
+      {/* Stats Overlay */}
+      <div className="absolute bottom-4 left-4 bg-gray-800/90 backdrop-blur-sm border border-gray-700 rounded-lg px-4 py-3 shadow-lg">
+        <div className="space-y-1 text-xs">
+          <div className="flex items-center gap-2">
+            <span className="text-gray-500">Buildings:</span>
+            <span className="text-gray-200 font-medium">
+              {buildingsData?.features?.length || 0}
+            </span>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="text-gray-500">Camera:</span>
+            <span className="text-gray-200 font-mono">
+              {centerLat.toFixed(5)}, {centerLng.toFixed(5)}
+            </span>
+          </div>
+        </div>
+      </div>
+
+      {/* Controls Help */}
+      <div className="absolute bottom-4 right-4 bg-gray-800/90 backdrop-blur-sm border border-gray-700 rounded-lg px-4 py-3 shadow-lg">
+        <h4 className="text-xs font-semibold text-gray-300 mb-2">Controls</h4>
+        <div className="space-y-1 text-xs text-gray-400">
+          <div>• Drag to pan</div>
+          <div>• Scroll to zoom</div>
+          <div>• Ctrl + Drag to rotate</div>
+          <div>• Shift + Drag to tilt</div>
+        </div>
+      </div>
+    </div>
   )
 }
