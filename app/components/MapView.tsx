@@ -515,10 +515,19 @@ export default function MapViewDeck({
     } else {
       // Normal click: single selection (replace previous)
       setSelectedBuildingIds([buildingId])
+
+      // Open drawer immediately for single-click (create mode)
+      if (mapMode === 'create') {
+        setSelectedCoords({ lng: coords[0], lat: coords[1] })
+        setDrawerMode('create')
+        setDrawerOpen(true)
+      }
     }
 
-    setSelectedCoords({ lng: coords[0], lat: coords[1] })
-  }, [])
+    if (!multiSelect) {
+      setSelectedCoords({ lng: coords[0], lat: coords[1] })
+    }
+  }, [mapMode])
 
   // Building hover handler
   const handleBuildingHover = useCallback((buildingId: string | null) => {
@@ -618,6 +627,7 @@ export default function MapViewDeck({
           mapId="bf51a910020fa25a"
           mapTypeId="roadmap"
           onClick={handleMapClick}
+          style={{ cursor: mapMode === 'create' ? 'crosshair' : 'auto' }}
         >
           <DeckGLOverlay
             selectedBuildingIds={selectedBuildingIds}
