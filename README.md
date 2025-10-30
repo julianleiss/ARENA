@@ -127,6 +127,18 @@ npm ci && prisma generate && next build
 - Local builds work fine because the correct binary is installed via npm
 - This issue is specific to Vercel's serverless build environment
 
+### GitHub Actions CI
+
+The CI workflow (`.github/workflows/ci.yml`) also disables Lightning CSS for Linux compatibility:
+
+```yaml
+- name: Set environment for Next.js build
+  run: |
+    echo "NEXT_DISABLE_LIGHTNINGCSS=1" >> $GITHUB_ENV
+```
+
+This ensures builds pass on Ubuntu runners with Tailwind v4. The same Lightning CSS binary issue affects GitHub's Linux environment.
+
 ## Database Schema
 
 ```prisma
