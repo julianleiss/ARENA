@@ -139,6 +139,8 @@ The CI workflow (`.github/workflows/ci.yml`) also disables Lightning CSS for Lin
 
 This ensures builds pass on Ubuntu runners with Tailwind v4. The same Lightning CSS binary issue affects GitHub's Linux environment.
 
+**ESLint Configuration**: The CI runs `npm run lint` with minimal Next.js Core Web Vitals configuration. Warnings don't block the build in CI (failsafe with `|| echo` in package.json lint script).
+
 ## Database Schema
 
 ```prisma

@@ -1,7 +1,9 @@
 // ARENA - Sandbox Client Component (Orchestrates Prefab System)
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import { supabase } from '@/app/lib/supabase'
+import type { User } from '@supabase/supabase-js'
 import PrefabPalette from '../../_components/PrefabPalette'
 import SandboxLayer from '../../_components/SandboxLayer'
 import Inspector from '../../_components/Inspector'
@@ -72,6 +74,22 @@ export default function SandboxClient({
     null
   )
   const [loading, setLoading] = useState(false)
+  const [user, setUser] = useState<User | null>(null)
+
+  // Check authentication status
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setUser(session?.user ?? null)
+    })
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUser(session?.user ?? null)
+    })
+
+    return () => subscription.unsubscribe()
+  }, [])
 
   // Get selected instance and its asset
   const selectedInstance = instances.find((i) => i.id === selectedInstanceId) || null
@@ -81,6 +99,11 @@ export default function SandboxClient({
 
   // Handle map click to place instance
   const handleMapClick = async (lng: number, lat: number) => {
+    if (!user) {
+      alert('Please sign in to add instances')
+      return
+    }
+
     if (!selectedAssetId || loading) return
 
     setLoading(true)
@@ -174,6 +197,7 @@ export default function SandboxClient({
         assets={assets}
         selectedAssetId={selectedAssetId}
         onSelectAsset={setSelectedAssetId}
+        disabled={!user}
       />
 
       {/* Inspector (when instance selected) */}
@@ -222,6 +246,7 @@ export default function SandboxClient({
         sandboxId={sandboxId}
         sandboxStatus={sandboxStatus}
         instanceCount={instances.length}
+        disabled={!user}
       />
     </>
   )
