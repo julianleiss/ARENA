@@ -581,9 +581,32 @@ export default function MapViewDeck({
     }
   }, [mapMode, selectionMode])
 
+  // Debug logging
+  const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY
+  console.log('🗺️ MapView Component - Rendering with:', {
+    hasApiKey: !!apiKey,
+    apiKeyLength: apiKey?.length,
+    apiKeyPrefix: apiKey?.substring(0, 10) + '...',
+    mapMode,
+    selectionMode,
+    proposalsCount: proposals.length
+  })
+
+  if (!apiKey) {
+    console.error('❌ NEXT_PUBLIC_GOOGLE_MAPS_API_KEY is not defined!')
+    return (
+      <div className="w-full h-full flex items-center justify-center bg-red-50">
+        <div className="text-center p-8">
+          <h2 className="text-2xl font-bold text-red-600 mb-2">Google Maps API Key Missing</h2>
+          <p className="text-red-500">NEXT_PUBLIC_GOOGLE_MAPS_API_KEY environment variable is not set</p>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="relative w-full h-full">
-      <APIProvider apiKey={process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY!}>
+      <APIProvider apiKey={apiKey}>
         <Map
           defaultCenter={{ lat: -34.545, lng: -58.46 }} // Núñez area
           defaultZoom={18}
