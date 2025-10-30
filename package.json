@@ -2,17 +2,21 @@
   "name": "arena",
   "version": "0.1.0",
   "private": true,
+  "engines": {
+    "node": ">=20 <21"
+  },
   "scripts": {
     "dev": "next dev",
     "build": "prisma generate && next build",
     "start": "next start",
     "lint": "next lint",
+    "postinstall": "prisma generate",
     "db:generate": "prisma generate",
     "db:push": "prisma db push",
     "db:studio": "prisma studio",
     "db:seed": "tsx scripts/seed.ts",
     "db:rollback": "tsx scripts/rollback.ts",
-    "test": "vitest",
+    "test": "vitest run",
     "test:e2e": "playwright test"
   },
   "dependencies": {

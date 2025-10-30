@@ -15,12 +15,14 @@ type PrefabPaletteProps = {
   assets: Asset[]
   selectedAssetId: string | null
   onSelectAsset: (assetId: string | null) => void
+  disabled?: boolean
 }
 
 export default function PrefabPalette({
   assets,
   selectedAssetId,
   onSelectAsset,
+  disabled = false,
 }: PrefabPaletteProps) {
   const [filter, setFilter] = useState<string>('all')
 
@@ -45,9 +47,18 @@ export default function PrefabPalette({
           Prefabs Library
         </h3>
         <p className="text-xs text-gray-600">
-          Select a prefab to place on the map
+          {disabled ? 'Sign in to add instances' : 'Select a prefab to place on the map'}
         </p>
       </div>
+
+      {/* Auth Gate */}
+      {disabled && (
+        <div className="mb-3 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+          <p className="text-xs text-blue-800 font-medium">
+            🔒 Please sign in to add instances to this sandbox
+          </p>
+        </div>
+      )}
 
       {/* Filter */}
       <div className="flex gap-2 mb-3 overflow-x-auto pb-2">
@@ -99,10 +110,13 @@ export default function PrefabPalette({
           <button
             key={asset.id}
             onClick={() =>
-              onSelectAsset(selectedAssetId === asset.id ? null : asset.id)
+              !disabled && onSelectAsset(selectedAssetId === asset.id ? null : asset.id)
             }
+            disabled={disabled}
             className={`p-3 border rounded-lg text-left transition-all ${
-              selectedAssetId === asset.id
+              disabled
+                ? 'border-gray-200 bg-gray-100 cursor-not-allowed opacity-50'
+                : selectedAssetId === asset.id
                 ? 'border-indigo-500 bg-indigo-50 shadow-md'
                 : 'border-gray-200 bg-white hover:border-gray-300 hover:shadow-sm'
             }`}

@@ -4,6 +4,7 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import prisma from '@/app/lib/db'
+import { enforce } from '@/app/lib/rate-limit'
 
 // GET /api/proposals/[id]/comments - Get all comments for a proposal
 export async function GET(
@@ -67,6 +68,21 @@ export async function POST(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    // Rate limiting: 60 requests per 5 minutes
+    const rateLimitResult = await enforce(request, 'comments:create', 60, 300000)
+    if (!rateLimitResult.allowed) {
+      const retryAfterSeconds = Math.ceil(rateLimitResult.retryAfterMs / 1000)
+      return NextResponse.json(
+        { error: 'Too many requests. Please try again later.' },
+        {
+          status: 429,
+          headers: {
+            'Retry-After': retryAfterSeconds.toString(),
+          },
+        }
+      )
+    }
+
     const { id: proposalId } = await params
     const body = await request.json()
     const { userId, content } = body

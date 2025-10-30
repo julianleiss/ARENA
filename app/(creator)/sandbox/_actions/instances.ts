@@ -16,13 +16,13 @@ const CreateInstanceSchema = z.object({
   sandboxId: z.string(),
   assetId: z.string(),
   geom: GeometrySchema,
-  params: z.record(z.any()).optional().default({}),
+  params: z.record(z.string(), z.any()).optional().default({}),
   transform: TransformSchema.optional().default({}),
 })
 
 const UpdateInstanceSchema = z.object({
   id: z.string(),
-  params: z.record(z.any()).optional(),
+  params: z.record(z.string(), z.any()).optional(),
   transform: TransformSchema.optional(),
   geom: GeometrySchema.optional(),
 })

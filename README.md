@@ -102,6 +102,43 @@ Open [http://localhost:3000/proposals](http://localhost:3000/proposals) to view 
 - **Validation**: Zod (including GeoJSON schemas)
 - **Type Safety**: TypeScript (strict mode)
 
+## Vercel Deployment
+
+### Build Configuration
+
+**Environment Variable Required**:
+```
+NEXT_DISABLE_LIGHTNINGCSS=1
+```
+
+Set this in Vercel Dashboard → Project Settings → Environment Variables for **Production** environment.
+
+**Why?** Tailwind v4 uses `@tailwindcss/postcss` which includes Lightning CSS. However, Vercel's build environment may fail to find the correct Linux binary (`lightningcss.linux-x64-gnu.node`). Disabling Lightning CSS in Next.js allows Tailwind's PostCSS plugin to handle CSS processing directly.
+
+**Build Command** (vercel.json):
+```
+npm ci && prisma generate && next build
+```
+
+**Troubleshooting**:
+- If you see `Cannot find module '../lightningcss.linux-x64-gnu.node'` error:
+  1. Verify `NEXT_DISABLE_LIGHTNINGCSS=1` is set in Vercel environment variables
+  2. Redeploy from Vercel dashboard or `vercel --prod`
+- Local builds work fine because the correct binary is installed via npm
+- This issue is specific to Vercel's serverless build environment
+
+### GitHub Actions CI
+
+The CI workflow (`.github/workflows/ci.yml`) also disables Lightning CSS for Linux compatibility:
+
+```yaml
+- name: Set environment for Next.js build
+  run: |
+    echo "NEXT_DISABLE_LIGHTNINGCSS=1" >> $GITHUB_ENV
+```
+
+This ensures builds pass on Ubuntu runners with Tailwind v4. The same Lightning CSS binary issue affects GitHub's Linux environment.
+
 ## Database Schema
 
 ```prisma

@@ -1,40 +1,30 @@
 // ARENA V1.0 - Health Check Endpoint
-// GET /api/health - Returns system status
+// GET /api/health - Returns system status with database connectivity test
 
 import { NextResponse } from 'next/server'
 import prisma from '@/app/lib/db'
 
 export async function GET() {
-  let dbStatus = 'disconnected'
-  let dbError = null
-
   try {
-    // Try database connection with timeout
-    await Promise.race([
-      prisma.$queryRaw`SELECT 1`,
-      new Promise((_, reject) => 
-        setTimeout(() => reject(new Error('Connection timeout')), 3000)
-      )
-    ])
-    dbStatus = 'connected'
+    // Real database ping with SELECT 1 AS ok
+    const result = await prisma.$queryRaw<Array<{ ok: number }>>`SELECT 1 AS ok`
+
+    if (!result || result.length === 0 || result[0].ok !== 1) {
+      throw new Error('Invalid database response')
+    }
+
+    return NextResponse.json({
+      status: 'ok',
+      database: 'connected',
+      time: new Date().toISOString(),
+    }, { status: 200 })
+
   } catch (error) {
     console.error('Health check - DB connection failed:', error)
-    dbError = error instanceof Error ? error.message : 'Unknown error'
-    
-    // Don't fail the health check if we're in development
-    if (process.env.NODE_ENV === 'development') {
-      dbStatus = 'local-bypass'
-    }
+
+    return NextResponse.json({
+      status: 'error',
+      error: error instanceof Error ? error.message : 'Database connection failed',
+    }, { status: 500 })
   }
-
-  const isHealthy = dbStatus === 'connected' || dbStatus === 'local-bypass'
-
-  return NextResponse.json({
-    status: isHealthy ? 'ok' : 'error',
-    version: '0.101',
-    timestamp: new Date().toISOString(),
-    database: dbStatus,
-    service: 'ARENA MVP',
-    ...(dbError && { error: dbError }),
-  }, { status: isHealthy ? 200 : 503 })
 }
