@@ -39,21 +39,34 @@ export default async function SandboxPage({
 
   const proposal = await getProposal(id)
 
-  if (!proposal) {
-    console.error('❌ Proposal not found:', id)
-    notFound()
+  // Use mock data if proposal not found (for testing)
+  const mockProposal = {
+    id: id,
+    title: 'Mock Proposal - 3D Sandbox Test',
+    status: 'draft',
+    geom: {
+      type: 'Point',
+      coordinates: [-58.46, -34.545], // Buenos Aires Núñez
+    },
+  }
+
+  const displayProposal = proposal || mockProposal
+  const isMock = !proposal
+
+  if (isMock) {
+    console.warn('⚠️ Using mock proposal data for testing - database not connected')
   }
 
   // Extract coordinates from geom
   let centerLng = -58.46 // Default: Buenos Aires Núñez
   let centerLat = -34.545
 
-  if (proposal.geom) {
-    if (proposal.geom.type === 'Point') {
-      [centerLng, centerLat] = proposal.geom.coordinates
-    } else if (proposal.geom.type === 'Polygon') {
+  if (displayProposal.geom) {
+    if (displayProposal.geom.type === 'Point') {
+      [centerLng, centerLat] = displayProposal.geom.coordinates
+    } else if (displayProposal.geom.type === 'Polygon') {
       // Calculate centroid
-      const coords = proposal.geom.coordinates[0]
+      const coords = displayProposal.geom.coordinates[0]
       centerLng = coords.reduce((sum: number, p: number[]) => sum + p[0], 0) / coords.length
       centerLat = coords.reduce((sum: number, p: number[]) => sum + p[1], 0) / coords.length
     }
@@ -78,16 +91,21 @@ export default async function SandboxPage({
           <div className="flex items-center gap-3">
             <h1 className="text-lg font-semibold text-white">3D Sandbox</h1>
             <span className="text-sm text-gray-400">•</span>
-            <h2 className="text-sm text-gray-300">{proposal.title}</h2>
+            <h2 className="text-sm text-gray-300">{displayProposal.title}</h2>
           </div>
         </div>
         <div className="flex items-center gap-3">
+          {isMock && (
+            <span className="px-3 py-1 text-xs font-medium rounded-full bg-orange-500/20 text-orange-400 border border-orange-500/30">
+              MOCK DATA
+            </span>
+          )}
           <span className={`px-3 py-1 text-xs font-medium rounded-full ${
-            proposal.status === 'public' || proposal.status === 'published'
+            displayProposal.status === 'public' || displayProposal.status === 'published'
               ? 'bg-green-500/20 text-green-400 border border-green-500/30'
               : 'bg-yellow-500/20 text-yellow-400 border border-yellow-500/30'
           }`}>
-            {proposal.status}
+            {displayProposal.status}
           </span>
         </div>
       </header>
@@ -105,9 +123,9 @@ export default async function SandboxPage({
         {/* Center - 3D Canvas */}
         <main className="flex-1 relative">
           <SandboxClient
-            proposalId={proposal.id}
-            proposalTitle={proposal.title}
-            proposalGeom={proposal.geom}
+            proposalId={displayProposal.id}
+            proposalTitle={displayProposal.title}
+            proposalGeom={displayProposal.geom}
             centerLng={centerLng}
             centerLat={centerLat}
           />
@@ -118,9 +136,15 @@ export default async function SandboxPage({
           <div className="p-4">
             <h3 className="text-sm font-semibold text-gray-300 mb-3">Inspector</h3>
             <div className="space-y-3 text-xs text-gray-400">
+              {isMock && (
+                <div className="p-3 bg-orange-500/10 border border-orange-500/30 rounded-lg">
+                  <p className="text-orange-400 font-medium mb-1">⚠️ Testing Mode</p>
+                  <p className="text-orange-300 text-xs">Database not connected. Using mock data to demonstrate 3D sandbox functionality.</p>
+                </div>
+              )}
               <div>
                 <span className="text-gray-500">Proposal ID:</span>
-                <div className="mt-1 text-gray-300 font-mono text-xs break-all">{proposal.id}</div>
+                <div className="mt-1 text-gray-300 font-mono text-xs break-all">{displayProposal.id}</div>
               </div>
               <div>
                 <span className="text-gray-500">Center:</span>
@@ -128,10 +152,10 @@ export default async function SandboxPage({
                   {centerLng.toFixed(6)}, {centerLat.toFixed(6)}
                 </div>
               </div>
-              {proposal.geom && (
+              {displayProposal.geom && (
                 <div>
                   <span className="text-gray-500">Geometry Type:</span>
-                  <div className="mt-1 text-gray-300">{proposal.geom.type}</div>
+                  <div className="mt-1 text-gray-300">{displayProposal.geom.type}</div>
                 </div>
               )}
             </div>
