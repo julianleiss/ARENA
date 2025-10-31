@@ -5,10 +5,40 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { Deck } from '@deck.gl/core'
-import { GeoJsonLayer } from '@deck.gl/layers'
+import { GeoJsonLayer, IconLayer } from '@deck.gl/layers'
 import { GoogleMapsOverlay } from '@deck.gl/google-maps'
 import { AmbientLight, DirectionalLight, LightingEffect } from '@deck.gl/core'
+import { nanoid } from 'nanoid'
 import type { Asset } from '../../_components/Palette'
+
+// Helper: Convert hex color to RGB array
+function hexToRgb(hex: string): [number, number, number] {
+  const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex)
+  return result
+    ? [parseInt(result[1], 16), parseInt(result[2], 16), parseInt(result[3], 16)]
+    : [255, 0, 255] // fallback magenta
+}
+
+// Helper: Create SVG data URL for marker icon
+function createIconDataUrl(color: string): string {
+  const svg = `
+    <svg width="32" height="32" xmlns="http://www.w3.org/2000/svg">
+      <circle cx="16" cy="16" r="14" fill="${color}" stroke="#ffffff" stroke-width="2"/>
+      <circle cx="16" cy="16" r="6" fill="#ffffff" opacity="0.8"/>
+    </svg>
+  `
+  return `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`
+}
+
+export interface PlacedObject {
+  id: string
+  assetId: string
+  asset: Asset
+  position: [number, number, number] // [lng, lat, altitude]
+  rotation: [number, number, number] // [x, y, z] in degrees
+  scale: [number, number, number]
+  color: string
+}
 
 interface SandboxClientProps {
   proposalId: string
@@ -17,6 +47,8 @@ interface SandboxClientProps {
   centerLng: number
   centerLat: number
   selectedAsset: Asset | null
+  onPlacedObjectsChange?: (objects: PlacedObject[]) => void
+  onSelectedObjectChange?: (object: PlacedObject | null) => void
 }
 
 export default function SandboxClient({
@@ -26,6 +58,8 @@ export default function SandboxClient({
   centerLng,
   centerLat,
   selectedAsset,
+  onPlacedObjectsChange,
+  onSelectedObjectChange,
 }: SandboxClientProps) {
   const mapRef = useRef<google.maps.Map | null>(null)
   const deckOverlayRef = useRef<GoogleMapsOverlay | null>(null)
@@ -35,16 +69,26 @@ export default function SandboxClient({
   const [loadingBuildings, setLoadingBuildings] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
+  // Placement state
+  const [placedObjects, setPlacedObjects] = useState<PlacedObject[]>([])
+  const [isPlacementMode, setIsPlacementMode] = useState(false)
+  const [selectedObject, setSelectedObject] = useState<PlacedObject | null>(null)
+
   console.log('🎨 SandboxClient rendering:', {
     proposalId,
     centerLng,
     centerLat,
     hasGeom: !!proposalGeom,
     selectedAsset: selectedAsset?.id || 'none',
+    placedObjectsCount: placedObjects.length,
+    isPlacementMode,
+    selectedObject: selectedObject?.id || 'none',
   })
 
-  // Log when selectedAsset changes
+  // Log when selectedAsset changes and toggle placement mode
   useEffect(() => {
+    setIsPlacementMode(!!selectedAsset)
+
     if (selectedAsset) {
       console.log('🎯 Selected asset changed:', {
         id: selectedAsset.id,
@@ -54,10 +98,63 @@ export default function SandboxClient({
         color: selectedAsset.color,
         defaultScale: selectedAsset.defaultScale,
       })
+      console.log('✅ Placement mode ENABLED')
     } else {
       console.log('🔲 No asset selected')
+      console.log('❌ Placement mode DISABLED')
     }
   }, [selectedAsset])
+
+  // Notify parent of placedObjects changes
+  useEffect(() => {
+    onPlacedObjectsChange?.(placedObjects)
+    console.log('📤 Placed objects sent to parent:', placedObjects.length)
+  }, [placedObjects, onPlacedObjectsChange])
+
+  // Notify parent of selectedObject changes
+  useEffect(() => {
+    onSelectedObjectChange?.(selectedObject)
+    console.log('📤 Selected object sent to parent:', selectedObject?.id || 'none')
+  }, [selectedObject, onSelectedObjectChange])
+
+  // Handle map click for object placement
+  const handleMapClick = useCallback((event: google.maps.MapMouseEvent) => {
+    if (!isPlacementMode || !selectedAsset) {
+      console.log('🚫 Click ignored - not in placement mode')
+      return
+    }
+
+    if (!event.latLng) {
+      console.error('❌ Click event has no latLng')
+      return
+    }
+
+    const lng = event.latLng.lng()
+    const lat = event.latLng.lat()
+
+    console.log('🖱️ Map clicked:', { lng, lat })
+    console.log('📦 Placing asset:', selectedAsset.name)
+
+    const newObject: PlacedObject = {
+      id: nanoid(),
+      assetId: selectedAsset.id,
+      asset: selectedAsset,
+      position: [lng, lat, 0], // altitude = 0 for now
+      rotation: [0, 0, 0],
+      scale: selectedAsset.defaultScale,
+      color: selectedAsset.color,
+    }
+
+    console.log('✨ Created PlacedObject:', newObject)
+
+    setPlacedObjects((prev) => {
+      const updated = [...prev, newObject]
+      console.log('📦 Total placed objects:', updated.length)
+      return updated
+    })
+
+    console.log('✅ Object placed successfully')
+  }, [isPlacementMode, selectedAsset])
 
   // Fetch buildings from OSM Overpass API
   useEffect(() => {
@@ -185,12 +282,16 @@ export default function SandboxClient({
 
       mapRef.current = map
 
+      // Add click listener for placement
+      map.addListener('click', handleMapClick)
+      console.log('👆 Click listener attached to map')
+
       // Initialize deck.gl overlay
       initializeDeckOverlay(map)
     }
 
     loadGoogleMaps()
-  }, [centerLng, centerLat])
+  }, [centerLng, centerLat, handleMapClick])
 
   // Initialize deck.gl overlay
   const initializeDeckOverlay = useCallback((map: google.maps.Map) => {
@@ -228,7 +329,8 @@ export default function SandboxClient({
     console.log('🔄 Updating deck.gl layers:', {
       hasBuildingsData: !!buildingsData,
       buildingCount: buildingsData?.features?.length || 0,
-      hasProposalGeom: !!proposalGeom
+      hasProposalGeom: !!proposalGeom,
+      placedObjectsCount: placedObjects.length,
     })
 
     const layers = []
@@ -313,14 +415,60 @@ export default function SandboxClient({
       }
     }
 
+    // Placed objects layer
+    if (placedObjects.length > 0) {
+      console.log('🎨 Rendering placed objects layer:', placedObjects.length)
+
+      layers.push(
+        new IconLayer({
+          id: 'placed-objects-layer',
+          data: placedObjects,
+          pickable: true,
+
+          getPosition: (d: PlacedObject) => d.position,
+          getIcon: (d: PlacedObject) => ({
+            url: createIconDataUrl(d.color),
+            width: 32,
+            height: 32,
+          }),
+          getSize: 32,
+          sizeScale: 1,
+
+          onClick: (info: any) => {
+            if (info.object) {
+              console.log('🖱️ Placed object clicked:', info.object)
+              setSelectedObject(info.object)
+            }
+          },
+        })
+      )
+
+      console.log('✅ Placed objects layer added')
+    }
+
     deckOverlayRef.current.setProps({ layers })
     console.log('✅ Deck.gl layers updated:', { layerCount: layers.length })
-  }, [buildingsData, proposalGeom])
+  }, [buildingsData, proposalGeom, placedObjects])
 
   return (
     <div className="relative w-full h-full">
       {/* Map Container */}
       <div ref={containerRef} className="absolute inset-0" />
+
+      {/* Placement Mode Indicator */}
+      {isPlacementMode && selectedAsset && (
+        <div className="absolute top-4 left-1/2 -translate-x-1/2 bg-indigo-600/90 backdrop-blur-sm border border-indigo-400 rounded-lg px-4 py-2 shadow-lg z-50">
+          <div className="flex items-center gap-3">
+            <div className="w-2 h-2 bg-indigo-300 rounded-full animate-pulse" />
+            <div>
+              <div className="text-sm font-medium text-white">Placement Mode Active</div>
+              <div className="text-xs text-indigo-200">
+                Click map to place: {selectedAsset.name}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Loading Overlay */}
       {loadingBuildings && (
@@ -357,6 +505,12 @@ export default function SandboxClient({
             </span>
           </div>
           <div className="flex items-center gap-2">
+            <span className="text-gray-500">Placed Objects:</span>
+            <span className="text-gray-200 font-medium">
+              {placedObjects.length}
+            </span>
+          </div>
+          <div className="flex items-center gap-2">
             <span className="text-gray-500">Camera:</span>
             <span className="text-gray-200 font-mono">
               {centerLat.toFixed(5)}, {centerLng.toFixed(5)}
@@ -373,6 +527,11 @@ export default function SandboxClient({
           <div>• Scroll to zoom</div>
           <div>• Ctrl + Drag to rotate</div>
           <div>• Shift + Drag to tilt</div>
+          {isPlacementMode && (
+            <div className="mt-2 pt-2 border-t border-gray-600 text-indigo-300">
+              • ESC to cancel placement
+            </div>
+          )}
         </div>
       </div>
     </div>
