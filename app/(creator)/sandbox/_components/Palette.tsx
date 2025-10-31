@@ -17,29 +17,47 @@ export interface Asset {
   thumbnail?: string
 }
 
-// Basic asset library
+// Expanded asset library (25+ assets)
 const BASIC_ASSETS: Asset[] = [
-  // Vegetation
+  // Vegetation (8)
   {
-    id: 'tree-1',
+    id: 'tree-oak',
     name: 'Oak Tree',
     category: 'vegetation',
     icon: '🌳',
     color: '#2d5f2d',
     geometry: 'cylinder',
-    defaultScale: [2, 8, 2],
+    defaultScale: [3, 8, 3],
   },
   {
-    id: 'tree-2',
+    id: 'tree-pine',
     name: 'Pine Tree',
     category: 'vegetation',
     icon: '🌲',
     color: '#1e4620',
     geometry: 'cone',
-    defaultScale: [2, 10, 2],
+    defaultScale: [2.5, 10, 2.5],
   },
   {
-    id: 'bush-1',
+    id: 'tree-palm',
+    name: 'Palm Tree',
+    category: 'vegetation',
+    icon: '🌴',
+    color: '#3a7d3a',
+    geometry: 'cylinder',
+    defaultScale: [1.5, 7, 1.5],
+  },
+  {
+    id: 'tree-willow',
+    name: 'Willow Tree',
+    category: 'vegetation',
+    icon: '🌳',
+    color: '#4a7c59',
+    geometry: 'sphere',
+    defaultScale: [4, 6, 4],
+  },
+  {
+    id: 'bush',
     name: 'Bush',
     category: 'vegetation',
     icon: '🌿',
@@ -47,28 +65,55 @@ const BASIC_ASSETS: Asset[] = [
     geometry: 'sphere',
     defaultScale: [1.5, 1, 1.5],
   },
-
-  // Furniture
   {
-    id: 'bench-1',
+    id: 'flower-bed',
+    name: 'Flower Bed',
+    category: 'vegetation',
+    icon: '🌺',
+    color: '#ff69b4',
+    geometry: 'box',
+    defaultScale: [2, 0.3, 1],
+  },
+  {
+    id: 'hedge',
+    name: 'Hedge',
+    category: 'vegetation',
+    icon: '🪴',
+    color: '#355e3b',
+    geometry: 'box',
+    defaultScale: [3, 1.5, 0.5],
+  },
+  {
+    id: 'grass-patch',
+    name: 'Grass Patch',
+    category: 'vegetation',
+    icon: '🍀',
+    color: '#7cfc00',
+    geometry: 'box',
+    defaultScale: [3, 0.1, 3],
+  },
+
+  // Furniture (7)
+  {
+    id: 'park-bench',
     name: 'Park Bench',
     category: 'furniture',
     icon: '🪑',
     color: '#8b4513',
     geometry: 'box',
-    defaultScale: [2, 0.5, 0.5],
+    defaultScale: [2, 0.8, 0.6],
   },
   {
-    id: 'table-1',
+    id: 'picnic-table',
     name: 'Picnic Table',
     category: 'furniture',
     icon: '🍽️',
     color: '#a0522d',
     geometry: 'box',
-    defaultScale: [1.5, 0.8, 1],
+    defaultScale: [2, 0.8, 1.5],
   },
   {
-    id: 'bin-1',
+    id: 'trash-bin',
     name: 'Trash Bin',
     category: 'furniture',
     icon: '🗑️',
@@ -76,10 +121,46 @@ const BASIC_ASSETS: Asset[] = [
     geometry: 'cylinder',
     defaultScale: [0.5, 1, 0.5],
   },
-
-  // Structures
   {
-    id: 'kiosk-1',
+    id: 'bike-rack',
+    name: 'Bike Rack',
+    category: 'furniture',
+    icon: '🚲',
+    color: '#696969',
+    geometry: 'box',
+    defaultScale: [2, 1, 0.3],
+  },
+  {
+    id: 'drinking-fountain',
+    name: 'Drinking Fountain',
+    category: 'furniture',
+    icon: '⛲',
+    color: '#4682b4',
+    geometry: 'cylinder',
+    defaultScale: [0.8, 1.2, 0.8],
+  },
+  {
+    id: 'playground-swing',
+    name: 'Playground Swing',
+    category: 'furniture',
+    icon: '🏀',
+    color: '#ff6347',
+    geometry: 'box',
+    defaultScale: [2, 2.5, 1],
+  },
+  {
+    id: 'slide',
+    name: 'Slide',
+    category: 'furniture',
+    icon: '🎢',
+    color: '#ffd700',
+    geometry: 'box',
+    defaultScale: [1.5, 2, 3],
+  },
+
+  // Structures (5)
+  {
+    id: 'kiosk',
     name: 'Kiosk',
     category: 'structures',
     icon: '🏪',
@@ -88,7 +169,7 @@ const BASIC_ASSETS: Asset[] = [
     defaultScale: [3, 3, 3],
   },
   {
-    id: 'pergola-1',
+    id: 'pergola',
     name: 'Pergola',
     category: 'structures',
     icon: '🏗️',
@@ -96,45 +177,81 @@ const BASIC_ASSETS: Asset[] = [
     geometry: 'box',
     defaultScale: [4, 3, 4],
   },
-
-  // Lighting
   {
-    id: 'streetlight-1',
+    id: 'gazebo',
+    name: 'Gazebo',
+    category: 'structures',
+    icon: '⛺',
+    color: '#daa520',
+    geometry: 'cylinder',
+    defaultScale: [4, 3.5, 4],
+  },
+  {
+    id: 'shelter',
+    name: 'Shelter',
+    category: 'structures',
+    icon: '🏕️',
+    color: '#b8860b',
+    geometry: 'box',
+    defaultScale: [5, 2.5, 3],
+  },
+  {
+    id: 'stage',
+    name: 'Stage',
+    category: 'structures',
+    icon: '🎪',
+    color: '#8b0000',
+    geometry: 'box',
+    defaultScale: [6, 1, 4],
+  },
+
+  // Lighting (3)
+  {
+    id: 'street-light',
     name: 'Street Light',
     category: 'lighting',
     icon: '💡',
     color: '#708090',
     geometry: 'cylinder',
-    defaultScale: [0.2, 5, 0.2],
+    defaultScale: [0.3, 6, 0.3],
   },
   {
-    id: 'lamp-1',
+    id: 'park-lamp',
     name: 'Park Lamp',
     category: 'lighting',
     icon: '🕯️',
     color: '#696969',
     geometry: 'cylinder',
-    defaultScale: [0.15, 2.5, 0.15],
+    defaultScale: [0.2, 3, 0.2],
+  },
+  {
+    id: 'spotlight',
+    name: 'Spotlight',
+    category: 'lighting',
+    icon: '🔦',
+    color: '#2f4f4f',
+    geometry: 'cylinder',
+    defaultScale: [0.4, 2, 0.4],
   },
 
-  // People
+  // People (2)
   {
-    id: 'person-1',
+    id: 'person-standing',
     name: 'Person Standing',
     category: 'people',
     icon: '🚶',
     color: '#ffa500',
     geometry: 'cylinder',
-    defaultScale: [0.4, 1.7, 0.4],
+    defaultScale: [0.5, 1.75, 0.5],
   },
   {
-    id: 'person-2',
+    id: 'person-sitting',
     name: 'Person Sitting',
     category: 'people',
     icon: '🧘',
     color: '#ff8c00',
     geometry: 'cylinder',
-    defaultScale: [0.4, 1, 0.4],
+    defaultScale: [0.5, 1.1, 0.5],
   },
 ]
 

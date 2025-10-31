@@ -60,6 +60,8 @@ export default function ProposalDrawer({
   // const [images, setImages] = useState<string[]>([]) // Temporarily disabled
   const [loading, setLoading] = useState(false)
   const [proposalData, setProposalData] = useState<ProposalData | null>(null)
+  const [showToast, setShowToast] = useState(false)
+  const [createdProposalId, setCreatedProposalId] = useState<string | null>(null)
 
   // Fetch proposal data when in view mode
   useEffect(() => {
@@ -172,6 +174,16 @@ export default function ProposalDrawer({
         const newProposal = await response.json()
         console.log('Proposal created successfully:', newProposal)
         onProposalCreated?.(newProposal)
+
+        // Show success toast with navigation options
+        setCreatedProposalId(newProposal.id)
+        setShowToast(true)
+
+        // Auto-hide toast after 8 seconds
+        setTimeout(() => {
+          setShowToast(false)
+        }, 8000)
+
         onClose()
       } else {
         const errorData = await response.json().catch(() => ({ error: 'Unknown error' }))
@@ -541,6 +553,51 @@ export default function ProposalDrawer({
           </div>
         </div>
       </div>
+
+      {/* Success Toast */}
+      {showToast && createdProposalId && (
+        <div className="fixed bottom-8 right-8 z-50 animate-slide-up">
+          <div className="bg-white rounded-xl shadow-2xl border-2 border-green-500 p-6 max-w-md">
+            <div className="flex items-start gap-4 mb-4">
+              <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center flex-shrink-0">
+                <svg className="w-6 h-6 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                </svg>
+              </div>
+              <div>
+                <h3 className="text-lg font-bold text-gray-900 mb-1">Proposal Created!</h3>
+                <p className="text-sm text-gray-600">Your proposal has been successfully created. What would you like to do next?</p>
+              </div>
+              <button
+                onClick={() => setShowToast(false)}
+                className="text-gray-400 hover:text-gray-600 transition-colors"
+              >
+                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+            <div className="flex gap-3">
+              <Link
+                href={`/sandbox/${createdProposalId}`}
+                className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-gradient-to-r from-indigo-600 to-purple-600 text-white font-semibold rounded-lg hover:from-indigo-700 hover:to-purple-700 transition-all shadow-lg"
+                onClick={() => setShowToast(false)}
+              >
+                <span>🎨</span>
+                <span>Design in 3D</span>
+              </Link>
+              <Link
+                href={`/proposals/${createdProposalId}`}
+                className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-white text-gray-700 font-semibold rounded-lg border-2 border-gray-300 hover:border-indigo-600 hover:text-indigo-600 transition-all"
+                onClick={() => setShowToast(false)}
+              >
+                <span>👁️</span>
+                <span>View Details</span>
+              </Link>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   )
 }
