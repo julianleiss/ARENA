@@ -38,6 +38,16 @@ export default function ProposalCard({ proposal }: { proposal: Proposal }) {
     archived: 'bg-red-100 text-red-800',
   }
 
+  const statusLabels: Record<string, string> = {
+    draft: 'Borrador',
+    review: 'En Revisión',
+    public: 'Pública',
+    published: 'Publicada',
+    voting: 'En Votación',
+    closed: 'Cerrada',
+    archived: 'Archivada',
+  }
+
   const layerIcons = {
     micro: '🏘️',
     meso: '🏙️',
@@ -53,7 +63,7 @@ export default function ProposalCard({ proposal }: { proposal: Proposal }) {
       {/* Status Badge (Top Left) */}
       <div className="absolute top-4 left-4">
         <span className={`px-3 py-1 text-xs font-medium rounded-full ${statusColors[proposal.status as keyof typeof statusColors]}`}>
-          {proposal.status}
+          {statusLabels[proposal.status] || proposal.status}
         </span>
       </div>
 
@@ -61,7 +71,7 @@ export default function ProposalCard({ proposal }: { proposal: Proposal }) {
       {hasSandbox && (
         <div className="absolute top-4 right-4">
           <span className="px-3 py-1 text-xs font-bold rounded-full bg-gradient-to-r from-purple-600 to-pink-600 text-white shadow-lg animate-pulse">
-            🎨 3D Design
+            🎨 Diseño 3D
           </span>
         </div>
       )}
@@ -113,7 +123,7 @@ export default function ProposalCard({ proposal }: { proposal: Proposal }) {
               onClick={(e) => e.stopPropagation()}
             >
               <span>🎨</span>
-              <span>Edit 3D</span>
+              <span>Editar 3D</span>
             </Link>
             <Link
               href={`/proposals/${proposal.id}`}
@@ -121,7 +131,7 @@ export default function ProposalCard({ proposal }: { proposal: Proposal }) {
               onClick={(e) => e.stopPropagation()}
             >
               <span>👁️</span>
-              <span>Details</span>
+              <span>Ver Detalles</span>
             </Link>
           </div>
         </div>

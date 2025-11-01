@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
-import AuthButton from "@/app/components/auth/AuthButton";
+import { Header } from "@/app/components/Header";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -26,15 +26,8 @@ export default function RootLayout({
   return (
     <html lang="es">
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
-        <header className="fixed top-0 left-0 right-0 z-50 bg-white border-b border-gray-200 shadow-sm">
-          <div className="max-w-7xl mx-auto px-4 py-3 flex justify-between items-center">
-            <h1 className="text-lg font-semibold text-gray-900">
-              ARENA
-            </h1>
-            <AuthButton />
-          </div>
-        </header>
-        <main className="pt-[57px]">
+        <Header />
+        <main>
           {children}
         </main>
       </body>

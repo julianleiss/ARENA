@@ -19,10 +19,10 @@ export interface Asset {
 
 // Expanded asset library (25+ assets)
 const BASIC_ASSETS: Asset[] = [
-  // Vegetation (8)
+  // Vegetación (8)
   {
     id: 'tree-oak',
-    name: 'Oak Tree',
+    name: 'Roble',
     category: 'vegetation',
     icon: '🌳',
     color: '#2d5f2d',
@@ -31,7 +31,7 @@ const BASIC_ASSETS: Asset[] = [
   },
   {
     id: 'tree-pine',
-    name: 'Pine Tree',
+    name: 'Pino',
     category: 'vegetation',
     icon: '🌲',
     color: '#1e4620',
@@ -40,7 +40,7 @@ const BASIC_ASSETS: Asset[] = [
   },
   {
     id: 'tree-palm',
-    name: 'Palm Tree',
+    name: 'Palmera',
     category: 'vegetation',
     icon: '🌴',
     color: '#3a7d3a',
@@ -49,7 +49,7 @@ const BASIC_ASSETS: Asset[] = [
   },
   {
     id: 'tree-willow',
-    name: 'Willow Tree',
+    name: 'Sauce',
     category: 'vegetation',
     icon: '🌳',
     color: '#4a7c59',
@@ -58,7 +58,7 @@ const BASIC_ASSETS: Asset[] = [
   },
   {
     id: 'bush',
-    name: 'Bush',
+    name: 'Arbusto',
     category: 'vegetation',
     icon: '🌿',
     color: '#4a7c4a',
@@ -67,7 +67,7 @@ const BASIC_ASSETS: Asset[] = [
   },
   {
     id: 'flower-bed',
-    name: 'Flower Bed',
+    name: 'Cantero de Flores',
     category: 'vegetation',
     icon: '🌺',
     color: '#ff69b4',
@@ -76,7 +76,7 @@ const BASIC_ASSETS: Asset[] = [
   },
   {
     id: 'hedge',
-    name: 'Hedge',
+    name: 'Seto',
     category: 'vegetation',
     icon: '🪴',
     color: '#355e3b',
@@ -85,7 +85,7 @@ const BASIC_ASSETS: Asset[] = [
   },
   {
     id: 'grass-patch',
-    name: 'Grass Patch',
+    name: 'Césped',
     category: 'vegetation',
     icon: '🍀',
     color: '#7cfc00',
@@ -93,10 +93,10 @@ const BASIC_ASSETS: Asset[] = [
     defaultScale: [3, 0.1, 3],
   },
 
-  // Furniture (7)
+  // Mobiliario (7)
   {
     id: 'park-bench',
-    name: 'Park Bench',
+    name: 'Banco de Plaza',
     category: 'furniture',
     icon: '🪑',
     color: '#8b4513',
@@ -105,7 +105,7 @@ const BASIC_ASSETS: Asset[] = [
   },
   {
     id: 'picnic-table',
-    name: 'Picnic Table',
+    name: 'Mesa de Picnic',
     category: 'furniture',
     icon: '🍽️',
     color: '#a0522d',
@@ -114,7 +114,7 @@ const BASIC_ASSETS: Asset[] = [
   },
   {
     id: 'trash-bin',
-    name: 'Trash Bin',
+    name: 'Papelera',
     category: 'furniture',
     icon: '🗑️',
     color: '#505050',
@@ -123,7 +123,7 @@ const BASIC_ASSETS: Asset[] = [
   },
   {
     id: 'bike-rack',
-    name: 'Bike Rack',
+    name: 'Bicicletero',
     category: 'furniture',
     icon: '🚲',
     color: '#696969',
@@ -132,7 +132,7 @@ const BASIC_ASSETS: Asset[] = [
   },
   {
     id: 'drinking-fountain',
-    name: 'Drinking Fountain',
+    name: 'Bebedero',
     category: 'furniture',
     icon: '⛲',
     color: '#4682b4',
@@ -141,7 +141,7 @@ const BASIC_ASSETS: Asset[] = [
   },
   {
     id: 'playground-swing',
-    name: 'Playground Swing',
+    name: 'Hamaca',
     category: 'furniture',
     icon: '🏀',
     color: '#ff6347',
@@ -150,7 +150,7 @@ const BASIC_ASSETS: Asset[] = [
   },
   {
     id: 'slide',
-    name: 'Slide',
+    name: 'Tobogán',
     category: 'furniture',
     icon: '🎢',
     color: '#ffd700',
@@ -158,10 +158,10 @@ const BASIC_ASSETS: Asset[] = [
     defaultScale: [1.5, 2, 3],
   },
 
-  // Structures (5)
+  // Estructuras (5)
   {
     id: 'kiosk',
-    name: 'Kiosk',
+    name: 'Kiosco',
     category: 'structures',
     icon: '🏪',
     color: '#cd853f',
@@ -170,7 +170,7 @@ const BASIC_ASSETS: Asset[] = [
   },
   {
     id: 'pergola',
-    name: 'Pergola',
+    name: 'Pérgola',
     category: 'structures',
     icon: '🏗️',
     color: '#8b7355',
@@ -188,7 +188,7 @@ const BASIC_ASSETS: Asset[] = [
   },
   {
     id: 'shelter',
-    name: 'Shelter',
+    name: 'Refugio',
     category: 'structures',
     icon: '🏕️',
     color: '#b8860b',
@@ -197,7 +197,7 @@ const BASIC_ASSETS: Asset[] = [
   },
   {
     id: 'stage',
-    name: 'Stage',
+    name: 'Escenario',
     category: 'structures',
     icon: '🎪',
     color: '#8b0000',
@@ -205,10 +205,10 @@ const BASIC_ASSETS: Asset[] = [
     defaultScale: [6, 1, 4],
   },
 
-  // Lighting (3)
+  // Iluminación (3)
   {
     id: 'street-light',
-    name: 'Street Light',
+    name: 'Farola',
     category: 'lighting',
     icon: '💡',
     color: '#708090',
@@ -217,7 +217,7 @@ const BASIC_ASSETS: Asset[] = [
   },
   {
     id: 'park-lamp',
-    name: 'Park Lamp',
+    name: 'Lámpara de Plaza',
     category: 'lighting',
     icon: '🕯️',
     color: '#696969',
@@ -226,7 +226,7 @@ const BASIC_ASSETS: Asset[] = [
   },
   {
     id: 'spotlight',
-    name: 'Spotlight',
+    name: 'Reflector',
     category: 'lighting',
     icon: '🔦',
     color: '#2f4f4f',
@@ -234,10 +234,10 @@ const BASIC_ASSETS: Asset[] = [
     defaultScale: [0.4, 2, 0.4],
   },
 
-  // People (2)
+  // Personas (2)
   {
     id: 'person-standing',
-    name: 'Person Standing',
+    name: 'Persona de Pie',
     category: 'people',
     icon: '🚶',
     color: '#ffa500',
@@ -246,7 +246,7 @@ const BASIC_ASSETS: Asset[] = [
   },
   {
     id: 'person-sitting',
-    name: 'Person Sitting',
+    name: 'Persona Sentada',
     category: 'people',
     icon: '🧘',
     color: '#ff8c00',
@@ -257,12 +257,12 @@ const BASIC_ASSETS: Asset[] = [
 
 // Category metadata
 const CATEGORIES = [
-  { id: 'all', name: 'All', icon: '📦' },
-  { id: 'vegetation', name: 'Vegetation', icon: '🌳' },
-  { id: 'furniture', name: 'Furniture', icon: '🪑' },
-  { id: 'structures', name: 'Structures', icon: '🏗️' },
-  { id: 'lighting', name: 'Lighting', icon: '💡' },
-  { id: 'people', name: 'People', icon: '👤' },
+  { id: 'all', name: 'Todos', icon: '📦' },
+  { id: 'vegetation', name: 'Vegetación', icon: '🌳' },
+  { id: 'furniture', name: 'Mobiliario', icon: '🪑' },
+  { id: 'structures', name: 'Estructuras', icon: '🏗️' },
+  { id: 'lighting', name: 'Iluminación', icon: '💡' },
+  { id: 'people', name: 'Personas', icon: '👤' },
 ]
 
 interface PaletteProps {
@@ -317,13 +317,13 @@ export default function Palette({ selectedAsset, onSelectAsset }: PaletteProps) 
     <aside className="w-64 bg-gray-800 border-r border-gray-700 flex flex-col">
       {/* Header */}
       <div className="p-4 border-b border-gray-700">
-        <h3 className="text-sm font-semibold text-gray-200 mb-3">Asset Library</h3>
+        <h3 className="text-sm font-semibold text-gray-200 mb-3">Biblioteca de Objetos</h3>
 
         {/* Search Bar */}
         <div className="relative">
           <input
             type="text"
-            placeholder="Search assets..."
+            placeholder="Buscar objetos..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="w-full px-3 py-2 pl-9 bg-gray-900 border border-gray-600 rounded-lg text-sm text-gray-200 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
@@ -368,7 +368,7 @@ export default function Palette({ selectedAsset, onSelectAsset }: PaletteProps) 
       <div className="flex-1 overflow-y-auto p-3">
         {filteredAssets.length === 0 ? (
           <div className="text-center py-8">
-            <p className="text-sm text-gray-500">No assets found</p>
+            <p className="text-sm text-gray-500">No se encontraron objetos</p>
           </div>
         ) : (
           <div className="grid grid-cols-2 gap-2">
@@ -410,10 +410,10 @@ export default function Palette({ selectedAsset, onSelectAsset }: PaletteProps) 
       <div className="p-3 border-t border-gray-700 bg-gray-800/50">
         <div className="flex items-center justify-between text-xs text-gray-400">
           <span>
-            {filteredAssets.length} asset{filteredAssets.length !== 1 ? 's' : ''}
+            {filteredAssets.length} objeto{filteredAssets.length !== 1 ? 's' : ''}
           </span>
           {selectedAsset && (
-            <span className="text-indigo-400 font-medium">Selected: {selectedAsset.name}</span>
+            <span className="text-indigo-400 font-medium">Seleccionado: {selectedAsset.name}</span>
           )}
         </div>
       </div>

@@ -40,7 +40,7 @@ export default function SandboxModal({
       if (e.key === 'Escape') {
         const hasUnsaved = false // TODO: Get from sandbox state
         if (hasUnsaved) {
-          if (confirm('¿Tienes cambios sin guardar. ¿Seguro que quieres cerrar?')) {
+          if (confirm('Tienes cambios sin guardar. ¿Seguro que quieres cerrar?')) {
             onClose()
           }
         } else {
@@ -64,7 +64,7 @@ export default function SandboxModal({
           onClick={() => {
             const hasUnsaved = false // TODO: Get from sandbox state
             if (hasUnsaved) {
-              if (confirm('¿Tienes cambios sin guardar. ¿Seguro que quieres cerrar?')) {
+              if (confirm('Tienes cambios sin guardar. ¿Seguro que quieres cerrar?')) {
                 onClose()
               }
             } else {
