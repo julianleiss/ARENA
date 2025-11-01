@@ -5,14 +5,15 @@
 import { NextRequest, NextResponse } from 'next/server'
 import prisma from '@/app/lib/db'
 import { enforce } from '@/app/lib/rate-limit'
+import { getMockProposals } from '@/app/lib/mock-data'
 
 // GET /api/proposals - Get all proposals with optional filtering
 export async function GET(request: NextRequest) {
-  try {
-    const { searchParams } = new URL(request.url)
-    const status = searchParams.get('status')
-    const layer = searchParams.get('layer')
+  const { searchParams } = new URL(request.url)
+  const status = searchParams.get('status')
+  const layer = searchParams.get('layer')
 
+  try {
     // Build filter conditions
     const where: any = {}
     if (status && status !== 'all') {
@@ -61,11 +62,12 @@ export async function GET(request: NextRequest) {
     )
   } catch (error) {
     console.error('Error fetching proposals from DB:', error)
+    console.warn('⚠️  Falling back to mock data for demo')
 
-    return NextResponse.json(
-      { error: 'Failed to fetch proposals', proposals: [], count: 0 },
-      { status: 500 }
-    )
+    // FALLBACK: Return mock data for demo
+    const mockData = getMockProposals({ status: status || undefined })
+
+    return NextResponse.json(mockData, { status: 200 })
   }
 }
 

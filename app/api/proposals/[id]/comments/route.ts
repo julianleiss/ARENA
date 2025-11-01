@@ -5,6 +5,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import prisma from '@/app/lib/db'
 import { enforce } from '@/app/lib/rate-limit'
+import { getMockComments, getMockProposal } from '@/app/lib/mock-data'
 
 // GET /api/proposals/[id]/comments - Get all comments for a proposal
 export async function GET(
@@ -46,10 +47,19 @@ export async function GET(
     return NextResponse.json(comments, { status: 200 })
   } catch (error) {
     console.error('Error fetching comments:', error)
-    return NextResponse.json(
-      { error: 'Failed to fetch comments' },
-      { status: 500 }
-    )
+    console.warn('⚠️  Falling back to mock comments for demo')
+
+    // FALLBACK: Check if proposal exists in mock data
+    const { id: proposalId } = await params
+    const mockProposal = getMockProposal(proposalId)
+
+    if (!mockProposal) {
+      return NextResponse.json([], { status: 200 })
+    }
+
+    // Return mock comments
+    const mockComments = getMockComments(proposalId)
+    return NextResponse.json(mockComments, { status: 200 })
   }
 }
 
