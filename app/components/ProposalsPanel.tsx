@@ -79,7 +79,7 @@ export function ProposalsPanel({
 
   return (
     <div
-      className="fixed left-0 top-16 bottom-0 w-[400px] bg-white shadow-2xl z-40
+      className="fixed left-0 top-20 bottom-0 w-[400px] bg-white shadow-2xl z-40
                  flex flex-col animate-slide-in-left overflow-hidden"
     >
       {/* Header */}
