@@ -5,6 +5,7 @@ import { useState } from 'react'
 import MapView from '@/app/components/MapView'
 import SandboxModal from '@/app/components/SandboxModal'
 import PublishProposalForm from '@/app/components/PublishProposalForm'
+import { ProposalsPanel } from '@/app/components/ProposalsPanel'
 import { nanoid } from 'nanoid'
 
 interface SelectedArea {
@@ -29,6 +30,10 @@ export default function MapPage() {
 
   // Publish form state
   const [isPublishFormOpen, setIsPublishFormOpen] = useState(false)
+
+  // Proposals panel state
+  const [isPanelOpen, setIsPanelOpen] = useState(false)
+  const [hoveredProposal, setHoveredProposal] = useState<string | null>(null)
 
   // Handle area selection from map
   const handleAreaSelected = (area: SelectedArea) => {
@@ -206,6 +211,28 @@ export default function MapPage() {
         onPublish={handlePublish}
         onCancel={() => setIsPublishFormOpen(false)}
       />
+
+      {/* Proposals Panel */}
+      <ProposalsPanel
+        isOpen={isPanelOpen}
+        onClose={() => setIsPanelOpen(false)}
+        onProposalClick={(id) => {
+          console.log('📍 Proposal clicked:', id)
+          // Optionally: center map on proposal location
+        }}
+        onProposalHover={setHoveredProposal}
+      />
+
+      {/* Toggle Panel Button */}
+      <button
+        onClick={() => setIsPanelOpen(!isPanelOpen)}
+        className="fixed bottom-8 left-8 z-30 px-6 py-3 bg-white shadow-xl
+                   rounded-full font-medium hover:shadow-2xl transition-all
+                   flex items-center gap-2 hover:scale-105"
+      >
+        <span>📋</span>
+        <span>{isPanelOpen ? 'Cerrar Propuestas' : 'Ver Propuestas'}</span>
+      </button>
     </div>
   )
 }

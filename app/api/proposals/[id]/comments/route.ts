@@ -34,10 +34,7 @@ export async function GET(
       include: {
         author: {
           select: {
-            id: true,
             name: true,
-            email: true,
-            role: true,
           },
         },
       },
@@ -46,13 +43,7 @@ export async function GET(
       },
     })
 
-    return NextResponse.json(
-      {
-        comments,
-        count: comments.length,
-      },
-      { status: 200 }
-    )
+    return NextResponse.json(comments, { status: 200 })
   } catch (error) {
     console.error('Error fetching comments:', error)
     return NextResponse.json(
@@ -85,11 +76,11 @@ export async function POST(
 
     const { id: proposalId } = await params
     const body = await request.json()
-    const { userId, content } = body
+    const { text, authorName } = body
 
-    if (!userId || !content) {
+    if (!text || !authorName) {
       return NextResponse.json(
-        { error: 'userId and content are required' },
+        { error: 'text and authorName are required' },
         { status: 400 }
       )
     }
@@ -106,34 +97,37 @@ export async function POST(
       )
     }
 
+    // Find or create user with this name
+    let user = await prisma.user.findFirst({
+      where: { name: authorName }
+    })
+
+    if (!user) {
+      // Create a temporary user
+      const timestamp = new Date().getTime()
+      const random = Math.random().toString(36).substring(7)
+      user = await prisma.user.create({
+        data: {
+          id: `temp-${timestamp}-${random}`,
+          email: `${authorName.toLowerCase().replace(/\s+/g, '')}@temp.arena`,
+          name: authorName,
+          role: 'CITIZEN'
+        }
+      })
+    }
+
     // Create the comment
     const comment = await prisma.comment.create({
       data: {
         proposalId,
-        authorId: userId,
-        body: content,
+        authorId: user.id,
+        body: text,
       },
       include: {
         author: {
           select: {
-            id: true,
             name: true,
-            email: true,
-            role: true,
           },
-        },
-      },
-    })
-
-    // Create audit log entry
-    await prisma.auditLog.create({
-      data: {
-        userId,
-        action: 'comment',
-        entity: 'proposal',
-        entityId: proposalId,
-        metadata: {
-          commentId: comment.id,
         },
       },
     })
