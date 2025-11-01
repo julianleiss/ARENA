@@ -34,6 +34,16 @@ interface MapViewDeckProps {
   externalSelectionMode?: 'building' | 'point' | 'polygon'
   onMapModeChange?: (mode: 'navigate' | 'create') => void
   onSelectionModeChange?: (mode: 'building' | 'point' | 'polygon') => void
+  onAreaSelected?: (area: {
+    type: 'building' | 'point' | 'polygon'
+    geometry: any
+    bounds: {
+      north: number
+      south: number
+      east: number
+      west: number
+    }
+  }) => void
 }
 
 // Deck.gl overlay component

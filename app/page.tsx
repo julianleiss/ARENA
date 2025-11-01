@@ -3,10 +3,79 @@
 // ARENA - Map Page (Homepage)
 import { useState } from 'react'
 import MapView from '@/app/components/MapView'
+import SandboxModal from '@/app/components/SandboxModal'
+import PublishProposalForm from '@/app/components/PublishProposalForm'
+import { nanoid } from 'nanoid'
+
+interface SelectedArea {
+  type: 'building' | 'point' | 'polygon'
+  geometry: any
+  bounds: {
+    north: number
+    south: number
+    east: number
+    west: number
+  }
+}
 
 export default function MapPage() {
   const [mapMode, setMapMode] = useState<'navigate' | 'create'>('navigate')
   const [selectionMode, setSelectionMode] = useState<'building' | 'point' | 'polygon'>('building')
+
+  // Sandbox modal state
+  const [isSandboxOpen, setIsSandboxOpen] = useState(false)
+  const [selectedArea, setSelectedArea] = useState<SelectedArea | null>(null)
+  const [currentProposalId, setCurrentProposalId] = useState<string | null>(null)
+
+  // Publish form state
+  const [isPublishFormOpen, setIsPublishFormOpen] = useState(false)
+
+  // Handle area selection from map
+  const handleAreaSelected = (area: SelectedArea) => {
+    console.log('📍 Area selected:', area)
+    setSelectedArea(area)
+
+    // Generate temporary proposal ID
+    const proposalId = nanoid()
+    setCurrentProposalId(proposalId)
+
+    // Open sandbox modal
+    setIsSandboxOpen(true)
+    setMapMode('navigate') // Reset to navigate mode
+  }
+
+  // Handle publish button click from sandbox
+  const handlePublishClick = () => {
+    setIsPublishFormOpen(true)
+  }
+
+  // Handle publish submission
+  const handlePublish = async (data: {
+    title: string
+    description: string
+    visibility: 'public' | 'private'
+    tags: string[]
+  }) => {
+    console.log('🚀 Publishing proposal:', data)
+
+    // TODO: Save to database via API
+    // For now, just close modals and show success
+
+    setIsPublishFormOpen(false)
+    setIsSandboxOpen(false)
+    setSelectedArea(null)
+    setCurrentProposalId(null)
+
+    // Show success toast
+    alert('¡Propuesta publicada con éxito!')
+  }
+
+  // Handle sandbox close
+  const handleSandboxClose = () => {
+    setIsSandboxOpen(false)
+    setSelectedArea(null)
+    setCurrentProposalId(null)
+  }
 
   // Log API key status for debugging
   console.log('🗺️ Map Page - API Key Status:', {
@@ -145,6 +214,25 @@ export default function MapPage() {
         externalSelectionMode={selectionMode}
         onMapModeChange={setMapMode}
         onSelectionModeChange={setSelectionMode}
+        onAreaSelected={handleAreaSelected}
+      />
+
+      {/* Sandbox Modal */}
+      {isSandboxOpen && currentProposalId && (
+        <SandboxModal
+          isOpen={isSandboxOpen}
+          selectedArea={selectedArea}
+          proposalId={currentProposalId}
+          onPublish={handlePublishClick}
+          onClose={handleSandboxClose}
+        />
+      )}
+
+      {/* Publish Form Overlay */}
+      <PublishProposalForm
+        isOpen={isPublishFormOpen}
+        onPublish={handlePublish}
+        onCancel={() => setIsPublishFormOpen(false)}
       />
     </div>
   )

@@ -45,23 +45,41 @@ export interface PlacedObject {
 interface SandboxClientProps {
   proposalId: string
   proposalTitle: string
-  proposalGeom: any
-  centerLng: number
-  centerLat: number
-  selectedAsset: Asset | null
+  proposalGeom?: any
+  centerLng?: number
+  centerLat?: number
+  selectedAsset?: Asset | null
   onPlacedObjectsChange?: (objects: PlacedObject[]) => void
   onSelectedObjectChange?: (object: PlacedObject | null) => void
+  // New props for modal mode
+  selectedArea?: {
+    type: 'building' | 'point' | 'polygon'
+    geometry: any
+    bounds: {
+      north: number
+      south: number
+      east: number
+      west: number
+    }
+  } | null
+  onPublish?: () => void
+  onCancel?: () => void
+  isModal?: boolean
 }
 
 export default function SandboxClient({
   proposalId,
   proposalTitle,
   proposalGeom,
-  centerLng,
-  centerLat,
-  selectedAsset,
+  centerLng = -58.46,
+  centerLat = -34.545,
+  selectedAsset = null,
   onPlacedObjectsChange,
   onSelectedObjectChange,
+  selectedArea,
+  onPublish,
+  onCancel,
+  isModal = false,
 }: SandboxClientProps) {
   const mapRef = useRef<google.maps.Map | null>(null)
   const deckOverlayRef = useRef<GoogleMapsOverlay | null>(null)
