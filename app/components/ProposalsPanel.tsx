@@ -49,11 +49,13 @@ export function ProposalsPanel({
   const fetchProposals = async () => {
     setLoading(true)
     try {
-      const res = await fetch('/api/proposals')
+      const res = await fetch('/api/proposals?status=public')
       const data = await res.json()
-      setProposals(data)
+      // API returns { proposals: [], count: 0 } format
+      setProposals(data.proposals || [])
     } catch (error) {
       console.error('Error fetching proposals:', error)
+      setProposals([])
     } finally {
       setLoading(false)
     }
