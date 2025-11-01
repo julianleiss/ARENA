@@ -1,5 +1,17 @@
 {
   "installCommand": "npm ci",
   "buildCommand": "npm ci && prisma generate && next build",
-  "framework": "nextjs"
+  "framework": "nextjs",
+  "redirects": [
+    {
+      "source": "/map",
+      "destination": "/",
+      "permanent": true
+    },
+    {
+      "source": "/sandbox",
+      "destination": "/proposals",
+      "permanent": true
+    }
+  ]
 }

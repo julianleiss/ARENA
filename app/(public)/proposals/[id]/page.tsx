@@ -106,7 +106,7 @@ export default async function ProposalDetailPage({
 
             {/* View on Map */}
             <Link
-              href="/map"
+              href="/"
               className="flex items-center gap-2 px-6 py-3 bg-white text-gray-700 font-semibold rounded-xl border-2 border-gray-300 hover:border-indigo-600 hover:text-indigo-600 transition-all"
             >
               <span>🗺️</span>
