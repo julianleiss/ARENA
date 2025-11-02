@@ -14,7 +14,7 @@ interface Proposal {
   layer: string
   tags: string[]
   createdAt: string
-  author: {
+  author?: {
     name: string | null
   }
   _count: {
@@ -94,7 +94,7 @@ export default function ProposalCard({ proposal }: { proposal: Proposal }) {
 
         <div className="flex items-center justify-between text-xs text-gray-500">
           <div className="flex items-center gap-4">
-            <span>👤 {proposal.author.name || 'Anónimo'}</span>
+            <span>👤 {proposal.author?.name || 'Anónimo'}</span>
             <span>💬 {proposal._count.comments}</span>
             <span>🗳️ {proposal._count.votes}</span>
           </div>
