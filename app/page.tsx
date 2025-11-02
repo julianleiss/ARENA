@@ -1,7 +1,7 @@
 'use client'
 
 // ARENA - Map Page (Homepage)
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import Header from '@/app/components/Header'
 import MapView from '@/app/components/MapView'
@@ -25,6 +25,7 @@ export default function MapPage() {
   const router = useRouter()
   const [mapMode, setMapMode] = useState<'navigate' | 'create'>('navigate')
   const [selectionMode, setSelectionMode] = useState<'building' | 'point' | 'polygon'>('building')
+  const mapRefreshRef = useRef<(() => void) | null>(null)
 
   // Sandbox placement state
   const [placedGeometry, setPlacedGeometry] = useState<SelectedArea | null>(null)
@@ -94,13 +95,19 @@ export default function MapPage() {
       const newProposal = await response.json()
       console.log('✅ Proposal created:', newProposal)
 
+      // Trigger map refresh to show new proposal
+      if (mapRefreshRef.current) {
+        console.log('🔄 Refreshing map proposals...')
+        mapRefreshRef.current()
+      }
+
       // Reset states
       setIsFormOpen(false)
       setPlacedGeometry(null)
       setMapMode('navigate')
 
       // Show success message (always show success in demo mode)
-      alert(`¡Propuesta "${formData.title}" creada con exito!`)
+      alert(`¡Propuesta "${formData.title}" creada con exito! Búscala en el mapa`)
 
       // Optional: Navigate to proposal detail
       // router.push(`/proposals/${newProposal.id}`)
@@ -109,13 +116,19 @@ export default function MapPage() {
       // Always succeed in demo mode - don't crash
       console.warn('⚠️  Demo mode: Showing success despite error')
 
+      // Trigger map refresh even in demo mode (mock data gets added)
+      if (mapRefreshRef.current) {
+        console.log('🔄 Refreshing map proposals (demo mode)...')
+        mapRefreshRef.current()
+      }
+
       // Reset states anyway
       setIsFormOpen(false)
       setPlacedGeometry(null)
       setMapMode('navigate')
 
       // Show success message (demo mode)
-      alert(`¡Propuesta "${formData.title}" creada con exito! (Modo demostracion)`)
+      alert(`¡Propuesta "${formData.title}" creada con exito! Búscala en el mapa (Modo demostracion)`)
     }
   }
 
@@ -160,6 +173,7 @@ export default function MapPage() {
           onMapModeChange={setMapMode}
           onSelectionModeChange={setSelectionMode}
           onAreaSelected={handleAreaSelected}
+          onRefreshProposals={mapRefreshRef}
         />
       </div>
 

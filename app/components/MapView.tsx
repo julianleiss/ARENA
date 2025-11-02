@@ -43,6 +43,7 @@ interface MapViewDeckProps {
       west: number
     }
   }) => void
+  onRefreshProposals?: React.MutableRefObject<(() => void) | null>
 }
 
 // Deck.gl overlay component
@@ -443,7 +444,8 @@ export default function MapViewDeck({
   externalSelectionMode,
   onMapModeChange,
   onSelectionModeChange,
-  onAreaSelected
+  onAreaSelected,
+  onRefreshProposals
 }: MapViewDeckProps = {}) {
   // Map mode state
   const [internalMapMode, setInternalMapMode] = useState<'navigate' | 'create'>('navigate')
@@ -481,21 +483,32 @@ export default function MapViewDeck({
   const [viewedProposalId, setViewedProposalId] = useState<string | null>(null)
   const [hoveredProposal, setHoveredProposal] = useState<any>(null)
 
-  // Fetch proposals
-  useEffect(() => {
-    async function fetchProposals() {
-      try {
-        const response = await fetch('/api/proposals?status=public')
-        if (response.ok) {
-          const data = await response.json()
-          setProposals(data.proposals || [])
-        }
-      } catch (error) {
-        console.error('Failed to fetch proposals:', error)
+  // Fetch proposals function (exposed via ref for refresh)
+  const fetchProposals = useCallback(async () => {
+    try {
+      console.log('🔄 Fetching proposals from API...')
+      const response = await fetch('/api/proposals?status=public')
+      if (response.ok) {
+        const data = await response.json()
+        console.log(`✅ Loaded ${data.proposals?.length || 0} proposals`)
+        setProposals(data.proposals || [])
       }
+    } catch (error) {
+      console.error('Failed to fetch proposals:', error)
     }
-    fetchProposals()
   }, [])
+
+  // Fetch proposals on mount
+  useEffect(() => {
+    fetchProposals()
+  }, [fetchProposals])
+
+  // Expose refresh function via ref
+  useEffect(() => {
+    if (onRefreshProposals) {
+      onRefreshProposals.current = fetchProposals
+    }
+  }, [onRefreshProposals, fetchProposals])
 
   // Building click handler
   const handleBuildingClick = useCallback((buildingId: string, coords: [number, number], multiSelect: boolean = false) => {
