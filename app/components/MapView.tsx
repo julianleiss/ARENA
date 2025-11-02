@@ -44,6 +44,7 @@ interface MapViewDeckProps {
     }
   }) => void
   onRefreshProposals?: React.MutableRefObject<(() => void) | null>
+  onProposalClick?: (proposalId: string) => void
 }
 
 // Deck.gl overlay component
@@ -281,11 +282,12 @@ function DeckGLOverlay({
             return [0, 0]
           },
           getIcon: (d: any) => ({
-            url: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzIiIGhlaWdodD0iMzIiIHZpZXdCb3g9IjAgMCAzMiAzMiIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48Y2lyY2xlIGN4PSIxNiIgY3k9IjE2IiByPSIxMiIgZmlsbD0iIzRBOTBFMiIvPjxjaXJjbGUgY3g9IjE2IiBjeT0iMTYiIHI9IjgiIGZpbGw9IndoaXRlIi8+PC9zdmc+',
-            width: 32,
-            height: 32
+            url: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDgiIGhlaWdodD0iNDgiIHZpZXdCb3g9IjAgMCA0OCA0OCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPCEtLSBEcm9wIHNoYWRvdyAtLT4KPGVsbGlwc2UgY3g9IjI0IiBjeT0iNDQiIHJ4PSI2IiByeT0iMiIgZmlsbD0iYmxhY2siIG9wYWNpdHk9IjAuMiIvPgo8IS0tIFBpbiBib2R5IC0tPgo8cGF0aCBkPSJNMjQgNEMxNy4zNzI2IDQgMTIgOS4zNzI1OCAxMiAxNkMxMiAyNC41IDE5IDMzIDI0IDQwQzI5IDMzIDM2IDI0LjUgMzYgMTZDMzYgOS4zNzI1OCAzMC42Mjc0IDQgMjQgNFoiIGZpbGw9IiM4QjVDRjYiLz4KPCEtLSBJbm5lciBjaXJjbGUgLS0+CjxjaXJjbGUgY3g9IjI0IiBjeT0iMTYiIHI9IjYiIGZpbGw9IndoaXRlIi8+Cjwvc3ZnPg==',
+            width: 48,
+            height: 48,
+            anchorY: 48 // Pin bottom at the location
           }),
-          getSize: 32,
+          getSize: 48,
           pickable: true,
           onClick: (info: any) => {
             if (info.object) {
@@ -445,7 +447,8 @@ export default function MapViewDeck({
   onMapModeChange,
   onSelectionModeChange,
   onAreaSelected,
-  onRefreshProposals
+  onRefreshProposals,
+  onProposalClick
 }: MapViewDeckProps = {}) {
   // Map mode state
   const [internalMapMode, setInternalMapMode] = useState<'navigate' | 'create'>('navigate')
@@ -562,9 +565,11 @@ export default function MapViewDeck({
 
   // Proposal click handler (for viewing)
   const handleProposalClick = (proposalId: string) => {
-    setViewedProposalId(proposalId)
-    // Could navigate to proposal detail page or open a view modal
-    console.log('View proposal:', proposalId)
+    console.log('📍 Proposal pin clicked:', proposalId)
+    // Call parent handler if provided
+    if (onProposalClick) {
+      onProposalClick(proposalId)
+    }
   }
 
   // Proposal hover handler (for tooltip)
@@ -761,21 +766,30 @@ export default function MapViewDeck({
 
       {/* Hover tooltip for proposals */}
       {hoveredProposal && (
-        <div
-          className="absolute pointer-events-none z-50 bg-white/95 backdrop-blur-sm border border-gray-200 rounded-xl shadow-xl p-4 max-w-sm"
-          style={{
-            left: '50%',
-            top: '50%',
-            transform: 'translate(-50%, -120px)'
-          }}
-        >
-          <h3 className="font-semibold text-gray-900 text-sm mb-1">{hoveredProposal.title}</h3>
-          <p className="text-xs text-gray-500 mb-2">
-            {hoveredProposal.author} • {new Date().toLocaleDateString('es-AR')}
-          </p>
-          {hoveredProposal.summary && (
-            <p className="text-xs text-gray-700 line-clamp-2">{hoveredProposal.summary}</p>
-          )}
+        <div className="absolute top-24 left-1/2 -translate-x-1/2 z-50 pointer-events-none">
+          <div className="bg-white rounded-xl shadow-2xl border border-indigo-100 p-4 max-w-sm backdrop-blur-sm bg-white/95">
+            {/* Tooltip content */}
+            <div className="flex items-start gap-3">
+              <div className="flex-shrink-0 w-10 h-10 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-lg flex items-center justify-center">
+                <svg className="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                </svg>
+              </div>
+              <div className="flex-1 min-w-0">
+                <h3 className="font-bold text-gray-900 text-sm mb-1 line-clamp-2">{hoveredProposal.title}</h3>
+                <p className="text-xs text-gray-500 mb-1.5">
+                  <span className="font-medium">{hoveredProposal.author}</span>
+                </p>
+                {hoveredProposal.summary && (
+                  <p className="text-xs text-gray-600 line-clamp-2 leading-relaxed">{hoveredProposal.summary}</p>
+                )}
+                <p className="text-xs text-indigo-600 font-medium mt-2">Click para ver detalles →</p>
+              </div>
+            </div>
+
+            {/* Arrow pointing down */}
+            <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 w-4 h-4 bg-white border-b border-r border-indigo-100 rotate-45"></div>
+          </div>
         </div>
       )}
     </div>

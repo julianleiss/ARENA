@@ -27,18 +27,27 @@ interface ProposalsPanelProps {
   onClose: () => void
   onProposalClick?: (proposalId: string) => void
   onProposalHover?: (proposalId: string | null) => void
+  initialProposalId?: string | null // NEW: Allow opening with specific proposal selected
 }
 
 export function ProposalsPanel({
   isOpen,
   onClose,
   onProposalClick,
-  onProposalHover
+  onProposalHover,
+  initialProposalId
 }: ProposalsPanelProps) {
   const [proposals, setProposals] = useState<Proposal[]>([])
   const [loading, setLoading] = useState(true)
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedProposal, setSelectedProposal] = useState<string | null>(null)
+
+  // Set selected proposal when initialProposalId changes
+  useEffect(() => {
+    if (initialProposalId) {
+      setSelectedProposal(initialProposalId)
+    }
+  }, [initialProposalId])
 
   useEffect(() => {
     if (isOpen) {

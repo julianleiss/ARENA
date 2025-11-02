@@ -34,6 +34,7 @@ export default function MapPage() {
   // Proposals panel state
   const [isPanelOpen, setIsPanelOpen] = useState(false)
   const [hoveredProposal, setHoveredProposal] = useState<string | null>(null)
+  const [selectedProposalId, setSelectedProposalId] = useState<string | null>(null)
 
   // Handle area selection from map (when in create mode)
   const handleAreaSelected = (area: SelectedArea) => {
@@ -138,6 +139,13 @@ export default function MapPage() {
     // Keep placement so user can edit/finalize again
   }
 
+  // Handle proposal pin click from map
+  const handleMapProposalClick = (proposalId: string) => {
+    console.log('📍 Proposal pin clicked on map:', proposalId)
+    setSelectedProposalId(proposalId)
+    setIsPanelOpen(true)
+  }
+
   // Log API key status for debugging
   console.log('🗺️ Map Page - API Key Status:', {
     hasKey: !!process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY,
@@ -174,6 +182,7 @@ export default function MapPage() {
           onSelectionModeChange={setSelectionMode}
           onAreaSelected={handleAreaSelected}
           onRefreshProposals={mapRefreshRef}
+          onProposalClick={handleMapProposalClick}
         />
       </div>
 
@@ -191,12 +200,16 @@ export default function MapPage() {
       {/* Proposals Panel */}
       <ProposalsPanel
         isOpen={isPanelOpen}
-        onClose={() => setIsPanelOpen(false)}
+        onClose={() => {
+          setIsPanelOpen(false)
+          setSelectedProposalId(null) // Reset selection when closing
+        }}
         onProposalClick={(id) => {
           console.log('📍 Proposal clicked:', id)
           // Optionally: center map on proposal location
         }}
         onProposalHover={setHoveredProposal}
+        initialProposalId={selectedProposalId}
       />
 
       {/* Debug Overlay */}
