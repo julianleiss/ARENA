@@ -129,11 +129,12 @@ export async function POST(request: NextRequest) {
     const proposalData: any = {
       authorId,
       title,
+      description: proposalBody || summary || title, // Required field: use body, fallback to summary or title
       summary: summary || null,
       body: proposalBody || null,
       geom: geom || null,
       layer: layer || 'micro',
-      status: status || 'draft',
+      status: status || 'public',
       tags: tags || [],
       // OSM Feature Data
       osmType: feature?.type || null,

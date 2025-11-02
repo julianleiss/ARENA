@@ -28,8 +28,20 @@ model Proposal {
   id          String   @id @default(cuid())
   title       String
   description String   @db.Text
-  status      String   @default("published") // "draft" | "published"
+  summary     String?  @db.Text
+  body        String?  @db.Text
+  geom        Json?    // GeoJSON geometry (Point, LineString, Polygon, MultiPoint)
+  layer       String?  // "micro" | "meso" | "macro"
+  tags        String[] @default([])
+  status      String   @default("draft") // "draft" | "public"
   authorId    String   @map("author_id")
+
+  // OSM Feature Integration
+  osmType     String?  @map("osm_type")
+  osmId       String?  @map("osm_id")
+  osmTags     Json?    @map("osm_tags")
+  featureName String?  @map("feature_name")
+
   createdAt   DateTime @default(now()) @map("created_at")
   updatedAt   DateTime @updatedAt @map("updated_at")
 
@@ -42,6 +54,7 @@ model Proposal {
 
   @@index([authorId])
   @@index([status])
+  @@index([layer])
   @@map("proposals")
 }
 
