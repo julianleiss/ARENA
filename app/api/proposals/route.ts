@@ -23,7 +23,7 @@ export async function GET(request: NextRequest) {
       where.layer = layer
     }
 
-    // Fetch proposals with timeout
+    // Fetch proposals with timeout (30s to account for cold starts and connection pooling)
     const proposals = await Promise.race([
       prisma.proposal.findMany({
         where,
@@ -48,7 +48,7 @@ export async function GET(request: NextRequest) {
         },
       }),
       new Promise<never>((_, reject) =>
-        setTimeout(() => reject(new Error('DB timeout')), 5000)
+        setTimeout(() => reject(new Error('DB timeout')), 30000)
       ),
     ])
 

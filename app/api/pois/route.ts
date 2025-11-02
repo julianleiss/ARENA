@@ -46,15 +46,15 @@ const MOCK_POIS = [
 
 export async function GET() {
   try {
-    // Try to fetch from database with timeout
+    // Try to fetch from database with timeout (30s to account for cold starts and connection pooling)
     const pois = await Promise.race([
       prisma.pOI.findMany({
         orderBy: {
           name: 'asc',
         },
       }),
-      new Promise<never>((_, reject) => 
-        setTimeout(() => reject(new Error('DB timeout')), 3000)
+      new Promise<never>((_, reject) =>
+        setTimeout(() => reject(new Error('DB timeout')), 30000)
       )
     ])
 
