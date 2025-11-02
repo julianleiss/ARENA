@@ -7,6 +7,19 @@ const prisma = new PrismaClient()
 async function main() {
   console.log('🌱 Seeding database (iteration 1)...')
 
+  // Create demo user first
+  await prisma.user.upsert({
+    where: { id: 'demo' },
+    update: {},
+    create: {
+      id: 'demo',
+      email: 'demo@arena.test',
+      name: 'Usuario Demo',
+      role: 'citizen',
+    },
+  })
+  console.log('✅ Created demo user')
+
   // Insert 5 proposals with authorId="demo" with full geospatial data
   const proposals = [
     {

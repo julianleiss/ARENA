@@ -89,8 +89,9 @@ export default function MapPage() {
       })
 
       if (!response.ok) {
-        const errorData = await response.json()
-        throw new Error(errorData.error || 'Failed to create proposal')
+        const errorData = await response.json().catch(() => ({}))
+        const errorMessage = errorData.error || errorData.details || `HTTP ${response.status}`
+        throw new Error(errorMessage)
       }
 
       const newProposal = await response.json()
@@ -113,35 +114,19 @@ export default function MapPage() {
       setPlacedGeometry(null)
       setMapMode('navigate')
 
-      // Show success message (always show success in demo mode)
+      // Show success message
       alert(`¡Propuesta "${formData.title}" creada con exito! Búscala en el mapa`)
 
       // Optional: Navigate to proposal detail
       // router.push(`/proposals/${newProposal.id}`)
     } catch (error) {
-      console.error('Error creating proposal:', error)
-      // Always succeed in demo mode - don't crash
-      console.warn('⚠️  Demo mode: Showing success despite error')
+      console.error('❌ Error creating proposal:', error)
 
-      // Trigger map refresh even in demo mode (mock data gets added)
-      if (mapRefreshRef.current) {
-        console.log('🔄 Refreshing map proposals (demo mode)...')
-        mapRefreshRef.current()
-      }
+      // Show error message
+      const errorMessage = error instanceof Error ? error.message : 'Error desconocido'
+      alert(`Error al crear la propuesta: ${errorMessage}\n\nRevisa la consola para más detalles.`)
 
-      // Trigger panel refresh in demo mode
-      if (panelRefreshRef.current) {
-        console.log('🔄 Refreshing proposals panel (demo mode)...')
-        panelRefreshRef.current()
-      }
-
-      // Reset states anyway
-      setIsFormOpen(false)
-      setPlacedGeometry(null)
-      setMapMode('navigate')
-
-      // Show success message (demo mode)
-      alert(`¡Propuesta "${formData.title}" creada con exito! Búscala en el mapa (Modo demostracion)`)
+      // DON'T reset states or refresh - let user try again
     }
   }
 

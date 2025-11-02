@@ -28,14 +28,6 @@ export async function GET(request: NextRequest) {
       prisma.proposal.findMany({
         where,
         include: {
-          author: {
-            select: {
-              id: true,
-              name: true,
-              email: true,
-              role: true,
-            },
-          },
           _count: {
             select: {
               votes: true,
@@ -52,6 +44,8 @@ export async function GET(request: NextRequest) {
       ),
     ])
 
+    console.log(`✅ Fetched ${proposals.length} proposals from database`)
+
     return NextResponse.json(
       {
         proposals,
@@ -61,13 +55,18 @@ export async function GET(request: NextRequest) {
       { status: 200 }
     )
   } catch (error) {
-    console.error('Error fetching proposals from DB:', error)
-    console.warn('⚠️  Falling back to mock data for demo')
+    console.error('❌ Error fetching proposals from DB:', error)
 
-    // FALLBACK: Return mock data for demo
-    const mockData = getMockProposals({ status: status || undefined })
-
-    return NextResponse.json(mockData, { status: 200 })
+    // Return error instead of mock data
+    return NextResponse.json(
+      {
+        proposals: [],
+        count: 0,
+        source: 'error',
+        error: error instanceof Error ? error.message : 'Unknown error',
+      },
+      { status: 500 }
+    )
   }
 }
 
@@ -106,10 +105,19 @@ export async function POST(request: NextRequest) {
     } = body
 
     // Validate required fields
-    if (!authorId || !title) {
-      console.error('POST /api/proposals - Validation failed: missing authorId or title')
+    if (!authorId) {
+      console.error('POST /api/proposals - Validation failed: missing authorId')
+      console.error('Received body keys:', Object.keys(body))
       return NextResponse.json(
-        { error: 'Missing required fields: authorId and title are required' },
+        { error: 'Missing required field: authorId' },
+        { status: 400 }
+      )
+    }
+
+    if (!title) {
+      console.error('POST /api/proposals - Validation failed: missing title')
+      return NextResponse.json(
+        { error: 'Missing required field: title' },
         { status: 400 }
       )
     }
@@ -159,20 +167,27 @@ export async function POST(request: NextRequest) {
 
     console.log('POST /api/proposals - Creating proposal with data:', JSON.stringify(proposalData, null, 2))
 
-    // Try to create in database, fallback to mock on error
+    // Try to create in database
     try {
+      // Create or get temp user if using temp ID
+      if (authorId.startsWith('temp-')) {
+        await prisma.user.upsert({
+          where: { id: authorId },
+          update: {},
+          create: {
+            id: authorId,
+            email: `${authorId}@temp.arena`,
+            name: 'Usuario Temporal',
+            role: 'citizen',
+          },
+        })
+        console.log('✅ Created/found temp user:', authorId)
+      }
+
       // Create the proposal
       const newProposal = await prisma.proposal.create({
         data: proposalData,
         include: {
-          author: {
-            select: {
-              id: true,
-              name: true,
-              email: true,
-              role: true,
-            },
-          },
           _count: {
             select: {
               votes: true,
@@ -199,43 +214,24 @@ export async function POST(request: NextRequest) {
       console.log('POST /api/proposals - Proposal created successfully:', newProposal.id)
       return NextResponse.json(newProposal, { status: 201 })
     } catch (dbError) {
-      // Database unreachable - return mock success for demo
-      console.warn('⚠️  Database unreachable, returning mock proposal for demo')
-      const mockProposal = {
-        id: `mock-${Date.now()}`,
-        authorId,
-        title,
-        summary: summary || null,
-        body: proposalBody || null,
-        geom: geom || null,
-        layer: layer || 'micro',
-        status: status || 'public',
-        tags: tags || [],
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-        author: {
-          id: authorId,
-          name: 'Demo User',
-          email: 'demo@example.com',
-          role: 'user',
+      // Database error - return actual error
+      console.error('❌ Database error creating proposal:', dbError)
+      return NextResponse.json(
+        {
+          error: 'Database error creating proposal',
+          details: dbError instanceof Error ? dbError.message : 'Unknown database error',
         },
-        _count: {
-          votes: 0,
-          comments: 0,
-        },
-      }
-      return NextResponse.json(mockProposal, { status: 201 })
+        { status: 500 }
+      )
     }
   } catch (error) {
-    console.error('POST /api/proposals - Unexpected error:', error)
-    // Even on unexpected errors, return mock success for demo
-    const mockProposal = {
-      id: `mock-${Date.now()}`,
-      title: 'Demo Proposal',
-      status: 'public',
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    }
-    return NextResponse.json(mockProposal, { status: 201 })
+    console.error('❌ POST /api/proposals - Unexpected error:', error)
+    return NextResponse.json(
+      {
+        error: 'Failed to create proposal',
+        details: error instanceof Error ? error.message : 'Unknown error',
+      },
+      { status: 500 }
+    )
   }
 }
