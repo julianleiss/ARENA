@@ -5,13 +5,13 @@
 -- ENABLE ROW LEVEL SECURITY ON ALL TABLES
 -- ============================================
 
-ALTER TABLE "User" ENABLE ROW LEVEL SECURITY;
-ALTER TABLE "Proposal" ENABLE ROW LEVEL SECURITY;
-ALTER TABLE "Vote" ENABLE ROW LEVEL SECURITY;
-ALTER TABLE "Comment" ENABLE ROW LEVEL SECURITY;
-ALTER TABLE "Metric" ENABLE ROW LEVEL SECURITY;
-ALTER TABLE "POI" ENABLE ROW LEVEL SECURITY;
-ALTER TABLE "AuditLog" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE users ENABLE ROW LEVEL SECURITY;
+ALTER TABLE proposals ENABLE ROW LEVEL SECURITY;
+ALTER TABLE votes ENABLE ROW LEVEL SECURITY;
+ALTER TABLE comments ENABLE ROW LEVEL SECURITY;
+ALTER TABLE metrics ENABLE ROW LEVEL SECURITY;
+ALTER TABLE pois ENABLE ROW LEVEL SECURITY;
+ALTER TABLE audit_logs ENABLE ROW LEVEL SECURITY;
 
 -- ============================================
 -- PUBLIC READ POLICIES (SELECT)
@@ -19,49 +19,49 @@ ALTER TABLE "AuditLog" ENABLE ROW LEVEL SECURITY;
 
 -- Allow public to read all users (for author info)
 CREATE POLICY "Public can view users"
-  ON "User"
+  ON users
   FOR SELECT
   TO public
   USING (true);
 
 -- Allow public to read all public proposals
 CREATE POLICY "Public can view proposals"
-  ON "Proposal"
+  ON proposals
   FOR SELECT
   TO public
   USING (true);
 
 -- Allow public to read all votes
 CREATE POLICY "Public can view votes"
-  ON "Vote"
+  ON votes
   FOR SELECT
   TO public
   USING (true);
 
 -- Allow public to read all comments
 CREATE POLICY "Public can view comments"
-  ON "Comment"
+  ON comments
   FOR SELECT
   TO public
   USING (true);
 
 -- Allow public to read all metrics
 CREATE POLICY "Public can view metrics"
-  ON "Metric"
+  ON metrics
   FOR SELECT
   TO public
   USING (true);
 
 -- Allow public to read all POIs
 CREATE POLICY "Public can view POIs"
-  ON "POI"
+  ON pois
   FOR SELECT
   TO public
   USING (true);
 
 -- Allow public to read audit logs
 CREATE POLICY "Public can view audit logs"
-  ON "AuditLog"
+  ON audit_logs
   FOR SELECT
   TO public
   USING (true);
@@ -74,21 +74,21 @@ CREATE POLICY "Public can view audit logs"
 
 -- Allow public to create users (temporary for demo)
 CREATE POLICY "Public can create users"
-  ON "User"
+  ON users
   FOR INSERT
   TO public
   WITH CHECK (true);
 
 -- Allow public to create proposals (temporary for demo)
 CREATE POLICY "Public can create proposals"
-  ON "Proposal"
+  ON proposals
   FOR INSERT
   TO public
   WITH CHECK (true);
 
 -- Allow public to update their own proposals (temporary for demo)
 CREATE POLICY "Public can update proposals"
-  ON "Proposal"
+  ON proposals
   FOR UPDATE
   TO public
   USING (true)
@@ -96,28 +96,28 @@ CREATE POLICY "Public can update proposals"
 
 -- Allow public to delete their own proposals (temporary for demo)
 CREATE POLICY "Public can delete proposals"
-  ON "Proposal"
+  ON proposals
   FOR DELETE
   TO public
   USING (true);
 
 -- Allow public to create votes
 CREATE POLICY "Public can create votes"
-  ON "Vote"
+  ON votes
   FOR INSERT
   TO public
   WITH CHECK (true);
 
 -- Allow public to create comments
 CREATE POLICY "Public can create comments"
-  ON "Comment"
+  ON comments
   FOR INSERT
   TO public
   WITH CHECK (true);
 
 -- Allow public to update comments
 CREATE POLICY "Public can update comments"
-  ON "Comment"
+  ON comments
   FOR UPDATE
   TO public
   USING (true)
@@ -125,28 +125,28 @@ CREATE POLICY "Public can update comments"
 
 -- Allow public to delete comments
 CREATE POLICY "Public can delete comments"
-  ON "Comment"
+  ON comments
   FOR DELETE
   TO public
   USING (true);
 
 -- Allow public to create metrics
 CREATE POLICY "Public can create metrics"
-  ON "Metric"
+  ON metrics
   FOR INSERT
   TO public
   WITH CHECK (true);
 
 -- Allow public to create POIs
 CREATE POLICY "Public can create POIs"
-  ON "POI"
+  ON pois
   FOR INSERT
   TO public
   WITH CHECK (true);
 
 -- Allow public to create audit logs
 CREATE POLICY "Public can create audit logs"
-  ON "AuditLog"
+  ON audit_logs
   FOR INSERT
   TO public
   WITH CHECK (true);
@@ -159,7 +159,7 @@ CREATE POLICY "Public can create audit logs"
 SELECT schemaname, tablename, rowsecurity
 FROM pg_tables
 WHERE schemaname = 'public'
-AND tablename IN ('User', 'Proposal', 'Vote', 'Comment', 'Metric', 'POI', 'AuditLog');
+AND tablename IN ('users', 'proposals', 'votes', 'comments', 'metrics', 'pois', 'audit_logs');
 
 -- List all policies
 SELECT schemaname, tablename, policyname, permissive, roles, cmd, qual, with_check

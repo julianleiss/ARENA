@@ -31,10 +31,12 @@ Apply the SQL migration in `enable_rls_public_access.sql` to:
    - Should see "Success. No rows returned" message
    - Check the verification queries at the bottom show RLS enabled
 
+**Note**: The SQL uses lowercase table names (`users`, `proposals`, etc.) as that's how Prisma creates them in PostgreSQL.
+
 ### Option 2: Table Editor
 
 1. Go to **Table Editor** in Supabase Dashboard
-2. For each table (User, Proposal, Vote, Comment, etc.):
+2. For each table (users, proposals, votes, comments, etc.):
    - Click on the table
    - Go to **Policies** tab
    - Click **Enable RLS** (if not already enabled)
