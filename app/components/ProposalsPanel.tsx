@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import ProposalCard from './ProposalCard'
 import { ProposalDetailPanel } from './ProposalDetailPanel'
 
@@ -27,31 +27,30 @@ interface ProposalsPanelProps {
   onClose: () => void
   onProposalClick?: (proposalId: string) => void
   onProposalHover?: (proposalId: string | null) => void
+  onRefreshProposals?: React.MutableRefObject<(() => void) | null>
 }
 
 export function ProposalsPanel({
   isOpen,
   onClose,
   onProposalClick,
-  onProposalHover
+  onProposalHover,
+  onRefreshProposals
 }: ProposalsPanelProps) {
   const [proposals, setProposals] = useState<Proposal[]>([])
   const [loading, setLoading] = useState(true)
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedProposal, setSelectedProposal] = useState<string | null>(null)
 
-  useEffect(() => {
-    if (isOpen) {
-      fetchProposals()
-    }
-  }, [isOpen])
-
-  const fetchProposals = async () => {
+  // Fetch proposals function (exposed via ref for refresh)
+  const fetchProposals = useCallback(async () => {
     setLoading(true)
     try {
+      console.log('🔄 Fetching proposals for panel...')
       const res = await fetch('/api/proposals?status=public')
       const data = await res.json()
       // API returns { proposals: [], count: 0 } format
+      console.log(`✅ Panel loaded ${data.proposals?.length || 0} proposals`)
       setProposals(data.proposals || [])
     } catch (error) {
       console.error('Error fetching proposals:', error)
@@ -59,7 +58,21 @@ export function ProposalsPanel({
     } finally {
       setLoading(false)
     }
-  }
+  }, [])
+
+  // Fetch when panel opens
+  useEffect(() => {
+    if (isOpen) {
+      fetchProposals()
+    }
+  }, [isOpen, fetchProposals])
+
+  // Expose refresh function via ref
+  useEffect(() => {
+    if (onRefreshProposals) {
+      onRefreshProposals.current = fetchProposals
+    }
+  }, [onRefreshProposals, fetchProposals])
 
   const filteredProposals = proposals.filter(p =>
     p.title.toLowerCase().includes(searchQuery.toLowerCase())

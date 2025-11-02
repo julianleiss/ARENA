@@ -26,6 +26,7 @@ export default function MapPage() {
   const [mapMode, setMapMode] = useState<'navigate' | 'create'>('navigate')
   const [selectionMode, setSelectionMode] = useState<'building' | 'point' | 'polygon'>('building')
   const mapRefreshRef = useRef<(() => void) | null>(null)
+  const panelRefreshRef = useRef<(() => void) | null>(null)
 
   // Sandbox placement state
   const [placedGeometry, setPlacedGeometry] = useState<SelectedArea | null>(null)
@@ -101,6 +102,12 @@ export default function MapPage() {
         mapRefreshRef.current()
       }
 
+      // Trigger panel refresh to show new proposal in sidebar
+      if (panelRefreshRef.current) {
+        console.log('🔄 Refreshing proposals panel...')
+        panelRefreshRef.current()
+      }
+
       // Reset states
       setIsFormOpen(false)
       setPlacedGeometry(null)
@@ -120,6 +127,12 @@ export default function MapPage() {
       if (mapRefreshRef.current) {
         console.log('🔄 Refreshing map proposals (demo mode)...')
         mapRefreshRef.current()
+      }
+
+      // Trigger panel refresh in demo mode
+      if (panelRefreshRef.current) {
+        console.log('🔄 Refreshing proposals panel (demo mode)...')
+        panelRefreshRef.current()
       }
 
       // Reset states anyway
@@ -197,6 +210,7 @@ export default function MapPage() {
           // Optionally: center map on proposal location
         }}
         onProposalHover={setHoveredProposal}
+        onRefreshProposals={panelRefreshRef}
       />
 
       {/* Debug Overlay */}
