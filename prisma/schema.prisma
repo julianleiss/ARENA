@@ -30,6 +30,11 @@ model Proposal {
   description String   @db.Text
   status      String   @default("published") // "draft" | "published"
   authorId    String   @map("author_id")
+  geom        Json?    // GeoJSON geometry (Point, Polygon, etc.)
+  layer       String   @default("micro") // "micro" | "meso" | "macro"
+  summary     String?  @db.Text
+  body        String?  @db.Text
+  tags        String[] @default([])
   createdAt   DateTime @default(now()) @map("created_at")
   updatedAt   DateTime @updatedAt @map("updated_at")
 

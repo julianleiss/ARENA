@@ -285,9 +285,10 @@ function DeckGLOverlay({
             url: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDgiIGhlaWdodD0iNDgiIHZpZXdCb3g9IjAgMCA0OCA0OCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPCEtLSBEcm9wIHNoYWRvdyAtLT4KPGVsbGlwc2UgY3g9IjI0IiBjeT0iNDQiIHJ4PSI2IiByeT0iMiIgZmlsbD0iYmxhY2siIG9wYWNpdHk9IjAuMiIvPgo8IS0tIFBpbiBib2R5IC0tPgo8cGF0aCBkPSJNMjQgNEMxNy4zNzI2IDQgMTIgOS4zNzI1OCAxMiAxNkMxMiAyNC41IDE5IDMzIDI0IDQwQzI5IDMzIDM2IDI0LjUgMzYgMTZDMzYgOS4zNzI1OCAzMC42Mjc0IDQgMjQgNFoiIGZpbGw9IiM4QjVDRjYiLz4KPCEtLSBJbm5lciBjaXJjbGUgLS0+CjxjaXJjbGUgY3g9IjI0IiBjeT0iMTYiIHI9IjYiIGZpbGw9IndoaXRlIi8+Cjwvc3ZnPg==',
             width: 48,
             height: 48,
-            anchorY: 48 // Pin bottom at the location
+            anchorY: 48,
+            anchorX: 24
           }),
-          getSize: 48,
+          sizeScale: 1,
           pickable: true,
           onClick: (info: any) => {
             if (info.object) {
