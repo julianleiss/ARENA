@@ -54,16 +54,26 @@ export async function GET(request: NextRequest) {
       },
       { status: 200 }
     )
-  } catch (error) {
-    console.error('❌ Error fetching proposals from DB:', error)
+  } catch (error: any) {
+    console.error('❌ Error fetching proposals from DB:', {
+      message: error?.message,
+      code: error?.code,
+      details: error?.details,
+      hint: error?.hint,
+      stack: error?.stack,
+      name: error?.name,
+    })
 
-    // Return error instead of mock data
+    // Return detailed error
     return NextResponse.json(
       {
         proposals: [],
         count: 0,
         source: 'error',
-        error: error instanceof Error ? error.message : 'Unknown error',
+        error: error?.message || 'Unknown error',
+        code: error?.code,
+        details: error?.details,
+        hint: error?.hint,
       },
       { status: 500 }
     )
@@ -213,23 +223,43 @@ export async function POST(request: NextRequest) {
 
       console.log('POST /api/proposals - Proposal created successfully:', newProposal.id)
       return NextResponse.json(newProposal, { status: 201 })
-    } catch (dbError) {
-      // Database error - return actual error
-      console.error('❌ Database error creating proposal:', dbError)
+    } catch (dbError: any) {
+      // Database error - return actual error with details
+      console.error('❌ Database error creating proposal:', {
+        message: dbError?.message,
+        code: dbError?.code,
+        details: dbError?.details,
+        hint: dbError?.hint,
+        stack: dbError?.stack,
+        name: dbError?.name,
+      })
       return NextResponse.json(
         {
           error: 'Database error creating proposal',
-          details: dbError instanceof Error ? dbError.message : 'Unknown database error',
+          message: dbError?.message,
+          code: dbError?.code,
+          details: dbError?.details,
+          hint: dbError?.hint,
         },
         { status: 500 }
       )
     }
-  } catch (error) {
-    console.error('❌ POST /api/proposals - Unexpected error:', error)
+  } catch (error: any) {
+    console.error('❌ POST /api/proposals - Unexpected error:', {
+      message: error?.message,
+      code: error?.code,
+      details: error?.details,
+      hint: error?.hint,
+      stack: error?.stack,
+      name: error?.name,
+    })
     return NextResponse.json(
       {
         error: 'Failed to create proposal',
-        details: error instanceof Error ? error.message : 'Unknown error',
+        message: error?.message,
+        code: error?.code,
+        details: error?.details,
+        hint: error?.hint,
       },
       { status: 500 }
     )
