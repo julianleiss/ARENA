@@ -13,21 +13,21 @@ async function main() {
       id: 'prop-1',
       title: 'New Community Park in Downtown',
       description: 'Proposal to transform the vacant lot on Main Street into a vibrant community park with playgrounds, walking paths, and green spaces for residents to enjoy.',
-      status: 'published',
+      status: 'public',
       authorId: 'demo',
     },
     {
       id: 'prop-2',
       title: 'Bike Lane Expansion Project',
       description: 'Expand the existing bike lane network by adding 15 miles of protected bike lanes connecting residential areas to commercial districts and public transit hubs.',
-      status: 'published',
+      status: 'public',
       authorId: 'demo',
     },
     {
       id: 'prop-3',
       title: 'Public Library Renovation',
       description: 'Renovate and modernize the central public library with updated technology, expanded study spaces, and improved accessibility features for all community members.',
-      status: 'published',
+      status: 'public',
       authorId: 'demo',
     },
     {
@@ -41,7 +41,7 @@ async function main() {
       id: 'prop-5',
       title: 'Street Lighting Upgrade',
       description: 'Replace outdated street lighting with energy-efficient LED fixtures to improve public safety, reduce energy costs, and minimize light pollution.',
-      status: 'published',
+      status: 'public',
       authorId: 'demo',
     },
   ]
