@@ -49,7 +49,7 @@ async function main() {
   for (const proposal of proposals) {
     await prisma.proposal.upsert({
       where: { id: proposal.id },
-      update: {},
+      update: proposal, // Update with all fields if record exists
       create: proposal,
     })
   }
