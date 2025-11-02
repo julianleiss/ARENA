@@ -2,17 +2,18 @@
 
 // ARENA - Map Page (Homepage)
 import { useState } from 'react'
+import { useRouter } from 'next/navigation'
 import Header from '@/app/components/Header'
 import MapView from '@/app/components/MapView'
-import SandboxModal from '@/app/components/SandboxModal'
-import PublishProposalForm from '@/app/components/PublishProposalForm'
+import SandboxOverlay from '@/app/components/SandboxOverlay'
+import ProposalFormModal, { ProposalFormData } from '@/app/components/ProposalFormModal'
 import { ProposalsPanel } from '@/app/components/ProposalsPanel'
 import { nanoid } from 'nanoid'
 
 interface SelectedArea {
   type: 'building' | 'point' | 'polygon'
   geometry: any
-  bounds: {
+  bounds?: {
     north: number
     south: number
     east: number
@@ -21,66 +22,89 @@ interface SelectedArea {
 }
 
 export default function MapPage() {
+  const router = useRouter()
   const [mapMode, setMapMode] = useState<'navigate' | 'create'>('navigate')
   const [selectionMode, setSelectionMode] = useState<'building' | 'point' | 'polygon'>('building')
 
-  // Sandbox modal state
-  const [isSandboxOpen, setIsSandboxOpen] = useState(false)
-  const [selectedArea, setSelectedArea] = useState<SelectedArea | null>(null)
-  const [currentProposalId, setCurrentProposalId] = useState<string | null>(null)
-
-  // Publish form state
-  const [isPublishFormOpen, setIsPublishFormOpen] = useState(false)
+  // Sandbox placement state
+  const [placedGeometry, setPlacedGeometry] = useState<SelectedArea | null>(null)
+  const [isFormOpen, setIsFormOpen] = useState(false)
 
   // Proposals panel state
   const [isPanelOpen, setIsPanelOpen] = useState(false)
   const [hoveredProposal, setHoveredProposal] = useState<string | null>(null)
 
-  // Handle area selection from map
+  // Handle area selection from map (when in create mode)
   const handleAreaSelected = (area: SelectedArea) => {
     console.log('📍 Area selected:', area)
-    setSelectedArea(area)
-
-    // Generate temporary proposal ID
-    const proposalId = nanoid()
-    setCurrentProposalId(proposalId)
-
-    // Open sandbox modal
-    setIsSandboxOpen(true)
-    setMapMode('navigate') // Reset to navigate mode
+    setPlacedGeometry(area)
   }
 
-  // Handle publish button click from sandbox
-  const handlePublishClick = () => {
-    setIsPublishFormOpen(true)
+  // Handle finalize placement → open form
+  const handleFinalizePlacement = () => {
+    if (!placedGeometry) return
+    setIsFormOpen(true)
   }
 
-  // Handle publish submission
-  const handlePublish = async (data: {
-    title: string
-    description: string
-    visibility: 'public' | 'private'
-    tags: string[]
-  }) => {
-    console.log('🚀 Publishing proposal:', data)
-
-    // TODO: Save to database via API
-    // For now, just close modals and show success
-
-    setIsPublishFormOpen(false)
-    setIsSandboxOpen(false)
-    setSelectedArea(null)
-    setCurrentProposalId(null)
-
-    // Show success toast
-    alert('¡Propuesta publicada con éxito!')
+  // Handle cancel placement
+  const handleCancelPlacement = () => {
+    setMapMode('navigate')
+    setPlacedGeometry(null)
   }
 
-  // Handle sandbox close
-  const handleSandboxClose = () => {
-    setIsSandboxOpen(false)
-    setSelectedArea(null)
-    setCurrentProposalId(null)
+  // Handle proposal submission
+  const handleProposalSubmit = async (formData: ProposalFormData) => {
+    console.log('🚀 Creating proposal:', formData)
+
+    // Generate temporary user ID (until auth is implemented)
+    const tempUserId = `temp-${nanoid()}`
+
+    try {
+      const response = await fetch('/api/proposals', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          authorId: tempUserId,
+          title: formData.title,
+          summary: formData.description.substring(0, 200), // First 200 chars as summary
+          body: formData.description,
+          geom: formData.geometry,
+          layer: 'micro', // Default layer
+          status: 'public', // Public by default
+          tags: formData.tags,
+        }),
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || 'Failed to create proposal')
+      }
+
+      const newProposal = await response.json()
+      console.log('✅ Proposal created:', newProposal)
+
+      // Reset states
+      setIsFormOpen(false)
+      setPlacedGeometry(null)
+      setMapMode('navigate')
+
+      // Show success message
+      alert(`¡Propuesta "${formData.title}" creada con éxito!`)
+
+      // Optional: Navigate to proposal detail
+      // router.push(`/proposals/${newProposal.id}`)
+    } catch (error) {
+      console.error('Error creating proposal:', error)
+      throw error // Re-throw to let form handle error display
+    }
+  }
+
+  // Handle form cancel
+  const handleFormCancel = () => {
+    setIsFormOpen(false)
+    // Keep placement so user can edit/finalize again
   }
 
   // Log API key status for debugging
@@ -100,13 +124,14 @@ export default function MapPage() {
         onSelectGeometry={setSelectionMode}
       />
 
-      {/* Tooltip (only in Create mode) */}
+      {/* Sandbox Overlay (only in Create mode) */}
       {mapMode === 'create' && (
-        <div className="absolute top-24 left-1/2 -translate-x-1/2 z-40 bg-indigo-600 text-white px-4 py-2 rounded-xl shadow-lg text-sm font-medium animate-pulse">
-          {selectionMode === 'building' && '👆 Haz clic en un edificio para crear propuesta'}
-          {selectionMode === 'point' && '📍 Haz clic en cualquier lugar del mapa'}
-          {selectionMode === 'polygon' && '✏️ Haz clic para dibujar un área'}
-        </div>
+        <SandboxOverlay
+          geometryType={selectionMode}
+          hasPlacement={!!placedGeometry}
+          onFinalize={handleFinalizePlacement}
+          onCancel={handleCancelPlacement}
+        />
       )}
 
       {/* Google Maps with Deck.gl - with header spacing */}
@@ -120,23 +145,16 @@ export default function MapPage() {
         />
       </div>
 
-      {/* Sandbox Modal */}
-      {isSandboxOpen && currentProposalId && (
-        <SandboxModal
-          isOpen={isSandboxOpen}
-          selectedArea={selectedArea}
-          proposalId={currentProposalId}
-          onPublish={handlePublishClick}
-          onClose={handleSandboxClose}
+      {/* Proposal Form Modal */}
+      {placedGeometry && (
+        <ProposalFormModal
+          isOpen={isFormOpen}
+          geometryType={placedGeometry.type}
+          geometryData={placedGeometry.geometry}
+          onSubmit={handleProposalSubmit}
+          onCancel={handleFormCancel}
         />
       )}
-
-      {/* Publish Form Overlay */}
-      <PublishProposalForm
-        isOpen={isPublishFormOpen}
-        onPublish={handlePublish}
-        onCancel={() => setIsPublishFormOpen(false)}
-      />
 
       {/* Proposals Panel */}
       <ProposalsPanel
