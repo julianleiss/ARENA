@@ -6,7 +6,6 @@ import { APIProvider, Map, useMap } from '@vis.gl/react-google-maps'
 import { GeoJsonLayer } from '@deck.gl/layers'
 import { GoogleMapsOverlay } from '@deck.gl/google-maps'
 import { AmbientLight, DirectionalLight, LightingEffect } from '@deck.gl/core'
-import ProposalDrawer from './ProposalDrawer'
 import type { DetectedFeature } from '@/src/lib/feature-detection'
 
 interface Proposal {
@@ -449,7 +448,8 @@ export default function MapViewDeck({
   externalMapMode,
   externalSelectionMode,
   onMapModeChange,
-  onSelectionModeChange
+  onSelectionModeChange,
+  onAreaSelected
 }: MapViewDeckProps = {}) {
   // Map mode state
   const [internalMapMode, setInternalMapMode] = useState<'navigate' | 'create'>('navigate')
@@ -481,10 +481,6 @@ export default function MapViewDeck({
 
   // 3D view state
   const [is3D, setIs3D] = useState(true)
-
-  // Drawer state
-  const [drawerOpen, setDrawerOpen] = useState(false)
-  const [drawerMode, setDrawerMode] = useState<'create' | 'view'>('create')
 
   // Proposals state
   const [proposals, setProposals] = useState<Proposal[]>([])
@@ -526,59 +522,47 @@ export default function MapViewDeck({
       // Normal click: single selection (replace previous)
       setSelectedBuildingIds([buildingId])
 
-      // Open drawer immediately for single-click (create mode)
-      if (mapMode === 'create') {
+      // Call onAreaSelected callback with building geometry
+      if (mapMode === 'create' && onAreaSelected) {
         setSelectedCoords({ lng: coords[0], lat: coords[1] })
-        setDrawerMode('create')
-        setDrawerOpen(true)
+
+        // Create area object for building selection
+        onAreaSelected({
+          type: 'building',
+          geometry: {
+            type: 'Point',
+            coordinates: coords
+          },
+          bounds: {
+            north: coords[1] + 0.0001,
+            south: coords[1] - 0.0001,
+            east: coords[0] + 0.0001,
+            west: coords[0] - 0.0001
+          }
+        })
       }
     }
 
     if (!multiSelect) {
       setSelectedCoords({ lng: coords[0], lat: coords[1] })
     }
-  }, [mapMode])
+  }, [mapMode, onAreaSelected])
 
   // Building hover handler
   const handleBuildingHover = useCallback((buildingId: string | null) => {
     setHoveredBuildingId(buildingId)
   }, [])
 
-  // Create proposal handler
-  const handleCreateProposal = () => {
-    if (selectedBuildingIds.length === 0) return
-
-    setDrawerMode('create')
-    setDrawerOpen(true)
-  }
-
-  // Proposal created handler
-  const handleProposalCreated = (newProposal: any) => {
-    setProposals((prev) => [newProposal, ...prev])
-    setSelectedBuildingIds([])
-    setSelectedCoords(undefined)
-    setMapMode('navigate') // Return to navigate mode after creating
-  }
-
   // Proposal click handler (for viewing)
   const handleProposalClick = (proposalId: string) => {
     setViewedProposalId(proposalId)
-    setDrawerMode('view')
-    setDrawerOpen(true)
+    // Could navigate to proposal detail page or open a view modal
+    console.log('View proposal:', proposalId)
   }
 
   // Proposal hover handler (for tooltip)
   const handleProposalHover = (proposal: any | null) => {
     setHoveredProposal(proposal)
-  }
-
-  // Close drawer handler
-  const handleCloseDrawer = () => {
-    setDrawerOpen(false)
-    setSelectedBuildingIds([])
-    setSelectedCoords(undefined)
-    setPolygonPoints([])
-    setDrawnPolygon(null)
   }
 
   // Map click handler for Point and Polygon modes
@@ -590,15 +574,29 @@ export default function MapViewDeck({
     console.log('🗺️ Map clicked:', { selectionMode, lat, lng })
 
     if (selectionMode === 'point') {
-      // Point mode: set coordinates and open drawer
+      // Point mode: call onAreaSelected callback
       setSelectedCoords({ lng, lat })
-      setDrawerMode('create')
-      setDrawerOpen(true)
+
+      if (onAreaSelected) {
+        onAreaSelected({
+          type: 'point',
+          geometry: {
+            type: 'Point',
+            coordinates: [lng, lat]
+          },
+          bounds: {
+            north: lat + 0.0001,
+            south: lat - 0.0001,
+            east: lng + 0.0001,
+            west: lng - 0.0001
+          }
+        })
+      }
     } else if (selectionMode === 'polygon') {
       // Polygon mode: add point to polygon
       setPolygonPoints(prev => [...prev, [lng, lat]])
     }
-  }, [mapMode, selectionMode])
+  }, [mapMode, selectionMode, onAreaSelected])
 
   // Debug logging
   const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY
@@ -737,8 +735,25 @@ export default function MapViewDeck({
                   const centroidLat = polygonPoints.reduce((sum, p) => sum + p[1], 0) / polygonPoints.length
                   setDrawnPolygon(polygon)
                   setSelectedCoords({ lng: centroidLng, lat: centroidLat })
-                  setDrawerMode('create')
-                  setDrawerOpen(true)
+
+                  // Call onAreaSelected callback with polygon geometry
+                  if (onAreaSelected) {
+                    // Calculate bounds
+                    const lngs = polygonPoints.map(p => p[0])
+                    const lats = polygonPoints.map(p => p[1])
+                    const bounds = {
+                      north: Math.max(...lats),
+                      south: Math.min(...lats),
+                      east: Math.max(...lngs),
+                      west: Math.min(...lngs)
+                    }
+
+                    onAreaSelected({
+                      type: 'polygon',
+                      geometry: polygon,
+                      bounds
+                    })
+                  }
                 }}
                 className="px-5 py-2.5 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 transition-all shadow-md shadow-indigo-200 font-medium text-sm"
               >
@@ -768,25 +783,6 @@ export default function MapViewDeck({
           )}
         </div>
       )}
-
-      <ProposalDrawer
-        isOpen={drawerOpen}
-        mode={drawerMode}
-        onClose={handleCloseDrawer}
-        coordinates={selectedCoords}
-        onProposalCreated={handleProposalCreated}
-        viewedProposalId={viewedProposalId}
-        selectedFeatures={selectedBuildingIds.map(id => ({
-          id,
-          type: 'building',
-          osmId: id,
-          geometry: { type: 'Point', coordinates: [selectedCoords?.lng || 0, selectedCoords?.lat || 0] } as GeoJSON.Geometry,
-          properties: {},
-          layer: 'building'
-        }))}
-        drawnPolygon={drawnPolygon}
-        pointRadius={selectionMode === 'point' ? pointRadius : undefined}
-      />
     </div>
   )
 }
