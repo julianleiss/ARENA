@@ -23,18 +23,18 @@ nano .env
 # or
 code .env
 
-# 3. Find this line (around line 17):
-DATABASE_URL="postgresql://postgres.vtckkegygfhsvobmyhto:[YOUR-PASSWORD]@aws-0-us-east-1.pooler.supabase.com:6543/postgres?pgbouncer=true"
+# 3. Find this line (around line 23):
+DATABASE_URL="postgresql://postgres.vtckkegygfhsvobmyhto:[YOUR-PASSWORD]@aws-1-us-east-1.pooler.supabase.com:5432/postgres"
 
 # 4. Replace [YOUR-PASSWORD] with your actual Supabase database password
-# Example: bvx9zya6vdb.atbDAJU (use your full password)
+# IMPORTANT: Get the exact connection string from Supabase Dashboard → Database → Connection Pooling → Session mode
 
 # 5. Save the file
 ```
 
 **Your correct DATABASE_URL should look like:**
 ```
-DATABASE_URL="postgresql://postgres.vtckkegygfhsvobmyhto:bvx9zya6vdb.atbDAJU@aws-0-us-east-1.pooler.supabase.com:6543/postgres?pgbouncer=true"
+DATABASE_URL="postgresql://postgres.vtckkegygfhsvobmyhto:Zvx9zya6vdb.atbasAJU@aws-1-us-east-1.pooler.supabase.com:5432/postgres"
 ```
 
 ### Step 2: Seed the Database
@@ -66,9 +66,9 @@ npm run db:seed
 2. Click your **ARENA** project
 3. Go to **Settings** → **Environment Variables**
 4. Find or create `DATABASE_URL`
-5. Set value to:
+5. Set value to (use the EXACT same string from your local .env):
    ```
-   postgresql://postgres.vtckkegygfhsvobmyhto:YOUR_PASSWORD@aws-0-us-east-1.pooler.supabase.com:6543/postgres?pgbouncer=true
+   postgresql://postgres.vtckkegygfhsvobmyhto:Zvx9zya6vdb.atbasAJU@aws-1-us-east-1.pooler.supabase.com:5432/postgres
    ```
 6. Enable for: **Production**, **Preview**, **Development**
 7. **Save**
@@ -123,17 +123,19 @@ https://arena-lab8.vercel.app/api/proposals?status=public
 | **Protocol** | `postgresql://` |
 | **Username** | `postgres.vtckkegygfhsvobmyhto` |
 | **Password** | Your database password |
-| **Host** | `aws-0-us-east-1.pooler.supabase.com` |
-| **Port** | `6543` (NOT 5432!) |
+| **Host** | `aws-1-us-east-1.pooler.supabase.com` |
+| **Port** | `5432` (Session pooler uses 5432, not 6543!) |
 | **Database** | `postgres` |
-| **Parameters** | `?pgbouncer=true` |
+| **Parameters** | None (no pgbouncer parameter needed) |
 
-### Direct vs Pooler Connection
+### Direct vs Session Pooler Connection
 
 | Type | Port | Works From | Use For |
 |------|------|------------|---------|
-| **Direct** | 5432 | ❌ Only internal | Never use externally |
-| **Pooler** | 6543 | ✅ Vercel, local, etc. | ALWAYS use this |
+| **Direct** | 6543 | ❌ Only internal | Never use for external apps |
+| **Session Pooler** | 5432 | ✅ Vercel, local, etc. | ALWAYS use this for external access |
+
+**Note**: Supabase has multiple pooler types (Session, Transaction). For Next.js apps, use **Session pooler on port 5432**.
 
 ## 🆘 Troubleshooting
 
@@ -142,8 +144,8 @@ https://arena-lab8.vercel.app/api/proposals?status=public
 - ✅ Use: `postgres.vtckkegygfhsvobmyhto`
 
 ### "Can't reach database server"
-- ❌ Using direct connection (port 5432)
-- ✅ Use pooler connection (port 6543)
+- ❌ Using direct connection (port 6543)
+- ✅ Use Session pooler connection (port 5432)
 
 ### Still showing "source": "mock"
 - ❌ Vercel environment variable not updated
@@ -166,12 +168,13 @@ If you don't remember your database password:
 
 ## ✅ Success Checklist
 
-- [ ] `.env` file has correct pooler connection (port 6543)
+- [ ] `.env` file has correct Session pooler connection (port 5432)
 - [ ] Username is `postgres.vtckkegygfhsvobmyhto` (not just `postgres`)
-- [ ] Has `?pgbouncer=true` parameter
+- [ ] Host is `aws-1-us-east-1.pooler.supabase.com`
+- [ ] NO `?pgbouncer=true` parameter (not needed for Session pooler)
 - [ ] `npm run db:seed` runs successfully
 - [ ] Local API shows `"source": "database"`
-- [ ] Vercel DATABASE_URL updated with pooler connection
+- [ ] Vercel DATABASE_URL updated with same Session pooler connection
 - [ ] Vercel redeployed after env var update
 - [ ] Production API shows `"source": "database"`
 - [ ] Map shows 5 proposal pins

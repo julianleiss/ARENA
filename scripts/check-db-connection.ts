@@ -26,21 +26,24 @@ async function checkConnection() {
 
   console.log('✅ DATABASE_URL is set')
 
-  // Check if using pooler (port 6543)
-  if (dbUrl.includes(':5432')) {
-    console.error('❌ Using DIRECT connection (port 5432)')
+  // Check if using Session pooler (port 5432 with pooler host)
+  if (dbUrl.includes(':6543')) {
+    console.error('❌ Using DIRECT connection (port 6543)')
     console.error('   This will NOT work from Vercel or local machine!')
-    console.log('\n✅ Change to POOLER connection:')
-    console.log('   - Change port: 5432 → 6543')
-    console.log('   - Change host: db.PROJECT.supabase.co → aws-0-us-east-1.pooler.supabase.com')
-    console.log('   - Add parameter: ?pgbouncer=true')
+    console.log('\n✅ Change to SESSION POOLER connection:')
+    console.log('   - Change port: 6543 → 5432')
+    console.log('   - Change host: db.PROJECT.supabase.co → aws-1-us-east-1.pooler.supabase.com')
+    console.log('   - Remove ?pgbouncer=true parameter (not needed)')
+    console.log('\n💡 Get exact string from: Supabase Dashboard → Database → Connection Pooling → Session')
     process.exit(1)
   }
 
-  if (!dbUrl.includes(':6543')) {
-    console.warn('⚠️  Port not detected as 6543 - verify your connection string')
+  if (!dbUrl.includes(':5432')) {
+    console.warn('⚠️  Port not detected as 5432 - verify your connection string')
+  } else if (dbUrl.includes('pooler.supabase.com')) {
+    console.log('✅ Using SESSION POOLER connection (port 5432)')
   } else {
-    console.log('✅ Using POOLER connection (port 6543)')
+    console.warn('⚠️  Using port 5432 but host is not pooler - verify connection string')
   }
 
   // Check username format
@@ -53,11 +56,11 @@ async function checkConnection() {
     process.exit(1)
   }
 
-  // Check pgbouncer parameter
+  // Check pgbouncer parameter (should NOT be present for Session pooler)
   if (dbUrl.includes('pgbouncer=true')) {
-    console.log('✅ Has pgbouncer=true parameter')
+    console.warn('⚠️  Has pgbouncer=true parameter (not needed for Session pooler)')
   } else {
-    console.warn('⚠️  Missing ?pgbouncer=true parameter')
+    console.log('✅ No pgbouncer parameter (correct for Session pooler)')
   }
 
   console.log('\n🔌 Attempting to connect to database...')
@@ -88,9 +91,10 @@ async function checkConnection() {
       console.log('   - Username must be: postgres.vtckkegygfhsvobmyhto')
     } else if (error.message.includes("Can't reach database")) {
       console.log('\n🌐 Connection Error:')
-      console.log('   - Make sure you are using the POOLER connection')
-      console.log('   - Host: aws-0-us-east-1.pooler.supabase.com')
-      console.log('   - Port: 6543')
+      console.log('   - Make sure you are using the SESSION POOLER connection')
+      console.log('   - Get exact string from: Supabase Dashboard → Database → Connection Pooling → Session')
+      console.log('   - Host should be: aws-1-us-east-1.pooler.supabase.com (or your region)')
+      console.log('   - Port should be: 5432')
     } else if (error.message.includes('permission denied')) {
       console.log('\n🔒 RLS Error:')
       console.log('   - Run the RLS SQL script in Supabase:')
