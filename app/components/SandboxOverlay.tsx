@@ -13,7 +13,7 @@ interface SandboxOverlayProps {
 const GEOMETRY_LABELS = {
   building: 'Edificio',
   point: 'Punto',
-  polygon: 'Área',
+  polygon: 'Area',
 }
 
 const GEOMETRY_ICONS = {
@@ -53,7 +53,7 @@ const GEOMETRY_ICONS = {
 const GEOMETRY_INSTRUCTIONS = {
   building: 'Haz clic en un edificio en el mapa',
   point: 'Haz clic en cualquier punto del mapa',
-  polygon: 'Haz clic para dibujar el área (doble clic para finalizar)',
+  polygon: 'Haz clic para dibujar el area (doble clic para finalizar)',
 }
 
 export default function SandboxOverlay({
@@ -95,10 +95,10 @@ export default function SandboxOverlay({
               <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
               </svg>
-              Ubicación seleccionada
+              Ubicacion seleccionada
             </span>
           ) : (
-            <span className="text-gray-500">Esperando selección...</span>
+            <span className="text-gray-500">Esperando seleccion...</span>
           )}
         </div>
 

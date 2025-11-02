@@ -693,23 +693,11 @@ export default function MapViewDeck({
       {mapMode === 'create' && (
         <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-40 bg-white/95 backdrop-blur-sm border border-gray-200 rounded-xl shadow-lg px-5 py-3.5">
           {selectionMode === 'building' && (
-            <>
-              {selectedBuildingIds.length > 0 ? (
-                <div className="flex items-center gap-3">
-                  <span className="text-sm text-indigo-900 font-medium">
-                    {selectedBuildingIds.length} building{selectedBuildingIds.length > 1 ? 's' : ''} selected
-                  </span>
-                  <button
-                    onClick={handleCreateProposal}
-                    className="px-5 py-2.5 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 transition-all shadow-md shadow-indigo-200 font-medium text-sm"
-                  >
-                    Create Proposal
-                  </button>
-                </div>
-              ) : (
-                <span className="text-sm text-gray-600">Click a building to select</span>
-              )}
-            </>
+            <span className="text-sm text-gray-600">
+              {selectedBuildingIds.length > 0
+                ? `${selectedBuildingIds.length} building${selectedBuildingIds.length > 1 ? 's' : ''} selected`
+                : 'Click a building to select'}
+            </span>
           )}
           {selectionMode === 'point' && (
             <span className="text-sm text-gray-600">Click anywhere to place a point</span>
