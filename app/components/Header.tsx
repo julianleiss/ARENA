@@ -24,7 +24,7 @@ export default function Header({
   onSelectGeometry,
 }: HeaderProps) {
   return (
-    <header className="fixed top-0 left-0 right-0 h-20 bg-white shadow-md z-50 px-6">
+    <header className="fixed top-0 left-0 right-0 h-20 bg-yellow-400 shadow-md z-50 px-6">
       <div className="h-full max-w-[1920px] mx-auto flex items-center justify-between">
         {/* LEFT SECTION: Logo + Propuestas */}
         <div className="flex items-center gap-6">
