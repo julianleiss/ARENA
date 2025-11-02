@@ -17,6 +17,7 @@
     "db:studio": "prisma studio",
     "db:seed": "tsx scripts/seed.ts",
     "db:rollback": "tsx scripts/rollback.ts",
+    "db:check": "tsx scripts/check-db-connection.ts",
     "test": "vitest run",
     "test:e2e": "playwright test"
   },
