@@ -3,7 +3,7 @@
 // ARENA V1.0 - Deck.gl + Google Maps MapView
 import { useEffect, useState, useRef, useCallback } from 'react'
 import { APIProvider, Map, useMap } from '@vis.gl/react-google-maps'
-import { GeoJsonLayer } from '@deck.gl/layers'
+import { GeoJsonLayer, IconLayer } from '@deck.gl/layers'
 import { GoogleMapsOverlay } from '@deck.gl/google-maps'
 import { AmbientLight, DirectionalLight, LightingEffect } from '@deck.gl/core'
 import type { DetectedFeature } from '@/src/lib/feature-detection'
@@ -43,6 +43,7 @@ interface MapViewDeckProps {
       west: number
     }
   }) => void
+  onRefreshProposals?: React.MutableRefObject<(() => void) | null>
 }
 
 // Deck.gl overlay component
@@ -262,51 +263,45 @@ function DeckGLOverlay({
     // Build layers array
     const layers: any[] = []
 
-    // Add proposal markers layer (always visible in navigate mode)
+    // Add proposal pins layer (always visible in navigate mode)
     if (mapMode === 'navigate' && proposals.length > 0) {
-      // Convert proposals to GeoJSON features (limit to recent 10 for performance)
-      const proposalFeatures = {
-        type: 'FeatureCollection',
-        features: proposals
-          .filter(p => p.geom && p.geom.type === 'Point') // Only show Point proposals as markers
-          .slice(0, 10) // Limit to 10 most recent for performance
-          .map(p => ({
-            type: 'Feature',
-            geometry: p.geom,
-            properties: {
-              id: p.id,
-              title: p.title,
-              summary: p.summary,
-              layer: p.layer,
-              status: p.status,
-              tags: p.tags,
-              author: p.author?.name || 'Unknown'
-            }
-          }))
-      }
+      // Filter proposals that have geometry
+      const proposalsWithGeometry = proposals.filter(p => p.geom)
 
       layers.push(
-        new GeoJsonLayer({
-          id: 'proposals',
-          data: proposalFeatures as any,
-          pointType: 'circle',
-          getPointRadius: 20,
-          pointRadiusMinPixels: 20,
-          pointRadiusMaxPixels: 30,
-          getFillColor: [79, 70, 229, 255], // Indigo-600 bright for visibility
-          getLineColor: [255, 255, 255, 255], // White border for contrast
-          lineWidthMinPixels: 3,
+        new IconLayer({
+          id: 'proposal-pins',
+          data: proposalsWithGeometry,
+          getPosition: (d: any) => {
+            if (!d.geom) return [0, 0]
+            if (d.geom.type === 'Point') return d.geom.coordinates
+            if (d.geom.type === 'Polygon') return d.geom.coordinates[0][0]
+            if (d.geom.type === 'LineString') return d.geom.coordinates[0]
+            if (d.geom.type === 'MultiPoint') return d.geom.coordinates[0]
+            return [0, 0]
+          },
+          getIcon: (d: any) => ({
+            url: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzIiIGhlaWdodD0iMzIiIHZpZXdCb3g9IjAgMCAzMiAzMiIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48Y2lyY2xlIGN4PSIxNiIgY3k9IjE2IiByPSIxMiIgZmlsbD0iIzRBOTBFMiIvPjxjaXJjbGUgY3g9IjE2IiBjeT0iMTYiIHI9IjgiIGZpbGw9IndoaXRlIi8+PC9zdmc+',
+            width: 32,
+            height: 32
+          }),
+          getSize: 32,
           pickable: true,
           onClick: (info: any) => {
             if (info.object) {
-              console.log('📍 Proposal clicked:', info.object.properties)
-              onProposalClick(info.object.properties.id)
+              console.log('📍 Clicked proposal:', info.object.id)
+              onProposalClick(info.object.id)
             }
           },
           onHover: (info: any) => {
             // Set hovered proposal for tooltip
             if (info.object) {
-              onProposalHover(info.object.properties)
+              onProposalHover({
+                id: info.object.id,
+                title: info.object.title,
+                summary: info.object.summary,
+                author: info.object.author?.name || 'Unknown'
+              })
             } else {
               onProposalHover(null)
             }
@@ -449,7 +444,8 @@ export default function MapViewDeck({
   externalSelectionMode,
   onMapModeChange,
   onSelectionModeChange,
-  onAreaSelected
+  onAreaSelected,
+  onRefreshProposals
 }: MapViewDeckProps = {}) {
   // Map mode state
   const [internalMapMode, setInternalMapMode] = useState<'navigate' | 'create'>('navigate')
@@ -487,21 +483,32 @@ export default function MapViewDeck({
   const [viewedProposalId, setViewedProposalId] = useState<string | null>(null)
   const [hoveredProposal, setHoveredProposal] = useState<any>(null)
 
-  // Fetch proposals
-  useEffect(() => {
-    async function fetchProposals() {
-      try {
-        const response = await fetch('/api/proposals?status=public')
-        if (response.ok) {
-          const data = await response.json()
-          setProposals(data.proposals || [])
-        }
-      } catch (error) {
-        console.error('Failed to fetch proposals:', error)
+  // Fetch proposals function (exposed via ref for refresh)
+  const fetchProposals = useCallback(async () => {
+    try {
+      console.log('🔄 Fetching proposals from API...')
+      const response = await fetch('/api/proposals?status=public')
+      if (response.ok) {
+        const data = await response.json()
+        console.log(`✅ Loaded ${data.proposals?.length || 0} proposals`)
+        setProposals(data.proposals || [])
       }
+    } catch (error) {
+      console.error('Failed to fetch proposals:', error)
     }
-    fetchProposals()
   }, [])
+
+  // Fetch proposals on mount
+  useEffect(() => {
+    fetchProposals()
+  }, [fetchProposals])
+
+  // Expose refresh function via ref
+  useEffect(() => {
+    if (onRefreshProposals) {
+      onRefreshProposals.current = fetchProposals
+    }
+  }, [onRefreshProposals, fetchProposals])
 
   // Building click handler
   const handleBuildingClick = useCallback((buildingId: string, coords: [number, number], multiSelect: boolean = false) => {
