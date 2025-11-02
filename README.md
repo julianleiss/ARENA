@@ -24,20 +24,57 @@ npm install
 
 # 2. Configure environment
 cp .env.example .env.local
-# Edit .env.local with your DATABASE_URL
+# Edit .env.local with your Supabase DATABASE_URL (see .env.example for connection string formats)
 
 # 3. Generate Prisma client and push schema
 npm run db:generate
 npm run db:push
 
-# 4. Seed database with 5 test proposals
+# 4. Seed database with test data (users, POIs, proposals, and 8 prefab assets)
 npm run db:seed
 
 # 5. Run development server
 npm run dev
 ```
 
-Open [http://localhost:3000/proposals](http://localhost:3000/proposals) to view proposals.
+Open [http://localhost:3000](http://localhost:3000) to view the map, or [http://localhost:3000/proposals](http://localhost:3000/proposals) to view proposals.
+
+**Note**: If port 3000 is occupied, the dev server will run on port 3010 automatically.
+
+## Troubleshooting
+
+### Database Connection Issues
+
+If you see "DB timeout" errors or APIs returning mock/empty data:
+
+1. **Verify DATABASE_URL is configured** in `.env.local`:
+   ```bash
+   # For local development (recommended)
+   DATABASE_URL="postgresql://postgres.PROJECT:PASSWORD@aws-1-us-east-1.connect.supabase.com:5432/postgres?pgbouncer=true&connection_limit=10&pool_timeout=30"
+
+   # For production/Vercel (use pooler)
+   DATABASE_URL="postgresql://postgres.PROJECT:PASSWORD@aws-1-us-east-1.pooler.supabase.com:5432/postgres"
+   ```
+
+2. **Test database connection**:
+   ```bash
+   npm run db:studio
+   ```
+   If Prisma Studio opens successfully, your database connection is working.
+
+3. **Check Supabase project**:
+   - Ensure project is active (not paused) in Supabase dashboard
+   - Verify database password is correct
+   - Check IP allowlist settings if configured
+
+4. **Graceful degradation**: In development mode, APIs will return mock data if DB is unreachable, allowing you to continue developing UI features.
+
+### Common Issues
+
+- **Port already in use**: Server will automatically use next available port (e.g., 3010)
+- **Missing environment variables**: Copy `.env.example` to `.env.local` and fill in actual values
+- **Prisma client out of sync**: Run `npm run db:generate` after schema changes
+- **Google Maps not loading**: Verify `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY` in `.env.local`
 
 ## Available Scripts
 
