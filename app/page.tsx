@@ -37,19 +37,28 @@ export default function MapPage() {
   // Handle area selection from map (when in create mode)
   const handleAreaSelected = (area: SelectedArea) => {
     console.log('📍 Area selected:', area)
+    console.log('🔍 State BEFORE setPlacedGeometry:', { placedGeometry, isFormOpen })
     setPlacedGeometry(area)
+    console.log('🔍 State AFTER setPlacedGeometry (should still be false):', { isFormOpen })
   }
 
   // Handle finalize placement → open form
   const handleFinalizePlacement = () => {
-    if (!placedGeometry) return
+    console.log('✅ FINALIZE clicked')
+    if (!placedGeometry) {
+      console.log('❌ No placement - aborting')
+      return
+    }
+    console.log('🔍 Opening form...')
     setIsFormOpen(true)
   }
 
   // Handle cancel placement
   const handleCancelPlacement = () => {
+    console.log('❌ CANCEL clicked')
     setMapMode('navigate')
     setPlacedGeometry(null)
+    setIsFormOpen(false)
   }
 
   // Handle proposal submission
@@ -124,8 +133,8 @@ export default function MapPage() {
         onSelectGeometry={setSelectionMode}
       />
 
-      {/* Sandbox Overlay (only in Create mode) */}
-      {mapMode === 'create' && (
+      {/* Sandbox Overlay (only in Create mode AND form not open) */}
+      {mapMode === 'create' && !isFormOpen && (
         <SandboxOverlay
           geometryType={selectionMode}
           hasPlacement={!!placedGeometry}
@@ -166,6 +175,18 @@ export default function MapPage() {
         }}
         onProposalHover={setHoveredProposal}
       />
+
+      {/* Debug Overlay */}
+      <div className="fixed bottom-4 left-4 bg-black/90 text-white p-3 text-xs font-mono z-50 rounded-lg shadow-xl border border-white/20">
+        <div className="font-bold text-green-400 mb-1">🔍 DEBUG STATE</div>
+        <div>Mode: <span className="text-yellow-300">{mapMode}</span></div>
+        <div>Selection: <span className="text-yellow-300">{selectionMode}</span></div>
+        <div>Placed: <span className={placedGeometry ? 'text-green-400' : 'text-red-400'}>{placedGeometry ? 'YES' : 'NO'}</span></div>
+        <div>Form: <span className={isFormOpen ? 'text-green-400' : 'text-red-400'}>{isFormOpen ? 'OPEN' : 'CLOSED'}</span></div>
+        <div className="mt-1 pt-1 border-t border-white/20 text-gray-400 text-[10px]">
+          Overlay visible: {mapMode === 'create' && !isFormOpen ? 'YES' : 'NO'}
+        </div>
+      </div>
     </div>
   )
 }
