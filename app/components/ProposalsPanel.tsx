@@ -41,6 +41,11 @@ export function ProposalsPanel({
   const [loading, setLoading] = useState(true)
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedProposal, setSelectedProposal] = useState<string | null>(null)
+  const [statusFilter, setStatusFilter] = useState<string>('all')
+  const [sortBy, setSortBy] = useState<'newest' | 'oldest' | 'votes'>('newest')
+  const [page, setPage] = useState(1)
+  const [totalPages, setTotalPages] = useState(1)
+  const [loadingMore, setLoadingMore] = useState(false)
 
   // Set selected proposal when initialProposalId changes
   useEffect(() => {
@@ -55,24 +60,68 @@ export function ProposalsPanel({
     }
   }, [isOpen])
 
-  const fetchProposals = async () => {
-    setLoading(true)
+  const fetchProposals = async (pageNum: number = 1, append: boolean = false) => {
+    if (!append) {
+      setLoading(true)
+    } else {
+      setLoadingMore(true)
+    }
+
     try {
-      const res = await fetch('/api/proposals?status=public')
+      const statusParam = statusFilter === 'all' ? '' : `&status=${statusFilter}`
+      const res = await fetch(`/api/proposals?page=${pageNum}&limit=20${statusParam}`)
       const data = await res.json()
-      // API returns { proposals: [], count: 0 } format
-      setProposals(data.proposals || [])
+      // API returns { proposals: [], count: 0, page, totalPages } format
+
+      if (append) {
+        setProposals(prev => [...prev, ...(data.proposals || [])])
+      } else {
+        setProposals(data.proposals || [])
+      }
+
+      setPage(data.page || 1)
+      setTotalPages(data.totalPages || 1)
     } catch (error) {
       console.error('Error fetching proposals:', error)
-      setProposals([])
+      if (!append) {
+        setProposals([])
+      }
     } finally {
       setLoading(false)
+      setLoadingMore(false)
     }
   }
 
-  const filteredProposals = proposals.filter(p =>
-    p.title.toLowerCase().includes(searchQuery.toLowerCase())
-  )
+  // Re-fetch when status filter changes
+  useEffect(() => {
+    if (isOpen) {
+      setPage(1)
+      fetchProposals(1, false)
+    }
+  }, [statusFilter])
+
+  // Load more handler
+  const handleLoadMore = () => {
+    if (page < totalPages && !loadingMore) {
+      fetchProposals(page + 1, true)
+    }
+  }
+
+  const filteredProposals = proposals
+    .filter(p =>
+      p.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      p.summary?.toLowerCase().includes(searchQuery.toLowerCase())
+    )
+    .sort((a, b) => {
+      if (sortBy === 'newest') {
+        return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+      } else if (sortBy === 'oldest') {
+        return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+      } else {
+        // votes
+        return b._count.votes - a._count.votes
+      }
+    })
 
   if (!isOpen) return null
 
@@ -104,8 +153,9 @@ export function ProposalsPanel({
         </button>
       </div>
 
-      {/* Search */}
-      <div className="p-4 border-b border-gray-200">
+      {/* Search and Filters */}
+      <div className="p-4 border-b border-gray-200 space-y-3">
+        {/* Search bar */}
         <div className="relative">
           <input
             type="text"
@@ -123,6 +173,33 @@ export function ProposalsPanel({
           >
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
           </svg>
+        </div>
+
+        {/* Filters row */}
+        <div className="flex gap-2">
+          {/* Status filter */}
+          <select
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value)}
+            className="flex-1 px-3 py-2 text-sm border border-gray-300 rounded-lg
+                     focus:outline-none focus:ring-2 focus:ring-indigo-500"
+          >
+            <option value="all">Todas</option>
+            <option value="public">Públicas</option>
+            <option value="draft">Borradores</option>
+          </select>
+
+          {/* Sort by */}
+          <select
+            value={sortBy}
+            onChange={(e) => setSortBy(e.target.value as any)}
+            className="flex-1 px-3 py-2 text-sm border border-gray-300 rounded-lg
+                     focus:outline-none focus:ring-2 focus:ring-indigo-500"
+          >
+            <option value="newest">Más recientes</option>
+            <option value="oldest">Más antiguas</option>
+            <option value="votes">Más votadas</option>
+          </select>
         </div>
       </div>
 
@@ -158,6 +235,26 @@ export function ProposalsPanel({
                 <ProposalCard proposal={proposal} />
               </div>
             ))}
+
+            {/* Load More button */}
+            {page < totalPages && (
+              <button
+                onClick={handleLoadMore}
+                disabled={loadingMore}
+                className="w-full py-3 px-4 bg-gray-100 hover:bg-gray-200 text-gray-700
+                         rounded-lg font-medium transition-colors
+                         disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {loadingMore ? (
+                  <div className="flex items-center justify-center gap-2">
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-gray-700"></div>
+                    <span>Cargando...</span>
+                  </div>
+                ) : (
+                  `Cargar más (${page} de ${totalPages})`
+                )}
+              </button>
+            )}
           </div>
         )}
       </div>

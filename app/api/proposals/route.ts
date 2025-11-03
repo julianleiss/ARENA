@@ -7,11 +7,13 @@ import prisma from '@/app/lib/db'
 import { enforce } from '@/app/lib/rate-limit'
 import { getMockProposals } from '@/app/lib/mock-data'
 
-// GET /api/proposals - Get all proposals with optional filtering
+// GET /api/proposals - Get all proposals with optional filtering and pagination
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url)
   const status = searchParams.get('status')
   const layer = searchParams.get('layer')
+  const page = parseInt(searchParams.get('page') || '1')
+  const limit = parseInt(searchParams.get('limit') || '20')
 
   try {
     // Build filter conditions
@@ -23,30 +25,44 @@ export async function GET(request: NextRequest) {
       where.layer = layer
     }
 
+    // Calculate pagination
+    const skip = (page - 1) * limit
+
     // Fetch proposals with timeout (30s to account for cold starts and connection pooling)
-    const proposals = await Promise.race([
-      prisma.proposal.findMany({
-        where,
-        include: {
-          author: {
-            select: {
-              id: true,
-              name: true,
-              email: true,
-              role: true,
+    const [proposals, totalCount] = await Promise.race([
+      Promise.all([
+        prisma.proposal.findMany({
+          where,
+          include: {
+            author: {
+              select: {
+                id: true,
+                name: true,
+                email: true,
+                role: true,
+              },
+            },
+            _count: {
+              select: {
+                votes: true,
+                comments: true,
+              },
+            },
+            versions: {
+              select: {
+                id: true,
+              },
+              take: 1,
             },
           },
-          _count: {
-            select: {
-              votes: true,
-              comments: true,
-            },
+          orderBy: {
+            createdAt: 'desc',
           },
-        },
-        orderBy: {
-          createdAt: 'desc',
-        },
-      }),
+          skip,
+          take: limit,
+        }),
+        prisma.proposal.count({ where }),
+      ]),
       new Promise<never>((_, reject) =>
         setTimeout(() => reject(new Error('DB timeout')), 30000)
       ),
@@ -55,7 +71,10 @@ export async function GET(request: NextRequest) {
     return NextResponse.json(
       {
         proposals,
-        count: proposals.length,
+        count: totalCount,
+        page,
+        limit,
+        totalPages: Math.ceil(totalCount / limit),
         source: 'database',
       },
       { status: 200 }
