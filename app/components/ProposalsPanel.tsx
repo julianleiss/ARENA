@@ -107,10 +107,10 @@ export function ProposalsPanel({
     }
   }
 
-  const filteredProposals = proposals
+  const filteredProposals = (proposals || [])
     .filter(p =>
-      p.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      p.summary?.toLowerCase().includes(searchQuery.toLowerCase())
+      p?.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      p?.summary?.toLowerCase().includes(searchQuery.toLowerCase())
     )
     .sort((a, b) => {
       if (sortBy === 'newest') {
@@ -119,7 +119,7 @@ export function ProposalsPanel({
         return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
       } else {
         // votes
-        return b._count.votes - a._count.votes
+        return (b._count?.votes || 0) - (a._count?.votes || 0)
       }
     })
 
