@@ -35,8 +35,15 @@ npm run test:e2e         # Run end-to-end tests with Playwright
 
 ### Environment Setup
 1. Copy `.env.example` to `.env.local`
-2. Fill in Supabase credentials from your project dashboard
+2. Fill in required credentials:
+   - `DATABASE_URL`: Supabase PostgreSQL connection string
+   - `NEXT_PUBLIC_SUPABASE_URL`: Supabase project URL
+   - `NEXT_PUBLIC_SUPABASE_ANON_KEY`: Supabase anonymous key
+   - `SUPABASE_SERVICE_ROLE_KEY`: **REQUIRED for image uploads** (Supabase service role key)
+   - `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY`: Google Maps API key
 3. Run `npm run db:generate && npm run db:push && npm run db:seed`
+
+**Important**: Image upload functionality requires `SUPABASE_SERVICE_ROLE_KEY`. Without this key, users won't be able to upload images to proposals. The key is found in: Supabase Dashboard → Settings → API → service_role
 
 ## Architecture
 
