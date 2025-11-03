@@ -490,7 +490,9 @@ export default function MapViewDeck({
   const fetchProposals = useCallback(async () => {
     try {
       console.log('🔄 Fetching proposals from API...')
-      const response = await fetch('/api/proposals?status=public')
+      // Fetch all proposals (no status filter) to show both 'public' and 'published'
+      // This ensures proposals from both map creation and sandbox publishing are visible
+      const response = await fetch('/api/proposals')
       if (response.ok) {
         const data = await response.json()
         console.log(`✅ Loaded ${data.proposals?.length || 0} proposals`)
