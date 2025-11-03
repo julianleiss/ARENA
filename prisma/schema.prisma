@@ -27,8 +27,12 @@ model User {
 model Proposal {
   id          String   @id @default(cuid())
   title       String
-  description String   @db.Text
-  status      String   @default("published") // "draft" | "published"
+  summary     String?  // Short description for list views
+  body        String?  @db.Text // Full description
+  geom        Json?    // GeoJSON geometry (Point, Polygon, etc.)
+  layer       String   @default("micro") // micro, meso, macro
+  tags        String[] @default([]) // Tags for categorization
+  status      String   @default("published") // "draft" | "published" | "public"
   authorId    String   @map("author_id")
   createdAt   DateTime @default(now()) @map("created_at")
   updatedAt   DateTime @updatedAt @map("updated_at")

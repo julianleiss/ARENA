@@ -101,7 +101,7 @@ export default function ProposalCard({ proposal }: { proposal: Proposal }) {
           <span>{new Date(proposal.createdAt).toLocaleDateString('es-AR')}</span>
         </div>
 
-        {proposal.tags.length > 0 && (
+        {proposal.tags && proposal.tags.length > 0 && (
           <div className="flex gap-2 mt-3 flex-wrap">
             {proposal.tags.slice(0, 3).map((tag) => (
               <span key={tag} className="px-2 py-1 bg-gray-100 text-gray-700 text-xs rounded">
