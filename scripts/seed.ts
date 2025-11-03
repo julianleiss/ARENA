@@ -1,66 +1,274 @@
-// ARENA - Database Seeder (iteration 1 - proposals)
+// ARENA - Database Seeder con 20 Propuestas en Español
 import 'dotenv/config'
 import { PrismaClient } from '@prisma/client'
 
 const prisma = new PrismaClient()
 
 async function main() {
-  console.log('🌱 Seeding database (iteration 1)...')
+  console.log('🌱 Poblando base de datos con propuestas en español...')
 
-  // Insert 5 proposals with authorId="demo"
+  // 20 propuestas urbanas para Buenos Aires (zona Núñez)
+  // Coordenadas centradas en Núñez: -34.545, -58.46
   const proposals = [
     {
       id: 'prop-1',
-      title: 'New Community Park in Downtown',
-      description: 'Proposal to transform the vacant lot on Main Street into a vibrant community park with playgrounds, walking paths, and green spaces for residents to enjoy.',
+      title: 'Parque Comunitario Av. del Libertador',
+      summary: 'Transformar el terreno baldío en un espacio verde con juegos infantiles y áreas de descanso',
+      body: 'Propuesta para convertir el terreno abandonado en Av. del Libertador en un parque comunitario vibrante con juegos infantiles, senderos para caminar y espacios verdes para que los residentes disfruten. Incluye iluminación LED, bancos ecológicos y áreas de picnic.',
+      geom: JSON.stringify({ type: 'Point', coordinates: [-58.46, -34.545] }),
+      layer: 'meso',
+      category: 'green',
+      tags: ['parque', 'espacio verde', 'recreación'],
       status: 'published',
       authorId: 'demo',
     },
     {
       id: 'prop-2',
-      title: 'Bike Lane Expansion Project',
-      description: 'Expand the existing bike lane network by adding 15 miles of protected bike lanes connecting residential areas to commercial districts and public transit hubs.',
+      title: 'Ciclovía Protegida Lugones-Libertador',
+      summary: 'Expandir red de ciclovías con 8km de carriles protegidos conectando zonas residenciales',
+      body: 'Ampliar la red de ciclovías existente agregando 8 kilómetros de carriles protegidos que conecten áreas residenciales con distritos comerciales y estaciones de transporte público. Incluye señalización, estaciones de bicicletas públicas y cruces seguros.',
+      geom: JSON.stringify({ type: 'Point', coordinates: [-58.458, -34.547] }),
+      layer: 'macro',
+      category: 'transport',
+      tags: ['movilidad', 'sustentabilidad', 'ciclovía'],
       status: 'published',
       authorId: 'demo',
     },
     {
       id: 'prop-3',
-      title: 'Public Library Renovation',
-      description: 'Renovate and modernize the central public library with updated technology, expanded study spaces, and improved accessibility features for all community members.',
+      title: 'Renovación Biblioteca Municipal Núñez',
+      summary: 'Modernizar biblioteca con tecnología actualizada y espacios de estudio ampliados',
+      body: 'Renovar y modernizar la biblioteca municipal de Núñez con tecnología actualizada, espacios de estudio ampliados, sala de lectura infantil y características mejoradas de accesibilidad para todos los miembros de la comunidad. WiFi gratuito y aire acondicionado.',
+      geom: JSON.stringify({ type: 'Point', coordinates: [-58.462, -34.543] }),
+      layer: 'micro',
+      category: 'social',
+      tags: ['cultura', 'educación', 'accesibilidad'],
       status: 'published',
       authorId: 'demo',
     },
     {
       id: 'prop-4',
-      title: 'Urban Garden Initiative',
-      description: 'Create 10 community urban gardens throughout the city to promote local food production, environmental education, and neighborhood gathering spaces.',
-      status: 'draft',
+      title: 'Huertas Urbanas Comunitarias',
+      summary: 'Crear 6 huertas urbanas para producción local de alimentos y educación ambiental',
+      body: 'Crear 6 huertas urbanas comunitarias en terrenos municipales para promover la producción local de alimentos, educación ambiental y espacios de reunión vecinal. Incluye sistema de riego por goteo, compostaje y talleres mensuales de agricultura urbana.',
+      geom: JSON.stringify({ type: 'Point', coordinates: [-58.464, -34.544] }),
+      layer: 'meso',
+      category: 'green',
+      tags: ['sustentabilidad', 'comunidad', 'agricultura urbana'],
+      status: 'published',
       authorId: 'demo',
     },
     {
       id: 'prop-5',
-      title: 'Street Lighting Upgrade',
-      description: 'Replace outdated street lighting with energy-efficient LED fixtures to improve public safety, reduce energy costs, and minimize light pollution.',
+      title: 'Iluminación LED en Espacios Públicos',
+      summary: 'Reemplazar luminarias antiguas con LEDs eficientes para mejorar seguridad y reducir costos',
+      body: 'Reemplazar la iluminación pública antigua con luminarias LED de alta eficiencia energética para mejorar la seguridad pública, reducir costos de energía y minimizar la contaminación lumínica. Proyecto piloto en 50 cuadras del barrio.',
+      geom: JSON.stringify({ type: 'Point', coordinates: [-58.459, -34.546] }),
+      layer: 'meso',
+      category: 'infrastructure',
+      tags: ['seguridad', 'eficiencia energética', 'iluminación'],
+      status: 'published',
+      authorId: 'demo',
+    },
+    {
+      id: 'prop-6',
+      title: 'Plaza Inclusiva con Juegos Adaptados',
+      summary: 'Diseñar plaza con juegos inclusivos para niños con diferentes capacidades',
+      body: 'Crear una plaza inclusiva en la intersección de Av. Congreso y Crisólogo Larralde con juegos adaptados para niños con discapacidad motriz, sensorial y cognitiva. Incluye rampas, pisos de goma reciclada, columpios adaptados y señalización en braille.',
+      geom: JSON.stringify({ type: 'Point', coordinates: [-58.457, -34.542] }),
+      layer: 'micro',
+      category: 'social',
+      tags: ['inclusión', 'accesibilidad', 'infancia'],
+      status: 'published',
+      authorId: 'demo',
+    },
+    {
+      id: 'prop-7',
+      title: 'Corredor Verde Cantilo',
+      summary: 'Forestación y embellecimiento de Av. Cantilo con 200 árboles nativos',
+      body: 'Proyecto de forestación urbana en Av. Cantilo con plantación de 200 árboles nativos (tipa, jacarandá, ceibo), ampliación de veredas, incorporación de bicicleteros y mobiliario urbano sustentable. Reducirá la temperatura ambiente en verano.',
+      geom: JSON.stringify({ type: 'Point', coordinates: [-58.461, -34.548] }),
+      layer: 'meso',
+      category: 'green',
+      tags: ['forestación', 'medio ambiente', 'espacio público'],
+      status: 'published',
+      authorId: 'demo',
+    },
+    {
+      id: 'prop-8',
+      title: 'Centro Cultural Barrial Multidisciplinario',
+      summary: 'Convertir galpón abandonado en centro cultural con talleres y espacios de arte',
+      body: 'Recuperar galpón ferroviario abandonado para crear un centro cultural multidisciplinario con salas de teatro, talleres de arte, biblioteca popular, sala de ensayo musical y café cultural. Gestión comunitaria con programación gratuita.',
+      geom: JSON.stringify({ type: 'Point', coordinates: [-58.463, -34.541] }),
+      layer: 'micro',
+      category: 'social',
+      tags: ['cultura', 'arte', 'comunidad'],
+      status: 'published',
+      authorId: 'demo',
+    },
+    {
+      id: 'prop-9',
+      title: 'Pasos Peatonales Seguros Escuela N°12',
+      summary: 'Instalar señalización luminosa y reductores de velocidad en zona escolar',
+      body: 'Mejorar seguridad vial en el entorno de la Escuela Primaria N°12 con señalización luminosa inteligente, reductores de velocidad (lomos de burro), ensanchamiento de veredas en cruces y pintura vial reflectante. Prioridad peatonal en horarios de entrada/salida.',
+      geom: JSON.stringify({ type: 'Point', coordinates: [-58.465, -34.545] }),
+      layer: 'micro',
+      category: 'transport',
+      tags: ['seguridad vial', 'educación', 'infancia'],
+      status: 'published',
+      authorId: 'demo',
+    },
+    {
+      id: 'prop-10',
+      title: 'Mercado Agroecológico de Productores Locales',
+      summary: 'Feria semanal de productores locales con productos orgánicos y sustentables',
+      body: 'Crear mercado agroecológico permanente en Plaza Balcarce con puestos de productores locales, alimentos orgánicos, artesanías sustentables y food trucks con gastronomía de cercanía. Funciona sábados y domingos con música en vivo.',
+      geom: JSON.stringify({ type: 'Point', coordinates: [-58.458, -34.549] }),
+      layer: 'micro',
+      category: 'social',
+      tags: ['comercio local', 'sustentabilidad', 'economía circular'],
+      status: 'published',
+      authorId: 'demo',
+    },
+    {
+      id: 'prop-11',
+      title: 'Mirador Panorámico Costanera Norte',
+      summary: 'Construcción de mirador elevado con vistas al Río de la Plata',
+      body: 'Construir mirador panorámico de madera y acero en la Costanera Norte con plataforma elevada a 8 metros, telescopios públicos, cartelería informativa sobre biodiversidad del río, y área de descanso con sombra. Acceso universal por rampa.',
+      geom: JSON.stringify({ type: 'Point', coordinates: [-58.456, -34.540] }),
+      layer: 'micro',
+      category: 'green',
+      tags: ['turismo', 'espacio público', 'naturaleza'],
+      status: 'published',
+      authorId: 'demo',
+    },
+    {
+      id: 'prop-12',
+      title: 'Viviendas Sociales Sustentables',
+      summary: 'Proyecto de 80 viviendas sociales con tecnologías verdes y eficiencia energética',
+      body: 'Desarrollo habitacional de 80 viviendas sociales con paneles solares, sistemas de recolección de agua de lluvia, aislación térmica premium, calefacción por bomba de calor y techos verdes. Diseño bioclimático con orientación norte y ventilación cruzada.',
+      geom: JSON.stringify({ type: 'Point', coordinates: [-58.467, -34.543] }),
+      layer: 'macro',
+      category: 'housing',
+      tags: ['vivienda social', 'sustentabilidad', 'eficiencia energética'],
+      status: 'published',
+      authorId: 'demo',
+    },
+    {
+      id: 'prop-13',
+      title: 'Calle Compartida Peatonal-Vehicular',
+      summary: 'Rediseño de calle O\'Higgins como espacio compartido con prioridad peatonal',
+      body: 'Transformar calle O\'Higgins en "calle compartida" eliminando cordones, usando pavimento único, limitando velocidad a 20km/h, incorporando vegetación, iluminación cálida y mobiliario urbano. Modelo holandés de convivencia peatón-vehículo.',
+      geom: JSON.stringify({ type: 'Point', coordinates: [-58.460, -34.544] }),
+      layer: 'micro',
+      category: 'transport',
+      tags: ['movilidad', 'peatonal', 'tránsito calmado'],
+      status: 'published',
+      authorId: 'demo',
+    },
+    {
+      id: 'prop-14',
+      title: 'Gimnasio Municipal al Aire Libre',
+      summary: 'Instalación de equipamiento deportivo gratuito en Parque Saavedra',
+      body: 'Montar gimnasio al aire libre en Parque Saavedra con 15 estaciones de ejercicio (barras, paralelas, banco de abdominales, elíptica, etc.), piso de caucho reciclado, pérgola con paneles solares e iluminación nocturna. Clases gratuitas 3 veces por semana.',
+      geom: JSON.stringify({ type: 'Point', coordinates: [-58.462, -34.547] }),
+      layer: 'micro',
+      category: 'social',
+      tags: ['deporte', 'salud', 'espacio público'],
+      status: 'published',
+      authorId: 'demo',
+    },
+    {
+      id: 'prop-15',
+      title: 'Estación de Compostaje Comunitaria',
+      summary: 'Centro de compostaje barrial para gestión de residuos orgánicos',
+      body: 'Instalar estación de compostaje comunitaria con 12 bins de compostaje, área de separación de residuos, invernadero demostrativo y espacio educativo. Reducirá 40% de residuos domiciliarios generando compost de calidad para huertas urbanas.',
+      geom: JSON.stringify({ type: 'Point', coordinates: [-58.464, -34.541] }),
+      layer: 'micro',
+      category: 'green',
+      tags: ['compostaje', 'residuos', 'economía circular'],
+      status: 'published',
+      authorId: 'demo',
+    },
+    {
+      id: 'prop-16',
+      title: 'Paseo Comercial Peatonal Av. Cabildo',
+      summary: 'Peatonalización de 4 cuadras de Av. Cabildo con boulevard y terrazas',
+      body: 'Peatonalizar 4 cuadras de Av. Cabildo entre Monroe y Juramento creando paseo comercial con boulevard central, pérgolas, jardineras, fuentes de agua, asientos, wifi público y áreas para terrazas gastronómicas. Acceso controlado para servicios.',
+      geom: JSON.stringify({ type: 'Point', coordinates: [-58.459, -34.542] }),
+      layer: 'meso',
+      category: 'urban',
+      tags: ['peatonal', 'comercio', 'espacio público'],
+      status: 'published',
+      authorId: 'demo',
+    },
+    {
+      id: 'prop-17',
+      title: 'Red de Bebederos Públicos Sustentables',
+      summary: 'Instalación de 25 bebederos con filtro UV para reducir consumo de plástico',
+      body: 'Instalar red de 25 bebederos públicos con sistema de filtrado UV y refrigeración solar en parques, plazas y paradas de colectivo. Reducirá consumo de botellas plásticas en 50.000 unidades anuales. App móvil mostrará ubicaciones.',
+      geom: JSON.stringify({ type: 'Point', coordinates: [-58.461, -34.546] }),
+      layer: 'meso',
+      category: 'infrastructure',
+      tags: ['sustentabilidad', 'agua', 'plástico'],
+      status: 'published',
+      authorId: 'demo',
+    },
+    {
+      id: 'prop-18',
+      title: 'Sendero Ecológico Ribereño',
+      summary: 'Circuito peatonal-ciclista de 3km junto al río con observación de aves',
+      body: 'Construir sendero ecológico de 3km en la ribera con deck de madera, miradores de avifauna, cartelería interpretativa sobre el ecosistema del Río de la Plata, área de avistaje con binoculares fijos y circuito de running señalizado.',
+      geom: JSON.stringify({ type: 'Point', coordinates: [-58.455, -34.539] }),
+      layer: 'meso',
+      category: 'green',
+      tags: ['naturaleza', 'ecoturismo', 'biodiversidad'],
+      status: 'published',
+      authorId: 'demo',
+    },
+    {
+      id: 'prop-19',
+      title: 'Centro de Acopio de Reciclables',
+      summary: 'Punto verde permanente para separación y acopio de materiales reciclables',
+      body: 'Crear centro de acopio de reciclables con contenedores para papel/cartón, vidrio, plásticos, metales, electrónicos y pilas. Personal capacitado, báscula, prensa compactadora y convenio con cooperativas recuperadoras. Abierto martes a domingo.',
+      geom: JSON.stringify({ type: 'Point', coordinates: [-58.466, -34.548] }),
+      layer: 'micro',
+      category: 'infrastructure',
+      tags: ['reciclaje', 'residuos', 'economía circular'],
+      status: 'published',
+      authorId: 'demo',
+    },
+    {
+      id: 'prop-20',
+      title: 'Skatepark Municipal Hormigón',
+      summary: 'Parque de skate profesional con bowls, rampas y área de street',
+      body: 'Construir skatepark de hormigón de 1.200m² con bowl profundo, área de street (rieles, escaleras, rampas), snake run, zona principiantes y tribuna. Iluminación LED para uso nocturno. Incluye espacio para BMX y patines en línea.',
+      geom: JSON.stringify({ type: 'Point', coordinates: [-58.463, -34.549] }),
+      layer: 'micro',
+      category: 'social',
+      tags: ['deporte', 'juventud', 'recreación'],
       status: 'published',
       authorId: 'demo',
     },
   ]
 
+  console.log(`📝 Insertando ${proposals.length} propuestas en español...`)
+
   for (const proposal of proposals) {
     await prisma.proposal.upsert({
       where: { id: proposal.id },
-      update: {},
+      update: proposal,
       create: proposal,
     })
   }
 
-  console.log(`✅ Created ${proposals.length} proposals`)
-  console.log('🎉 Seeding completed successfully!')
+  console.log(`✅ Creadas ${proposals.length} propuestas en español`)
+  console.log('🎉 ¡Base de datos poblada exitosamente!')
 }
 
 main()
   .catch((e) => {
-    console.error('❌ Seeding failed:', e)
+    console.error('❌ Error al poblar la base de datos:', e)
     process.exit(1)
   })
   .finally(async () => {

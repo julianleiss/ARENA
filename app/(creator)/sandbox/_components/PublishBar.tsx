@@ -4,6 +4,9 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { publishSandbox } from '../[id]/_actions/publish'
+import { uploadProposalImages } from '@/app/lib/upload-images'
+import PublishProposalForm from '@/app/components/PublishProposalForm'
+import type { ProposalCategory } from '@/app/lib/constants'
 
 type PublishBarProps = {
   sandboxId: string
@@ -20,48 +23,50 @@ export default function PublishBar({
 }: PublishBarProps) {
   const router = useRouter()
   const [showModal, setShowModal] = useState(false)
-  const [loading, setLoading] = useState(false)
-  const [title, setTitle] = useState('')
-  const [description, setDescription] = useState('')
 
-  const handlePublish = async () => {
-    if (!title.trim() || !description.trim()) {
-      alert('Please fill in both title and description')
-      return
-    }
+  const handlePublish = async (data: {
+    title: string
+    description: string
+    category: ProposalCategory
+    visibility: 'public' | 'private'
+    tags: string[]
+    images: File[]
+  }) => {
+    try {
+      // Use a default author ID for now (in real app, get from session)
+      const authorId = 'default-author-id'
 
-    if (title.length < 3 || title.length > 200) {
-      alert('Title must be between 3 and 200 characters')
-      return
-    }
+      // Upload images first (if any)
+      let imageUrls: string[] = []
+      if (data.images.length > 0) {
+        console.log('Uploading images...')
+        imageUrls = await uploadProposalImages(data.images, sandboxId)
+        console.log('Images uploaded:', imageUrls)
+      }
 
-    if (description.length < 10 || description.length > 2000) {
-      alert('Description must be between 10 and 2000 characters')
-      return
-    }
+      // Publish sandbox with all data
+      const result = await publishSandbox({
+        sandboxId,
+        title: data.title,
+        body: data.description,
+        category: data.category,
+        tags: data.tags,
+        imageUrls,
+        authorId,
+      })
 
-    setLoading(true)
-
-    // Use a default author ID for now (in real app, get from session)
-    const authorId = 'default-author-id'
-
-    const result = await publishSandbox({
-      sandboxId,
-      title,
-      description,
-      authorId,
-    })
-
-    setLoading(false)
-
-    if (result.success && result.data) {
-      alert(
-        `Proposal published successfully!\n${result.data.featureCount} instances exported.`
-      )
-      setShowModal(false)
-      router.push(`/proposals/${result.data.proposalId}`)
-    } else {
-      alert(result.error || 'Failed to publish proposal')
+      if (result.success && result.data) {
+        alert(
+          `¡Propuesta publicada con éxito!\n${result.data.featureCount} elementos exportados.`
+        )
+        setShowModal(false)
+        router.push(`/proposals/${result.data.proposalId}`)
+      } else {
+        throw new Error(result.error || 'Failed to publish proposal')
+      }
+    } catch (error) {
+      console.error('Error publishing:', error)
+      throw error
     }
   }
 
@@ -110,105 +115,12 @@ export default function PublishBar({
         </div>
       </div>
 
-      {/* Modal */}
-      {showModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
-          <div className="bg-white rounded-xl shadow-2xl w-full max-w-lg mx-4">
-            {/* Modal Header */}
-            <div className="px-6 py-4 border-b border-gray-200">
-              <div className="flex items-center justify-between">
-                <h2 className="text-xl font-bold text-gray-900">
-                  Publish Proposal
-                </h2>
-                <button
-                  onClick={() => setShowModal(false)}
-                  disabled={loading}
-                  className="text-gray-400 hover:text-gray-600 transition-colors"
-                >
-                  <svg
-                    className="w-6 h-6"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M6 18L18 6M6 6l12 12"
-                    />
-                  </svg>
-                </button>
-              </div>
-            </div>
-
-            {/* Modal Body */}
-            <div className="px-6 py-4 space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Title *
-                </label>
-                <input
-                  type="text"
-                  value={title}
-                  onChange={(e) => setTitle(e.target.value)}
-                  placeholder="e.g., New Green Corridor on Av. Libertador"
-                  maxLength={200}
-                  disabled={loading}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent disabled:bg-gray-100"
-                />
-                <p className="text-xs text-gray-500 mt-1">
-                  {title.length}/200 characters
-                </p>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Description *
-                </label>
-                <textarea
-                  value={description}
-                  onChange={(e) => setDescription(e.target.value)}
-                  placeholder="Describe your proposal: what changes are you proposing and why?"
-                  rows={6}
-                  maxLength={2000}
-                  disabled={loading}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent disabled:bg-gray-100 resize-none"
-                />
-                <p className="text-xs text-gray-500 mt-1">
-                  {description.length}/2000 characters
-                </p>
-              </div>
-
-              <div className="bg-blue-50 rounded-lg p-4">
-                <p className="text-sm text-blue-700">
-                  <strong>Note:</strong> Publishing will export {instanceCount}{' '}
-                  instance{instanceCount !== 1 ? 's' : ''} and create a new
-                  proposal visible to all users.
-                </p>
-              </div>
-            </div>
-
-            {/* Modal Footer */}
-            <div className="px-6 py-4 border-t border-gray-200 flex items-center justify-end gap-3">
-              <button
-                onClick={() => setShowModal(false)}
-                disabled={loading}
-                className="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 text-sm font-medium rounded-lg transition-colors disabled:opacity-50"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handlePublish}
-                disabled={loading || !title.trim() || !description.trim()}
-                className="px-6 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium rounded-lg transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed"
-              >
-                {loading ? 'Publishing...' : 'Publish Proposal'}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* Publish Form Modal */}
+      <PublishProposalForm
+        isOpen={showModal}
+        onPublish={handlePublish}
+        onCancel={() => setShowModal(false)}
+      />
     </>
   )
 }

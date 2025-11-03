@@ -4,14 +4,18 @@
 // Form to publish a proposal from the sandbox
 
 import { useState } from 'react'
+import { PROPOSAL_CATEGORIES, MAX_IMAGE_SIZE, MAX_IMAGES_PER_PROPOSAL, ALLOWED_IMAGE_TYPES } from '@/app/lib/constants'
+import type { ProposalCategory } from '@/app/lib/constants'
 
 interface PublishProposalFormProps {
   isOpen: boolean
   onPublish: (data: {
     title: string
     description: string
+    category: ProposalCategory
     visibility: 'public' | 'private'
     tags: string[]
+    images: File[]
   }) => Promise<void>
   onCancel: () => void
 }
@@ -23,11 +27,42 @@ export default function PublishProposalForm({
 }: PublishProposalFormProps) {
   const [title, setTitle] = useState('')
   const [description, setDescription] = useState('')
+  const [category, setCategory] = useState<ProposalCategory>('urban')
   const [visibility, setVisibility] = useState<'public' | 'private'>('public')
   const [tags, setTags] = useState('')
+  const [images, setImages] = useState<File[]>([])
   const [isSubmitting, setIsSubmitting] = useState(false)
 
   if (!isOpen) return null
+
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || [])
+
+    // Validate file types
+    const validFiles = files.filter(file => {
+      if (!ALLOWED_IMAGE_TYPES.includes(file.type as any)) {
+        alert(`${file.name}: Tipo de archivo no permitido. Solo JPG, PNG y WebP.`)
+        return false
+      }
+      if (file.size > MAX_IMAGE_SIZE) {
+        alert(`${file.name}: Archivo muy grande. Máximo 5MB.`)
+        return false
+      }
+      return true
+    })
+
+    // Check total count
+    if (images.length + validFiles.length > MAX_IMAGES_PER_PROPOSAL) {
+      alert(`Máximo ${MAX_IMAGES_PER_PROPOSAL} imágenes por propuesta`)
+      return
+    }
+
+    setImages(prev => [...prev, ...validFiles])
+  }
+
+  const removeImage = (index: number) => {
+    setImages(prev => prev.filter((_, i) => i !== index))
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -42,8 +77,10 @@ export default function PublishProposalForm({
       await onPublish({
         title: title.trim(),
         description: description.trim(),
+        category,
         visibility,
         tags: tags.split(',').map(t => t.trim()).filter(Boolean),
+        images,
       })
     } catch (error) {
       console.error('Error publishing proposal:', error)
@@ -99,6 +136,92 @@ export default function PublishProposalForm({
               required
             />
             <p className="text-xs text-gray-500 mt-1">{description.length}/500 caracteres</p>
+          </div>
+
+          {/* Category Selector */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-3">
+              Categoría <span className="text-red-500">*</span>
+            </label>
+            <div className="grid grid-cols-2 gap-2">
+              {PROPOSAL_CATEGORIES.map((cat) => (
+                <label
+                  key={cat.value}
+                  className={`flex items-center gap-3 p-3 border-2 rounded-lg cursor-pointer transition-all ${
+                    category === cat.value
+                      ? `border-${cat.color}-500 bg-${cat.color}-50`
+                      : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
+                  }`}
+                >
+                  <input
+                    type="radio"
+                    name="category"
+                    value={cat.value}
+                    checked={category === cat.value}
+                    onChange={(e) => setCategory(e.target.value as ProposalCategory)}
+                    className="sr-only"
+                  />
+                  <span className="text-2xl">{cat.emoji}</span>
+                  <span className="text-sm font-medium text-gray-900">{cat.label}</span>
+                </label>
+              ))}
+            </div>
+          </div>
+
+          {/* Image Upload */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Imágenes (opcional)
+            </label>
+            <div className="space-y-3">
+              {/* Image previews */}
+              {images.length > 0 && (
+                <div className="grid grid-cols-3 gap-2">
+                  {images.map((file, index) => (
+                    <div key={index} className="relative group">
+                      <img
+                        src={URL.createObjectURL(file)}
+                        alt={`Preview ${index + 1}`}
+                        className="w-full h-24 object-cover rounded-lg"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => removeImage(index)}
+                        className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                      >
+                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* Upload button */}
+              {images.length < MAX_IMAGES_PER_PROPOSAL && (
+                <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-gray-300 border-dashed rounded-lg cursor-pointer hover:bg-gray-50 transition-colors">
+                  <div className="flex flex-col items-center justify-center pt-5 pb-6">
+                    <svg className="w-8 h-8 text-gray-400 mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                    </svg>
+                    <p className="text-sm text-gray-600">
+                      <span className="font-semibold">Subir imágenes</span> o arrastrar aquí
+                    </p>
+                    <p className="text-xs text-gray-500 mt-1">
+                      JPG, PNG, WebP - Máx. 5MB ({images.length}/{MAX_IMAGES_PER_PROPOSAL})
+                    </p>
+                  </div>
+                  <input
+                    type="file"
+                    accept={ALLOWED_IMAGE_TYPES.join(',')}
+                    multiple
+                    onChange={handleImageChange}
+                    className="hidden"
+                  />
+                </label>
+              )}
+            </div>
           </div>
 
           {/* Visibility */}
