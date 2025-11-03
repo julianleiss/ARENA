@@ -9,7 +9,7 @@ export default async function ProposalsPage() {
   // Fetch last 20 proposals via Supabase REST API
   const { data: proposals, error } = await supabase
     .from('proposals')
-    .select('id, title, description, status, created_at')
+    .select('id, title, summary, body, status, created_at')
     .order('created_at', { ascending: false })
     .limit(20)
 
@@ -63,9 +63,12 @@ export default async function ProposalsPage() {
                   </span>
                 </div>
                 <p className="text-gray-600 mb-3 line-clamp-2">
-                  {proposal.description.length > 200
-                    ? `${proposal.description.substring(0, 200)}...`
-                    : proposal.description}
+                  {(() => {
+                    const text = proposal.summary || proposal.body || ''
+                    return text.length > 200
+                      ? `${text.substring(0, 200)}...`
+                      : text
+                  })()}
                 </p>
                 <p className="text-sm text-gray-500">
                   {new Date(proposal.created_at).toLocaleDateString('en-US', {

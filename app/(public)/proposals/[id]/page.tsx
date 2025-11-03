@@ -124,12 +124,14 @@ export default async function ProposalDetailPage({
         </div>
 
         {/* Description */}
-        <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-8 mb-6">
-          <h2 className="text-xl font-bold text-gray-900 mb-4">Description</h2>
-          <p className="text-gray-700 leading-relaxed whitespace-pre-wrap">
-            {proposal.description}
-          </p>
-        </div>
+        {(proposal.body || proposal.summary) && (
+          <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-8 mb-6">
+            <h2 className="text-xl font-bold text-gray-900 mb-4">Description</h2>
+            <p className="text-gray-700 leading-relaxed whitespace-pre-wrap">
+              {proposal.body || proposal.summary}
+            </p>
+          </div>
+        )}
 
         {/* Stats & Engagement */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
