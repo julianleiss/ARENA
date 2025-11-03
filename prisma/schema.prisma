@@ -31,7 +31,9 @@ model Proposal {
   body        String?  @db.Text // Full description
   geom        Json?    // GeoJSON geometry (Point, Polygon, etc.)
   layer       String   @default("micro") // micro, meso, macro
+  category    String   @default("urban") // urban, transport, green, social, housing, infrastructure
   tags        String[] @default([]) // Tags for categorization
+  imageUrls   String[] @default([]) @map("image_urls") // URLs to uploaded images in Supabase Storage
   status      String   @default("published") // "draft" | "published" | "public"
   authorId    String   @map("author_id")
   createdAt   DateTime @default(now()) @map("created_at")
@@ -46,6 +48,7 @@ model Proposal {
 
   @@index([authorId])
   @@index([status])
+  @@index([category])
   @@map("proposals")
 }
 

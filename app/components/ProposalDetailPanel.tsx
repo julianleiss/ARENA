@@ -5,6 +5,7 @@ import { ReadOnlySandbox } from './ReadOnlySandbox'
 import { CommentsList } from './CommentsList'
 import { VoteButton } from './VoteButton'
 import { timeAgo } from '@/app/lib/utils/timeAgo'
+import { PROPOSAL_CATEGORIES } from '@/app/lib/constants'
 
 interface ProposalDetailPanelProps {
   proposalId: string
@@ -19,7 +20,9 @@ interface ProposalDetail {
   body: string | null
   status: string
   layer: string
+  category?: string
   tags: string[]
+  imageUrls?: string[]
   createdAt: string
   author: {
     name: string | null
@@ -83,6 +86,7 @@ export function ProposalDetailPanel({
   }
 
   const hasSandbox = proposal.versions && proposal.versions.length > 0
+  const categoryInfo = PROPOSAL_CATEGORIES.find(c => c.value === proposal.category)
 
   return (
     <div className="fixed left-0 top-16 bottom-0 w-[600px] bg-white shadow-2xl z-40 flex flex-col overflow-hidden animate-slide-in-left">
@@ -123,8 +127,14 @@ export function ProposalDetailPanel({
         <div className="p-6 space-y-6">
           {/* Title and metadata */}
           <div>
-            <div className="flex items-center gap-2 mb-2">
-              <span className="px-3 py-1 bg-indigo-50 text-indigo-700 text-xs font-medium rounded-full">
+            <div className="flex items-center gap-2 mb-2 flex-wrap">
+              {categoryInfo && (
+                <span className="px-3 py-1 bg-indigo-50 text-indigo-700 text-xs font-medium rounded-full flex items-center gap-1">
+                  <span>{categoryInfo.emoji}</span>
+                  <span>{categoryInfo.label}</span>
+                </span>
+              )}
+              <span className="px-3 py-1 bg-gray-50 text-gray-700 text-xs font-medium rounded-full">
                 {proposal.status}
               </span>
               {hasSandbox && (
@@ -142,6 +152,23 @@ export function ProposalDetailPanel({
               <span>{timeAgo(new Date(proposal.createdAt))}</span>
             </div>
           </div>
+
+          {/* Images Gallery */}
+          {proposal.imageUrls && proposal.imageUrls.length > 0 && (
+            <div>
+              <div className="grid grid-cols-2 gap-2">
+                {proposal.imageUrls.map((url, index) => (
+                  <img
+                    key={index}
+                    src={url}
+                    alt={`${proposal.title} - Image ${index + 1}`}
+                    className="w-full h-40 object-cover rounded-lg cursor-pointer hover:opacity-90 transition-opacity"
+                    onClick={() => window.open(url, '_blank')}
+                  />
+                ))}
+              </div>
+            </div>
+          )}
 
           {/* Description */}
           {(proposal.body || proposal.summary) && (
