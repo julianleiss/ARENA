@@ -1,11 +1,16 @@
 'use client'
 
 import { useState } from 'react'
+import { PROPOSAL_CATEGORIES, MAX_IMAGES_PER_PROPOSAL, ALLOWED_IMAGE_TYPES } from '@/app/lib/constants'
+
+type ProposalCategory = 'urban' | 'transport' | 'green' | 'social' | 'housing' | 'infrastructure'
 
 export interface ProposalFormData {
   title: string
   description: string
+  category: ProposalCategory
   tags: string[]
+  images: File[]
   geometryType: 'building' | 'point' | 'polygon'
   geometry: any
 }
@@ -32,7 +37,7 @@ const AVAILABLE_TAGS = [
 const GEOMETRY_LABELS = {
   building: 'Edificio',
   point: 'Punto',
-  polygon: 'Area',
+  polygon: 'Área',
 }
 
 export default function ProposalFormModal({
@@ -44,7 +49,9 @@ export default function ProposalFormModal({
 }: ProposalFormModalProps) {
   const [title, setTitle] = useState('')
   const [description, setDescription] = useState('')
+  const [category, setCategory] = useState<ProposalCategory>('urban')
   const [selectedTags, setSelectedTags] = useState<string[]>([])
+  const [images, setImages] = useState<File[]>([])
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -54,25 +61,57 @@ export default function ProposalFormModal({
     )
   }
 
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || [])
+
+    // Validate file count
+    if (images.length + files.length > MAX_IMAGES_PER_PROPOSAL) {
+      setError(`Máximo ${MAX_IMAGES_PER_PROPOSAL} imágenes permitidas`)
+      return
+    }
+
+    // Validate each file
+    for (const file of files) {
+      // Check file type
+      if (!ALLOWED_IMAGE_TYPES.includes(file.type as any)) {
+        setError(`Formato no permitido: ${file.name}. Usa JPG, PNG o WebP`)
+        return
+      }
+
+      // Check file size
+      if (file.size > MAX_IMAGES_PER_PROPOSAL * 1024 * 1024) {
+        setError(`Imagen muy grande: ${file.name}. Máximo 5MB`)
+        return
+      }
+    }
+
+    setImages(prev => [...prev, ...files])
+    setError(null)
+  }
+
+  const removeImage = (index: number) => {
+    setImages(prev => prev.filter((_, i) => i !== index))
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError(null)
 
     // Validation
     if (!title.trim()) {
-      setError('El titulo es requerido')
+      setError('El título es requerido')
       return
     }
     if (title.length > 100) {
-      setError('El titulo no puede exceder 100 caracteres')
+      setError('El título no puede exceder 100 caracteres')
       return
     }
     if (!description.trim()) {
-      setError('La descripcion es requerida')
+      setError('La descripción es requerida')
       return
     }
     if (description.length > 500) {
-      setError('La descripcion no puede exceder 500 caracteres')
+      setError('La descripción no puede exceder 500 caracteres')
       return
     }
 
@@ -82,7 +121,9 @@ export default function ProposalFormModal({
       await onSubmit({
         title: title.trim(),
         description: description.trim(),
+        category,
         tags: selectedTags,
+        images,
         geometryType,
         geometry: geometryData,
       })
@@ -90,7 +131,9 @@ export default function ProposalFormModal({
       // Reset form on success
       setTitle('')
       setDescription('')
+      setCategory('urban')
       setSelectedTags([])
+      setImages([])
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Error al crear la propuesta')
     } finally {
@@ -101,10 +144,10 @@ export default function ProposalFormModal({
   if (!isOpen) return null
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto m-4">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 p-4">
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
         {/* Header */}
-        <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 rounded-t-2xl">
+        <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 rounded-t-2xl z-10">
           <div className="flex items-center justify-between">
             <h2 className="text-2xl font-bold text-gray-900">Nueva Propuesta</h2>
             <button
@@ -139,7 +182,7 @@ export default function ProposalFormModal({
           {/* Title Input */}
           <div>
             <label htmlFor="title" className="block text-sm font-semibold text-gray-700 mb-2">
-              Titulo *
+              Título <span className="text-red-500">*</span>
             </label>
             <input
               id="title"
@@ -159,7 +202,7 @@ export default function ProposalFormModal({
           {/* Description Input */}
           <div>
             <label htmlFor="description" className="block text-sm font-semibold text-gray-700 mb-2">
-              Descripcion *
+              Descripción <span className="text-red-500">*</span>
             </label>
             <textarea
               id="description"
@@ -173,6 +216,95 @@ export default function ProposalFormModal({
             />
             <div className="mt-1 text-xs text-gray-500 text-right">
               {description.length}/500 caracteres
+            </div>
+          </div>
+
+          {/* Category Selector */}
+          <div>
+            <label className="block text-sm font-semibold text-gray-700 mb-3">
+              Categoría <span className="text-red-500">*</span>
+            </label>
+            <div className="grid grid-cols-2 gap-2">
+              {PROPOSAL_CATEGORIES.map((cat) => (
+                <label
+                  key={cat.value}
+                  className={`flex items-center gap-3 p-3 border-2 rounded-lg cursor-pointer transition-all ${
+                    category === cat.value
+                      ? 'border-indigo-500 bg-indigo-50'
+                      : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
+                  }`}
+                >
+                  <input
+                    type="radio"
+                    name="category"
+                    value={cat.value}
+                    checked={category === cat.value}
+                    onChange={(e) => setCategory(e.target.value as ProposalCategory)}
+                    className="sr-only"
+                    disabled={isSubmitting}
+                  />
+                  <span className="text-2xl">{cat.emoji}</span>
+                  <span className="text-sm font-medium text-gray-900">{cat.label}</span>
+                </label>
+              ))}
+            </div>
+          </div>
+
+          {/* Image Upload */}
+          <div>
+            <label className="block text-sm font-semibold text-gray-700 mb-2">
+              Imágenes (opcional)
+            </label>
+            <div className="space-y-3">
+              {/* Image previews */}
+              {images.length > 0 && (
+                <div className="grid grid-cols-3 gap-2">
+                  {images.map((file, index) => (
+                    <div key={index} className="relative group">
+                      <img
+                        src={URL.createObjectURL(file)}
+                        alt={`Preview ${index + 1}`}
+                        className="w-full h-24 object-cover rounded-lg"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => removeImage(index)}
+                        className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                        disabled={isSubmitting}
+                      >
+                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* Upload button */}
+              {images.length < MAX_IMAGES_PER_PROPOSAL && (
+                <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-gray-300 border-dashed rounded-lg cursor-pointer hover:bg-gray-50 transition-colors">
+                  <div className="flex flex-col items-center justify-center pt-5 pb-6">
+                    <svg className="w-8 h-8 text-gray-400 mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                    </svg>
+                    <p className="text-sm text-gray-600">
+                      <span className="font-semibold">Subir imágenes</span> o arrastrar aquí
+                    </p>
+                    <p className="text-xs text-gray-500 mt-1">
+                      JPG, PNG, WebP - Máx. 5MB ({images.length}/{MAX_IMAGES_PER_PROPOSAL})
+                    </p>
+                  </div>
+                  <input
+                    type="file"
+                    accept={ALLOWED_IMAGE_TYPES.join(',')}
+                    multiple
+                    onChange={handleImageChange}
+                    className="hidden"
+                    disabled={isSubmitting}
+                  />
+                </label>
+              )}
             </div>
           </div>
 
