@@ -10,7 +10,7 @@ const prisma = new PrismaClient()
 // Zod schema for validation
 const createProposalSchema = z.object({
   title: z.string().min(1, 'Title is required').max(200, 'Title too long'),
-  description: z.string().min(1, 'Description is required'),
+  body: z.string().min(1, 'Description is required'),
   authorId: z.string().min(1, 'Author ID is required'),
 })
 
@@ -19,7 +19,7 @@ export async function createProposal(formData: FormData) {
     // Parse and validate form data
     const rawData = {
       title: formData.get('title'),
-      description: formData.get('description'),
+      body: formData.get('body'),
       authorId: formData.get('authorId'),
     }
 
@@ -29,7 +29,8 @@ export async function createProposal(formData: FormData) {
     const proposal = await prisma.proposal.create({
       data: {
         title: validatedData.title,
-        description: validatedData.description,
+        body: validatedData.body,
+        summary: validatedData.body.substring(0, 200), // Auto-generate summary from body
         authorId: validatedData.authorId,
         status: 'published',
       },
