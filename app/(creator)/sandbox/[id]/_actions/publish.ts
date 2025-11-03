@@ -101,6 +101,13 @@ export async function publishSandbox(input: unknown) {
       console.log('Clip operation skipped:', e)
     }
 
+    // Step 5.5: Calculate centroid of sandbox for proposal geom (needed for map pins)
+    const centroid = turf.centroid(sandboxPolygon)
+    const proposalGeom = {
+      type: 'Point',
+      coordinates: centroid.geometry.coordinates
+    }
+
     // Step 6: Create Proposal
     const proposalId = `prop_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
 
@@ -111,6 +118,8 @@ export async function publishSandbox(input: unknown) {
         title: validated.title,
         body: validated.body,
         summary: validated.body.substring(0, 200), // Auto-generate summary
+        geom: proposalGeom, // ✅ Add centroid Point for map display
+        layer: 'micro', // Default layer
         category: validated.category,
         tags: validated.tags,
         image_urls: validated.imageUrls,
