@@ -118,6 +118,8 @@ export async function POST(request: NextRequest) {
       body: proposalBody,
       geom,
       layer,
+      category,
+      imageUrls,
       status,
       tags,
       images,
@@ -152,6 +154,8 @@ export async function POST(request: NextRequest) {
       body: proposalBody || null,
       geom: geom || null,
       layer: layer || 'micro',
+      category: category || 'urban', // Add category with default
+      imageUrls: imageUrls || [], // Add image URLs
       status: status || 'draft',
       tags: tags || [],
       // OSM Feature Data

@@ -8,6 +8,7 @@ import MapView from '@/app/components/MapView'
 import SandboxOverlay from '@/app/components/SandboxOverlay'
 import ProposalFormModal, { ProposalFormData } from '@/app/components/ProposalFormModal'
 import { ProposalsPanel } from '@/app/components/ProposalsPanel'
+import { uploadProposalImages } from '@/app/lib/upload-images'
 import { nanoid } from 'nanoid'
 
 interface SelectedArea {
@@ -69,8 +70,22 @@ export default function MapPage() {
 
     // Generate temporary user ID (until auth is implemented)
     const tempUserId = `temp-${nanoid()}`
+    const proposalId = `prop_${Date.now()}_${nanoid()}`
 
     try {
+      // Upload images first if any
+      let imageUrls: string[] = []
+      if (formData.images && formData.images.length > 0) {
+        console.log(`📸 Uploading ${formData.images.length} images...`)
+        try {
+          imageUrls = await uploadProposalImages(formData.images, proposalId)
+          console.log(`✅ Images uploaded:`, imageUrls)
+        } catch (error) {
+          console.error('Image upload failed:', error)
+          // Continue without images if upload fails
+        }
+      }
+
       const response = await fetch('/api/proposals', {
         method: 'POST',
         headers: {
@@ -83,6 +98,8 @@ export default function MapPage() {
           body: formData.description,
           geom: formData.geometry,
           layer: 'micro', // Default layer
+          category: formData.category || 'urban', // Add category
+          imageUrls, // Add uploaded image URLs
           status: 'public', // Public by default
           tags: formData.tags,
         }),
