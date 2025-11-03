@@ -10,7 +10,7 @@ import { v4 as uuidv4 } from 'uuid'
 const PublishSchema = z.object({
   sandboxId: z.string(),
   title: z.string().min(3).max(200),
-  description: z.string().min(10).max(2000),
+  body: z.string().min(10).max(2000),
   authorId: z.string(),
 })
 
@@ -106,7 +106,8 @@ export async function publishSandbox(input: unknown) {
       .insert({
         id: proposalId,
         title: validated.title,
-        description: validated.description,
+        body: validated.body,
+        summary: validated.body.substring(0, 200), // Auto-generate summary
         status: 'published',
         author_id: validated.authorId,
       })
