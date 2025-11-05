@@ -40,10 +40,16 @@ npm run test:e2e         # Run end-to-end tests with Playwright
    - `NEXT_PUBLIC_SUPABASE_URL`: Supabase project URL
    - `NEXT_PUBLIC_SUPABASE_ANON_KEY`: Supabase anonymous key
    - `SUPABASE_SERVICE_ROLE_KEY`: **REQUIRED for image uploads** (Supabase service role key)
-   - `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY`: Google Maps API key
+   - `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY`: Google Maps API key (legacy, being phased out)
+   - **`NEXT_PUBLIC_MAPBOX_TOKEN`**: **REQUIRED for map rendering** (Mapbox access token)
 3. Run `npm run db:generate && npm run db:push && npm run db:seed`
 
-**Important**: Image upload functionality requires `SUPABASE_SERVICE_ROLE_KEY`. Without this key, users won't be able to upload images to proposals. The key is found in: Supabase Dashboard → Settings → API → service_role
+**Critical Requirements**:
+- **Mapbox Token** (`NEXT_PUBLIC_MAPBOX_TOKEN`): Get from https://account.mapbox.com/access-tokens
+  - Free tier available (50,000 free map loads/month)
+  - Without this token, **all map views will fail** with "Mapbox access token is missing"
+  - This is the primary map rendering engine for ARENA v1.1+
+- **Supabase Service Role Key**: Required for image uploads (found in: Supabase Dashboard → Settings → API → service_role)
 
 ## Architecture
 
@@ -253,20 +259,25 @@ Mock data fallbacks only activate in `NODE_ENV=development`. In production, DB f
 
 ## Common Gotchas
 
-1. **Prisma Client**: Always regenerate after schema changes (`npm run db:generate`)
-2. **Environment Variables**:
+1. **Mapbox Access Token** ⚠️ **MOST COMMON ERROR**:
+   - **Error**: "Mapbox access token is missing" (red error screen on map pages)
+   - **Solution**: Add `NEXT_PUBLIC_MAPBOX_TOKEN` to `.env.local`
+   - **Get token**: https://account.mapbox.com/access-tokens (free tier available)
+   - **Without this token, all map views will fail to load**
+2. **Prisma Client**: Always regenerate after schema changes (`npm run db:generate`)
+3. **Environment Variables**:
    - Next.js requires `NEXT_PUBLIC_` prefix for client-side vars
    - Copy `.env.example` to `.env.local` and fill in actual values
    - **CRITICAL**: DATABASE_URL must be configured or all DB queries will timeout
-3. **Database Connection**:
+4. **Database Connection**:
    - For **local development**: Use DIRECT connection string (not pooler)
    - For **Vercel/production**: Use SESSION POOLER connection string
    - Connection format in `.env.example` includes pool timeout and connection limits
    - API routes have 30-second timeout (increased from 3-5s to handle cold starts)
-4. **GeoJSON Coordinates**: [longitude, latitude] order (not lat/lng) - GeoJSON standard
-5. **Client Components**: Map components must be 'use client' due to browser APIs (Google Maps, MapLibre, DeckGL)
-6. **Development Server**: May run on port 3010 if 3000 is occupied
-7. **Mock Data Fallback**: POIs and Proposals APIs return mock data if DB is unreachable (development mode only)
-8. **Temp Users**: Currently using nanoid-based temporary users - real auth is scaffolded but not active
-9. **Building Data**: 808KB JSON loaded on map page - consider lazy loading for production
-10. **Rate Limiting**: In-memory rate limiter resets on serverless cold starts
+5. **GeoJSON Coordinates**: [longitude, latitude] order (not lat/lng) - GeoJSON standard
+6. **Client Components**: Map components must be 'use client' due to browser APIs (Google Maps, MapLibre, DeckGL)
+7. **Development Server**: May run on port 3010 if 3000 is occupied
+8. **Mock Data Fallback**: POIs and Proposals APIs return mock data if DB is unreachable (development mode only)
+9. **Temp Users**: Currently using nanoid-based temporary users - real auth is scaffolded but not active
+10. **Building Data**: 808KB JSON loaded on map page - consider lazy loading for production
+11. **Rate Limiting**: In-memory rate limiter resets on serverless cold starts

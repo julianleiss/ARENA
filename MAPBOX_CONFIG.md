@@ -12,6 +12,28 @@ ARENA v1.1 includes a comprehensive suite of cinematic visual enhancements for M
 - 📸 View presets for quick navigation
 - 🎬 Loading transitions and effects
 
+## ⚠️ Prerequisites
+
+**CRITICAL**: Before using any Mapbox components, you **must** configure your Mapbox access token:
+
+1. **Get a Mapbox token** (free tier available):
+   - Visit: https://account.mapbox.com/access-tokens
+   - Create a new token or copy your default public token
+   - Free tier includes 50,000 map loads per month
+
+2. **Add to environment**:
+   ```bash
+   # In .env.local
+   NEXT_PUBLIC_MAPBOX_TOKEN="your_mapbox_token_here"
+   ```
+
+3. **Restart dev server**:
+   ```bash
+   npm run dev
+   ```
+
+**Without this token, you will see**: "Mapbox access token is missing" error on all map views.
+
 ## Quick Start
 
 ### Basic Setup

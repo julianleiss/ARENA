@@ -24,7 +24,9 @@ npm install
 
 # 2. Configure environment
 cp .env.example .env.local
-# Edit .env.local with your Supabase DATABASE_URL (see .env.example for connection string formats)
+# Edit .env.local with your credentials:
+# - DATABASE_URL (Supabase connection string - see .env.example for formats)
+# - NEXT_PUBLIC_MAPBOX_TOKEN (REQUIRED - get from https://account.mapbox.com/access-tokens)
 
 # 3. Generate Prisma client and push schema
 npm run db:generate
@@ -71,10 +73,14 @@ If you see "DB timeout" errors or APIs returning mock/empty data:
 
 ### Common Issues
 
+- **"Mapbox access token is missing" error** ⚠️ MOST COMMON:
+  - **Solution**: Add `NEXT_PUBLIC_MAPBOX_TOKEN` to `.env.local`
+  - Get token: https://account.mapbox.com/access-tokens (free tier: 50k loads/month)
+  - Restart dev server after adding the token
 - **Port already in use**: Server will automatically use next available port (e.g., 3010)
 - **Missing environment variables**: Copy `.env.example` to `.env.local` and fill in actual values
 - **Prisma client out of sync**: Run `npm run db:generate` after schema changes
-- **Google Maps not loading**: Verify `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY` in `.env.local`
+- **Google Maps not loading**: Verify `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY` in `.env.local` (legacy, being phased out)
 
 ## Available Scripts
 
