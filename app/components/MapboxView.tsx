@@ -19,8 +19,8 @@
  */
 
 import { useEffect, useRef, useState, useCallback, useMemo, forwardRef, useImperativeHandle } from 'react'
-import mapboxgl from 'mapbox-gl'
-import 'mapbox-gl/dist/mapbox-gl.css'
+import mapboxgl from 'maplibre-gl'
+import 'maplibre-gl/dist/maplibre-gl.css'
 import { initializeMapLighting } from '@/app/lib/mapbox-lighting'
 import TimeOfDaySlider from './TimeOfDaySlider'
 import ViewPresetsPanel from './ViewPresetsPanel'

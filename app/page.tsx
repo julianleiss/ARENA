@@ -15,7 +15,7 @@ import ProposalFormModal, { ProposalFormData } from '@/app/components/ProposalFo
 import { ProposalsPanel } from '@/app/components/ProposalsPanel'
 import { uploadProposalImages } from '@/app/lib/upload-images'
 import { nanoid } from 'nanoid'
-import type mapboxgl from 'mapbox-gl'
+import type mapboxgl from 'maplibre-gl'
 
 // Dynamic import to avoid SSR issues with mapbox-gl
 const MapboxView = dynamic(() => import('@/app/components/MapboxView'), {

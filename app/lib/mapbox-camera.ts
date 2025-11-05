@@ -14,7 +14,7 @@
  * @see https://docs.mapbox.com/mapbox-gl-js/api/map/#map#easeto
  */
 
-import type { Map as MapboxMap, LngLatLike, EasingOptions } from 'mapbox-gl'
+import type { Map as MapboxMap, LngLatLike, EasingOptions } from 'maplibre-gl'
 
 // ============================================================================
 // TYPES
