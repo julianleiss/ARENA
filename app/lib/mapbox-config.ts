@@ -49,26 +49,27 @@ export function hasMapboxToken(): boolean {
 
 /**
  * Predefined Mapbox map style identifiers
- * NOTE: These are style IDs, not full URLs. Use getMapboxStyleUrl() to get the full HTTPS URL.
+ * NOTE: Using v1 styles (v11/v10) for MapLibre GL compatibility
+ * MapLibre GL is a fork of Mapbox GL v1 and doesn't support v2+ style features
  */
 export const MAPBOX_STYLES = {
   /** Clean, minimal streets map - good for urban planning overlays */
-  STREETS: 'streets-v12',
+  STREETS: 'streets-v11',
 
   /** Light background - emphasizes data visualization */
-  LIGHT: 'light-v11',
+  LIGHT: 'light-v10',
 
   /** Dark theme - good for night mode or dramatic visualizations */
-  DARK: 'dark-v11',
+  DARK: 'dark-v10',
 
   /** Outdoors style - shows parks, trails, terrain */
-  OUTDOORS: 'outdoors-v12',
+  OUTDOORS: 'outdoors-v11',
 
   /** Satellite imagery - good for real-world context */
   SATELLITE: 'satellite-v9',
 
   /** Satellite with streets overlay - balanced hybrid view */
-  SATELLITE_STREETS: 'satellite-streets-v12',
+  SATELLITE_STREETS: 'satellite-streets-v11',
 } as const
 
 /**

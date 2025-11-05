@@ -135,18 +135,18 @@ const DEFAULT_VIEW_STATE: ViewState = {
 
 /**
  * Get Map style URL mapping for MapLibre GL
- * MapLibre cannot use mapbox:// protocol - must use HTTPS URLs with token
+ * Using older Mapbox v1 styles that are compatible with MapLibre GL
  */
 function getStyleUrls(token: string): Record<string, string> {
   return {
-    // Use Mapbox Styles API with token
-    standard: `https://api.mapbox.com/styles/v1/mapbox/streets-v12?access_token=${token}`,
-    streets: `https://api.mapbox.com/styles/v1/mapbox/streets-v12?access_token=${token}`,
-    outdoors: `https://api.mapbox.com/styles/v1/mapbox/outdoors-v12?access_token=${token}`,
-    light: `https://api.mapbox.com/styles/v1/mapbox/light-v11?access_token=${token}`,
-    dark: `https://api.mapbox.com/styles/v1/mapbox/dark-v11?access_token=${token}`,
+    // Use Mapbox v1 styles (compatible with MapLibre GL fork)
+    standard: `https://api.mapbox.com/styles/v1/mapbox/streets-v11?access_token=${token}`,
+    streets: `https://api.mapbox.com/styles/v1/mapbox/streets-v11?access_token=${token}`,
+    outdoors: `https://api.mapbox.com/styles/v1/mapbox/outdoors-v11?access_token=${token}`,
+    light: `https://api.mapbox.com/styles/v1/mapbox/light-v10?access_token=${token}`,
+    dark: `https://api.mapbox.com/styles/v1/mapbox/dark-v10?access_token=${token}`,
     satellite: `https://api.mapbox.com/styles/v1/mapbox/satellite-v9?access_token=${token}`,
-    'satellite-streets': `https://api.mapbox.com/styles/v1/mapbox/satellite-streets-v12?access_token=${token}`
+    'satellite-streets': `https://api.mapbox.com/styles/v1/mapbox/satellite-streets-v11?access_token=${token}`
   }
 }
 
