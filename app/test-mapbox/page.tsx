@@ -15,6 +15,7 @@
 
 import { useRef, useState } from 'react'
 import MapboxView, { type MapboxViewHandle, type ViewState } from '@/app/components/MapboxView'
+import BuildingsLayer, { BuildingsLoadingIndicator } from '@/app/components/BuildingsLayer'
 import type mapboxgl from 'mapbox-gl'
 
 export default function TestMapboxPage() {
@@ -22,6 +23,9 @@ export default function TestMapboxPage() {
   const [viewState, setViewState] = useState<ViewState | null>(null)
   const [mapLoaded, setMapLoaded] = useState(false)
   const [flyToLocation, setFlyToLocation] = useState<'nunez' | 'obelisco' | 'puerto' | 'palermo'>('nunez')
+  const [map, setMap] = useState<mapboxgl.Map | null>(null)
+  const [buildingsLoading, setBuildingsLoading] = useState(false)
+  const [showBuildings, setShowBuildings] = useState(true)
 
   // Predefined locations in Buenos Aires for testing
   const locations = {
@@ -59,15 +63,16 @@ export default function TestMapboxPage() {
     }
   }
 
-  const handleMapLoad = (map: mapboxgl.Map) => {
+  const handleMapLoad = (mapInstance: mapboxgl.Map) => {
     console.log('✅ Map loaded successfully!')
-    console.log('Map instance:', map)
-    console.log('Map style:', map.getStyle().name)
-    console.log('Map center:', map.getCenter())
-    console.log('Map zoom:', map.getZoom())
-    console.log('Map pitch:', map.getPitch())
-    console.log('Map bearing:', map.getBearing())
+    console.log('Map instance:', mapInstance)
+    console.log('Map style:', mapInstance.getStyle().name)
+    console.log('Map center:', mapInstance.getCenter())
+    console.log('Map zoom:', mapInstance.getZoom())
+    console.log('Map pitch:', mapInstance.getPitch())
+    console.log('Map bearing:', mapInstance.getBearing())
     setMapLoaded(true)
+    setMap(mapInstance)
   }
 
   const handleViewStateChange = (vs: ViewState) => {
@@ -140,6 +145,12 @@ export default function TestMapboxPage() {
                   Map: {mapLoaded ? 'Loaded' : 'Loading...'}
                 </span>
               </div>
+              <div className="flex items-center gap-2">
+                <div className={`w-2 h-2 rounded-full ${buildingsLoading ? 'bg-yellow-500' : mapLoaded ? 'bg-green-500' : 'bg-gray-400'}`} />
+                <span className="text-gray-700">
+                  Buildings: {buildingsLoading ? 'Loading...' : mapLoaded ? 'Ready' : 'Waiting'}
+                </span>
+              </div>
             </div>
           </div>
 
@@ -210,6 +221,35 @@ export default function TestMapboxPage() {
               >
                 Reset Camera (North, 60° pitch)
               </button>
+            </div>
+          </div>
+
+          {/* Buildings Layer Controls */}
+          <div className="space-y-3">
+            <h2 className="text-sm font-semibold text-gray-900 uppercase tracking-wide">
+              Buildings Layer
+            </h2>
+            <div className="space-y-2">
+              <button
+                onClick={() => setShowBuildings(!showBuildings)}
+                className={`w-full px-3 py-2 text-sm rounded-lg transition-all ${
+                  showBuildings
+                    ? 'bg-green-100 text-green-700 hover:bg-green-200'
+                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                }`}
+              >
+                {showBuildings ? '✓ Buildings Visible' : '✗ Buildings Hidden'}
+              </button>
+            </div>
+            <div className="bg-blue-50 rounded-lg p-3 text-xs text-blue-800">
+              <p className="font-semibold mb-1">💡 Buildings Layer Features:</p>
+              <ul className="space-y-0.5">
+                <li>• Lazy loading (async)</li>
+                <li>• Viewport filtering</li>
+                <li>• Clustering at zoom {'<'} 13</li>
+                <li>• LOD: simplified at zoom 13-15</li>
+                <li>• Full 3D at zoom {'>'} 15</li>
+              </ul>
             </div>
           </div>
 
@@ -288,7 +328,22 @@ export default function TestMapboxPage() {
             showFullscreenControl
             showScaleControl
             showGeolocateControl={false}
-          />
+          >
+            {/* Optimized Buildings Layer */}
+            {showBuildings && (
+              <BuildingsLayer
+                map={map}
+                enableViewportFiltering
+                enableClustering
+                enable3D
+                onLoadingChange={setBuildingsLoading}
+                onError={(error) => console.error('Buildings layer error:', error)}
+              />
+            )}
+          </MapboxView>
+
+          {/* Loading indicator */}
+          {buildingsLoading && <BuildingsLoadingIndicator />}
 
           {/* Instructions overlay */}
           <div className="absolute top-6 left-6 bg-white/95 backdrop-blur-sm rounded-xl shadow-lg p-4 max-w-sm border border-gray-200">
@@ -304,7 +359,9 @@ export default function TestMapboxPage() {
               <li>• Ctrl + drag to tilt (pitch)</li>
               <li>• Use sidebar controls to test animations</li>
               <li>• Check console for debug logs</li>
-              <li>• Verify 3D buildings appear (zoom in if needed)</li>
+              <li>• Zoom out to see building clusters ({'<'}13)</li>
+              <li>• Zoom in to see 3D buildings ({'>'}15)</li>
+              <li>• Toggle buildings layer on/off in sidebar</li>
             </ul>
           </div>
         </div>
