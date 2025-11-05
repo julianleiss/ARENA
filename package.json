@@ -39,7 +39,6 @@
     "deck.gl": "^9.2.2",
     "dotenv": "^17.2.3",
     "mapbox-gl": "^3.16.0",
-    "mapbox-gl-draw": "^0.16.0",
     "maplibre-gl": "^5.9.0",
     "nanoid": "^5.1.6",
     "next": "15.5.6",
