@@ -323,6 +323,12 @@ export function updateMapLighting(
     enableFog?: boolean
   }
 ): void {
+  // Safety check: ensure map is loaded and has a style
+  if (!map || !map.loaded() || !map.getStyle()) {
+    console.debug('Map not ready for lighting updates')
+    return
+  }
+
   const {
     animated = true,
     duration = 1000,
@@ -373,7 +379,8 @@ export function updateMapLighting(
 
   // Update sky layer (if it exists)
   try {
-    if (map.getLayer('sky')) {
+    // Check if map is loaded and style exists
+    if (map.loaded() && map.getStyle() && map.getLayer('sky')) {
       map.setPaintProperty('sky', 'sky-atmosphere-sun', [
         config.sun.azimuth,
         config.sun.altitude
@@ -392,6 +399,7 @@ export function updateMapLighting(
     }
   } catch (err) {
     // Sky layer might not exist, that's okay
+    console.debug('Sky layer not available:', err)
   }
 }
 
@@ -411,8 +419,9 @@ export function initializeMapLighting(map: MapboxMap, hour?: number): void {
   }
 
   // Add sky layer if it doesn't exist
-  if (!map.getLayer('sky')) {
-    try {
+  try {
+    // Check if map is loaded and style exists before accessing layers
+    if (map.loaded() && map.getStyle() && !map.getLayer('sky')) {
       map.addLayer({
         id: 'sky',
         type: 'sky',
@@ -421,9 +430,9 @@ export function initializeMapLighting(map: MapboxMap, hour?: number): void {
           'sky-atmosphere-sun-intensity': 5
         }
       } as any)
-    } catch (err) {
-      console.warn('Could not add sky layer:', err)
     }
+  } catch (err) {
+    console.warn('Could not add sky layer:', err)
   }
 
   // Apply initial lighting
