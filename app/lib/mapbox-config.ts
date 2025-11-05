@@ -1,14 +1,17 @@
 /**
- * ARENA - Mapbox GL JS Configuration
+ * ARENA - MapLibre GL JS Configuration
  *
- * Centralized configuration for Mapbox GL JS integration.
+ * Centralized configuration for MapLibre GL JS integration.
  * Provides predefined styles, viewport settings, and utilities
  * for Buenos Aires urban planning visualization.
  *
- * @see https://docs.mapbox.com/mapbox-gl-js/api/
+ * NOTE: This project uses MapLibre GL JS (open-source fork of Mapbox GL JS v1).
+ * MapLibre cannot use mapbox:// style URLs - must use HTTPS URLs with access tokens.
+ *
+ * @see https://maplibre.org/maplibre-gl-js/docs/
  */
 
-import type { LngLatBoundsLike, MapboxOptions } from 'mapbox-gl'
+import type { LngLatBoundsLike, MapboxOptions } from 'maplibre-gl'
 
 // ============================================================================
 // TOKEN MANAGEMENT
@@ -45,27 +48,52 @@ export function hasMapboxToken(): boolean {
 // ============================================================================
 
 /**
- * Predefined Mapbox map styles for different use cases
+ * Predefined Mapbox map style identifiers
+ * NOTE: These are style IDs, not full URLs. Use getMapboxStyleUrl() to get the full HTTPS URL.
  */
 export const MAPBOX_STYLES = {
   /** Clean, minimal streets map - good for urban planning overlays */
-  STREETS: 'mapbox://styles/mapbox/streets-v12',
+  STREETS: 'streets-v12',
 
   /** Light background - emphasizes data visualization */
-  LIGHT: 'mapbox://styles/mapbox/light-v11',
+  LIGHT: 'light-v11',
 
   /** Dark theme - good for night mode or dramatic visualizations */
-  DARK: 'mapbox://styles/mapbox/dark-v11',
+  DARK: 'dark-v11',
 
   /** Outdoors style - shows parks, trails, terrain */
-  OUTDOORS: 'mapbox://styles/mapbox/outdoors-v12',
+  OUTDOORS: 'outdoors-v12',
 
   /** Satellite imagery - good for real-world context */
-  SATELLITE: 'mapbox://styles/mapbox/satellite-v9',
+  SATELLITE: 'satellite-v9',
 
   /** Satellite with streets overlay - balanced hybrid view */
-  SATELLITE_STREETS: 'mapbox://styles/mapbox/satellite-streets-v12',
+  SATELLITE_STREETS: 'satellite-streets-v12',
 } as const
+
+/**
+ * Get full HTTPS URL for a Mapbox style (compatible with MapLibre GL)
+ *
+ * @param styleId - Style identifier (e.g., 'streets-v12')
+ * @param accessToken - Mapbox access token (optional, uses env var if not provided)
+ * @returns Full HTTPS URL to the Mapbox style JSON
+ *
+ * @example
+ * ```ts
+ * const styleUrl = getMapboxStyleUrl('streets-v12', token)
+ * // Returns: https://api.mapbox.com/styles/v1/mapbox/streets-v12?access_token=...
+ * ```
+ */
+export function getMapboxStyleUrl(styleId: string, accessToken?: string): string {
+  const token = accessToken || process.env.NEXT_PUBLIC_MAPBOX_TOKEN
+
+  if (!token) {
+    console.warn('No Mapbox token provided, falling back to MapLibre demo style')
+    return 'https://demotiles.maplibre.org/style.json'
+  }
+
+  return `https://api.mapbox.com/styles/v1/mapbox/${styleId}?access_token=${token}`
+}
 
 /**
  * Default style for ARENA (clean streets view)
@@ -131,6 +159,9 @@ export const BUENOS_AIRES_MAX_BOUNDS: LngLatBoundsLike = [
 /**
  * Configuration preset for the main map view (homepage)
  * Optimized for proposal visualization with 3D buildings
+ *
+ * NOTE: These presets use style IDs (not full URLs). MapboxView component
+ * will convert them to full HTTPS URLs with access tokens for MapLibre GL.
  */
 export const MAIN_MAP_CONFIG: Partial<MapboxOptions> = {
   style: DEFAULT_STYLE,

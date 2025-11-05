@@ -147,7 +147,8 @@ const DEFAULT_PRESETS: ViewPreset[] = [
       bearing: 0
     },
     timeOfDay: 12,
-    style: 'mapbox://styles/mapbox/satellite-streets-v12',
+    // Note: MapLibre GL requires HTTPS URL format with token, not mapbox:// protocol
+    style: `https://api.mapbox.com/styles/v1/mapbox/satellite-streets-v12?access_token=${process.env.NEXT_PUBLIC_MAPBOX_TOKEN}`,
     shortcut: 'R'
   },
   {

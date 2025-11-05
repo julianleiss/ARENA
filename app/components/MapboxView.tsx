@@ -133,15 +133,21 @@ const DEFAULT_VIEW_STATE: ViewState = {
   pitch: 60 // 3D view by default
 }
 
-/** Map style URL mapping */
-const STYLE_URLS: Record<string, string> = {
-  standard: 'mapbox://styles/mapbox/standard',
-  streets: 'mapbox://styles/mapbox/streets-v12',
-  outdoors: 'mapbox://styles/mapbox/outdoors-v12',
-  light: 'mapbox://styles/mapbox/light-v11',
-  dark: 'mapbox://styles/mapbox/dark-v11',
-  satellite: 'mapbox://styles/mapbox/satellite-v9',
-  'satellite-streets': 'mapbox://styles/mapbox/satellite-streets-v12'
+/**
+ * Get Map style URL mapping for MapLibre GL
+ * MapLibre cannot use mapbox:// protocol - must use HTTPS URLs with token
+ */
+function getStyleUrls(token: string): Record<string, string> {
+  return {
+    // Use Mapbox Styles API with token
+    standard: `https://api.mapbox.com/styles/v1/mapbox/streets-v12?access_token=${token}`,
+    streets: `https://api.mapbox.com/styles/v1/mapbox/streets-v12?access_token=${token}`,
+    outdoors: `https://api.mapbox.com/styles/v1/mapbox/outdoors-v12?access_token=${token}`,
+    light: `https://api.mapbox.com/styles/v1/mapbox/light-v11?access_token=${token}`,
+    dark: `https://api.mapbox.com/styles/v1/mapbox/dark-v11?access_token=${token}`,
+    satellite: `https://api.mapbox.com/styles/v1/mapbox/satellite-v9?access_token=${token}`,
+    'satellite-streets': `https://api.mapbox.com/styles/v1/mapbox/satellite-streets-v12?access_token=${token}`
+  }
 }
 
 // ============================================================================
@@ -151,9 +157,15 @@ const STYLE_URLS: Record<string, string> = {
 /**
  * Get the Mapbox style URL from a style name or custom URL
  */
-function getStyleUrl(style?: MapStyle): string {
-  if (!style) return STYLE_URLS.standard
-  return STYLE_URLS[style] || style
+function getStyleUrl(style?: MapStyle, token?: string): string {
+  if (!token) {
+    // Fallback to a free MapLibre style if no token
+    return 'https://demotiles.maplibre.org/style.json'
+  }
+
+  const styleUrls = getStyleUrls(token)
+  if (!style) return styleUrls.streets
+  return styleUrls[style] || style
 }
 
 /**
@@ -216,7 +228,10 @@ const MapboxView = forwardRef<MapboxViewHandle, MapboxViewProps>(({
     [initialViewState]
   )
 
-  const styleUrl = useMemo(() => getStyleUrl(style), [style])
+  // Get access token for style URLs
+  const accessToken = process.env.NEXT_PUBLIC_MAPBOX_TOKEN
+
+  const styleUrl = useMemo(() => getStyleUrl(style, accessToken), [style, accessToken])
 
   // Memoize map options to prevent unnecessary re-renders
   const mapOptions = useMemo<mapboxgl.MapboxOptions>(() => ({
@@ -313,20 +328,11 @@ const MapboxView = forwardRef<MapboxViewHandle, MapboxViewProps>(({
   // ============================================================================
 
   useEffect(() => {
-    // Check for access token
-    const accessToken = process.env.NEXT_PUBLIC_MAPBOX_TOKEN
-
-    if (!accessToken) {
-      setError('Mapbox access token is missing. Please set NEXT_PUBLIC_MAPBOX_TOKEN in your environment variables.')
-      setIsLoading(false)
-      return
-    }
+    // Note: MapLibre GL doesn't need a global accessToken like Mapbox GL
+    // The token is embedded in the style URLs instead
 
     if (!mapContainerRef.current) return
     if (mapRef.current) return // Already initialized
-
-    // Set access token
-    mapboxgl.accessToken = accessToken
 
     try {
       // Initialize map
@@ -367,11 +373,12 @@ const MapboxView = forwardRef<MapboxViewHandle, MapboxViewProps>(({
         }
 
         // Enable 3D terrain if requested
-        if (enable3DTerrain) {
+        if (enable3DTerrain && accessToken) {
           try {
+            // MapLibre requires HTTPS URL format with token for terrain tiles
             map.addSource('mapbox-dem', {
               type: 'raster-dem',
-              url: 'mapbox://mapbox.mapbox-terrain-dem-v1',
+              tiles: [`https://api.mapbox.com/v4/mapbox.terrain-rgb/{z}/{x}/{y}.pngraw?access_token=${accessToken}`],
               tileSize: 512,
               maxzoom: 14
             })
