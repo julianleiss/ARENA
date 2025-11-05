@@ -12,7 +12,22 @@
  */
 
 import { useRef, useState } from 'react'
-import MapboxView, { type MapboxViewHandle } from '@/app/components/MapboxView'
+import dynamic from 'next/dynamic'
+import type { MapboxViewHandle } from '@/app/components/MapboxView'
+
+// Dynamic import to avoid SSR issues with mapbox-gl
+const MapboxView = dynamic(() => import('@/app/components/MapboxView'), {
+  ssr: false,
+  loading: () => (
+    <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-indigo-900 to-purple-900">
+      <div className="text-center text-white">
+        <div className="inline-block animate-spin rounded-full h-16 w-16 border-b-4 border-white mb-6" />
+        <h2 className="text-2xl font-bold mb-2">Loading Cinematic Experience</h2>
+        <p className="text-indigo-200">Preparing atmosphere, lighting, and fog...</p>
+      </div>
+    </div>
+  ),
+})
 
 export default function CinematicDemoPage() {
   const mapRef = useRef<MapboxViewHandle>(null)

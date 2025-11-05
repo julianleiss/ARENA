@@ -3,10 +3,11 @@
 // ARENA - Map Page (Homepage) - Mapbox Migration
 import { useState, useRef, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
+import dynamic from 'next/dynamic'
 import Header from '@/app/components/Header'
 // MIGRATION: Switched from Google Maps to Mapbox GL JS
 // import MapView from '@/app/components/MapView' // OLD: Google Maps + DeckGL
-import MapboxView, { type MapboxViewHandle } from '@/app/components/MapboxView'
+import type { MapboxViewHandle } from '@/app/components/MapboxView'
 import ProposalMarkers from '@/app/components/ProposalMarkers'
 import type { Proposal } from '@/app/lib/mapbox-layers'
 import SandboxOverlay from '@/app/components/SandboxOverlay'
@@ -14,7 +15,20 @@ import ProposalFormModal, { ProposalFormData } from '@/app/components/ProposalFo
 import { ProposalsPanel } from '@/app/components/ProposalsPanel'
 import { uploadProposalImages } from '@/app/lib/upload-images'
 import { nanoid } from 'nanoid'
-import mapboxgl from 'mapbox-gl'
+import type mapboxgl from 'mapbox-gl'
+
+// Dynamic import to avoid SSR issues with mapbox-gl
+const MapboxView = dynamic(() => import('@/app/components/MapboxView'), {
+  ssr: false,
+  loading: () => (
+    <div className="w-full h-full flex items-center justify-center bg-gray-100">
+      <div className="text-center">
+        <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mb-4" />
+        <p className="text-gray-600">Loading map...</p>
+      </div>
+    </div>
+  ),
+})
 
 interface SelectedArea {
   type: 'building' | 'point' | 'polygon'
