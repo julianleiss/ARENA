@@ -14,11 +14,24 @@ const nextConfig: NextConfig = {
         fs: false,
         path: false,
       };
+
+      // Use the pre-built mapbox-gl to avoid parsing issues
+      config.resolve.alias = {
+        ...config.resolve.alias,
+        'mapbox-gl': 'mapbox-gl/dist/mapbox-gl.js',
+      };
     }
 
     // Exclude mapbox-gl from server-side rendering
     if (isServer) {
       config.externals = [...(config.externals || []), 'mapbox-gl'];
+    }
+
+    // Don't parse mapbox-gl - use pre-built version
+    config.module = config.module || {};
+    config.module.noParse = config.module.noParse || [];
+    if (Array.isArray(config.module.noParse)) {
+      config.module.noParse.push(/mapbox-gl/);
     }
 
     return config;
