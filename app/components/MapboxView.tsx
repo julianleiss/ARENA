@@ -383,12 +383,17 @@ const MapboxView = forwardRef<MapboxViewHandle, MapboxViewProps>(({
 
         // Enable cinematic enhancements (lighting, fog, atmosphere)
         if (enableCinematicEnhancements) {
-          try {
-            initializeMapLighting(map, initialTimeOfDay)
-            console.log('✨ Cinematic enhancements enabled')
-          } catch (err) {
-            console.warn('Could not initialize cinematic enhancements:', err)
-          }
+          // Wait a bit for map style to be fully loaded before initializing lighting
+          setTimeout(() => {
+            try {
+              if (mapRef.current) {
+                initializeMapLighting(map, initialTimeOfDay)
+                console.log('✨ Cinematic enhancements enabled')
+              }
+            } catch (err) {
+              console.warn('Could not initialize cinematic enhancements:', err)
+            }
+          }, 100)
         }
 
         // Trigger fade-in animation
