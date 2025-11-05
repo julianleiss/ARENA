@@ -21,6 +21,9 @@
 import { useEffect, useRef, useState, useCallback, useMemo, forwardRef, useImperativeHandle } from 'react'
 import mapboxgl from 'mapbox-gl'
 import 'mapbox-gl/dist/mapbox-gl.css'
+import { initializeMapLighting } from '@/app/lib/mapbox-lighting'
+import TimeOfDaySlider from './TimeOfDaySlider'
+import ViewPresetsPanel from './ViewPresetsPanel'
 
 // ============================================================================
 // Types
@@ -93,6 +96,14 @@ export interface MapboxViewProps {
   minZoom?: number
   /** Maximum zoom level (default: 22) */
   maxZoom?: number
+  /** Enable cinematic enhancements (atmosphere, fog, lighting) (default: true) */
+  enableCinematicEnhancements?: boolean
+  /** Show time-of-day control (default: false) */
+  showTimeControl?: boolean
+  /** Show view presets panel (default: false) */
+  showViewPresets?: boolean
+  /** Initial time of day (0-24, default: current time) */
+  initialTimeOfDay?: number
 }
 
 /**
@@ -179,7 +190,11 @@ const MapboxView = forwardRef<MapboxViewHandle, MapboxViewProps>(({
   showGeolocateControl = false,
   enable3DTerrain = false,
   minZoom = 0,
-  maxZoom = 22
+  maxZoom = 22,
+  enableCinematicEnhancements = true,
+  showTimeControl = false,
+  showViewPresets = false,
+  initialTimeOfDay
 }, ref) => {
   // ============================================================================
   // State & Refs
@@ -190,6 +205,7 @@ const MapboxView = forwardRef<MapboxViewHandle, MapboxViewProps>(({
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [isMapLoaded, setIsMapLoaded] = useState(false)
+  const [fadeIn, setFadeIn] = useState(false)
 
   // ============================================================================
   // Memoized Values
@@ -365,6 +381,19 @@ const MapboxView = forwardRef<MapboxViewHandle, MapboxViewProps>(({
           }
         }
 
+        // Enable cinematic enhancements (lighting, fog, atmosphere)
+        if (enableCinematicEnhancements) {
+          try {
+            initializeMapLighting(map, initialTimeOfDay)
+            console.log('✨ Cinematic enhancements enabled')
+          } catch (err) {
+            console.warn('Could not initialize cinematic enhancements:', err)
+          }
+        }
+
+        // Trigger fade-in animation
+        setTimeout(() => setFadeIn(true), 100)
+
         // Call onMapLoad callback
         onMapLoad?.(map)
       })
@@ -448,6 +477,8 @@ const MapboxView = forwardRef<MapboxViewHandle, MapboxViewProps>(({
     onMapLoad,
     style,
     enable3DTerrain,
+    enableCinematicEnhancements,
+    initialTimeOfDay,
     showNavigationControls,
     showFullscreenControl,
     showScaleControl,
@@ -460,25 +491,34 @@ const MapboxView = forwardRef<MapboxViewHandle, MapboxViewProps>(({
 
   return (
     <div className={`relative w-full h-full ${className}`}>
-      {/* Map container */}
+      {/* Map container with fade-in animation */}
       <div
         ref={mapContainerRef}
-        className="absolute inset-0 w-full h-full"
+        className={`absolute inset-0 w-full h-full transition-opacity duration-1000 ${
+          fadeIn ? 'opacity-100' : 'opacity-0'
+        }`}
         style={{
           visibility: error ? 'hidden' : 'visible'
         }}
       />
 
-      {/* Loading state */}
+      {/* Loading state with shimmer effect */}
       {isLoading && !error && (
         <div
-          className="absolute inset-0 flex items-center justify-center bg-gray-100"
+          className="absolute inset-0 bg-gradient-to-br from-gray-50 via-gray-100 to-gray-200 overflow-hidden"
           role="status"
           aria-label="Loading map"
         >
-          <div className="text-center">
-            <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mb-4" />
-            <p className="text-gray-600 font-medium">Loading map...</p>
+          {/* Shimmer overlay */}
+          <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white to-transparent opacity-30 animate-shimmer" />
+
+          {/* Loading content */}
+          <div className="absolute inset-0 flex items-center justify-center">
+            <div className="text-center">
+              <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mb-4" />
+              <p className="text-gray-600 font-medium">Loading map...</p>
+              <p className="text-gray-500 text-sm mt-2">Preparing cinematic view</p>
+            </div>
           </div>
         </div>
       )}
@@ -516,6 +556,44 @@ const MapboxView = forwardRef<MapboxViewHandle, MapboxViewProps>(({
 
       {/* Children (custom overlays) - only render when map is loaded */}
       {isMapLoaded && !error && children}
+
+      {/* Cinematic controls - positioned over the map */}
+      {isMapLoaded && !error && enableCinematicEnhancements && (
+        <>
+          {/* Time-of-day slider */}
+          {showTimeControl && (
+            <div className="absolute top-4 left-4 z-10">
+              <TimeOfDaySlider
+                map={mapRef.current}
+                initialHour={initialTimeOfDay}
+              />
+            </div>
+          )}
+
+          {/* View presets panel */}
+          {showViewPresets && (
+            <div className="absolute top-4 right-4 z-10">
+              <ViewPresetsPanel map={mapRef.current} />
+            </div>
+          )}
+        </>
+      )}
+
+      {/* CSS for shimmer animation */}
+      <style jsx>{`
+        @keyframes shimmer {
+          0% {
+            transform: translateX(-100%);
+          }
+          100% {
+            transform: translateX(100%);
+          }
+        }
+
+        .animate-shimmer {
+          animation: shimmer 2s infinite;
+        }
+      `}</style>
     </div>
   )
 })
