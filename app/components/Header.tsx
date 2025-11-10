@@ -30,10 +30,12 @@ export default function Header({
         <div className="flex items-center gap-6">
           {/* Logo */}
           <div className="flex items-center gap-2">
-            <div className="w-8 h-8 bg-gradient-to-br from-indigo-600 to-purple-600 rounded-lg flex items-center justify-center">
-              <span className="text-white font-bold text-lg">A</span>
-            </div>
-            <span className="text-xl font-bold text-gray-900">ARENA</span>
+            <img
+              src="/logo.svg"
+              alt="ARENA"
+              className="h-6"
+              style={{ height: '24px' }}
+            />
           </div>
 
           {/* Propuestas Button */}
