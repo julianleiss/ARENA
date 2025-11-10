@@ -107,13 +107,31 @@ export interface MapboxViewProps {
 }
 
 /**
+ * Options for animated camera transitions
+ */
+export interface FlyToOptions {
+  /** Duration of animation in milliseconds */
+  duration?: number
+  /** Easing function */
+  easing?: (t: number) => number
+  /** Offset from target center */
+  offset?: [number, number]
+  /** Animation will occur even if `prefers-reduced-motion` is set */
+  essential?: boolean
+  /** Padding around the viewport */
+  padding?: number | mapboxgl.PaddingOptions
+  /** Maximum zoom level */
+  maxZoom?: number
+}
+
+/**
  * Imperative handle for programmatic map control
  */
 export interface MapboxViewHandle {
   /** Get the underlying Mapbox map instance */
   getMap: () => mapboxgl.Map | null
   /** Fly to a specific location with animation */
-  flyTo: (viewState: Partial<ViewState>, options?: Omit<mapboxgl.EasingOptions, keyof ViewState>) => void
+  flyTo: (viewState: Partial<ViewState>, options?: FlyToOptions) => void
   /** Jump to a specific location without animation */
   jumpTo: (viewState: Partial<ViewState>) => void
   /** Fit map to bounds */
@@ -281,11 +299,11 @@ const MapboxView = forwardRef<MapboxViewHandle, MapboxViewProps>(({
   useImperativeHandle(ref, () => ({
     getMap: () => mapRef.current,
 
-    flyTo: (viewState: Partial<ViewState>, options?: Omit<mapboxgl.EasingOptions, keyof ViewState>) => {
+    flyTo: (viewState: Partial<ViewState>, options?: FlyToOptions) => {
       if (!mapRef.current || !mapRef.current.flyTo) return
 
       try {
-        const flyToOptions: mapboxgl.EasingOptions = {
+        const flyToOptions: any = {
           ...options,
           center: viewState.longitude !== undefined && viewState.latitude !== undefined
             ? [viewState.longitude, viewState.latitude]
@@ -293,7 +311,7 @@ const MapboxView = forwardRef<MapboxViewHandle, MapboxViewProps>(({
           zoom: viewState.zoom,
           bearing: viewState.bearing,
           pitch: viewState.pitch,
-          essential: true // Animation won't be skipped
+          essential: options?.essential ?? true // Animation won't be skipped
         }
 
         mapRef.current.flyTo(flyToOptions)
