@@ -425,17 +425,18 @@ const MapboxView = forwardRef<MapboxViewHandle, MapboxViewProps>(({
       // Handle map errors
       map.on('error', (e) => {
         // Extract meaningful error information
-        const errorMessage = e.error?.message || e.message || 'Unknown error'
+        const errorMessage = e.error?.message || 'Unknown error'
+        const errorEvent = e as any // Mapbox error events can have varying properties
         const errorDetails = {
           message: errorMessage,
-          sourceId: e.sourceId,
-          tile: e.tile,
+          sourceId: errorEvent.sourceId,
+          tile: errorEvent.tile,
           error: e.error
         }
         console.error('❌ Mapbox error:', errorDetails)
 
         // Only show error state for critical errors, not tile loading issues
-        if (!e.sourceId && !e.tile) {
+        if (!errorEvent.sourceId && !errorEvent.tile) {
           setError(`Map error: ${errorMessage}`)
         }
       })
