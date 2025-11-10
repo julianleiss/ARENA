@@ -391,11 +391,11 @@ const MapboxView = forwardRef<MapboxViewHandle, MapboxViewProps>(({
 
         // Enable 3D buildings layer (for standard style)
         if (style === 'standard') {
-          // Mapbox Standard style has 3D buildings built-in
-          // Configure 3D building layer if needed
-          try {
-            // Ensure map and style are ready before accessing layers
-            if (map.isStyleLoaded() && map.getStyle()) {
+          // Wait for style to fully load before accessing layers
+          const configureBuildingLayer = () => {
+            try {
+              if (!map || !map.getStyle()) return
+
               const buildingLayer = map.getLayer('building')
               if (buildingLayer) {
                 map.setPaintProperty('building', 'fill-extrusion-height', [
@@ -407,10 +407,18 @@ const MapboxView = forwardRef<MapboxViewHandle, MapboxViewProps>(({
                   15.05,
                   ['get', 'height']
                 ])
+                console.log('✅ 3D building layer configured')
               }
+            } catch (err) {
+              console.warn('Could not configure 3D buildings:', err)
             }
-          } catch (err) {
-            console.warn('Could not configure 3D buildings:', err)
+          }
+
+          // Wait for style to be fully loaded
+          if (map.isStyleLoaded()) {
+            configureBuildingLayer()
+          } else {
+            map.once('style.load', configureBuildingLayer)
           }
         }
 

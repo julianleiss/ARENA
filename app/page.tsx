@@ -295,14 +295,32 @@ export default function MapPage() {
   useEffect(() => {
     if (!map) return
 
+    // Ensure map style is loaded before manipulating event handlers
+    if (!map.getStyle()) {
+      console.warn('Map style not loaded, deferring click handler setup')
+      return
+    }
+
     // Remove old handler and add new one
-    map.off('click', handleMapClick)
-    if (mapMode === 'create') {
-      map.on('click', handleMapClick)
+    try {
+      map.off('click', handleMapClick)
+      if (mapMode === 'create') {
+        map.on('click', handleMapClick)
+      }
+    } catch (err) {
+      console.debug('Error setting up click handler:', err)
     }
 
     return () => {
-      map.off('click', handleMapClick)
+      // Safe cleanup: check if map still has style before removing handlers
+      try {
+        if (map && map.getStyle) {
+          map.off('click', handleMapClick)
+        }
+      } catch (err) {
+        // Silently ignore errors during cleanup (map may be destroyed)
+        console.debug('Error removing click handler during cleanup:', err)
+      }
     }
   }, [map, mapMode, handleMapClick])
 

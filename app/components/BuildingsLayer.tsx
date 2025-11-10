@@ -151,6 +151,12 @@ export default function BuildingsLayer({
   const addLayers = useCallback(() => {
     if (!map) return
 
+    // Ensure map style is loaded before accessing layers
+    if (!map.isStyleLoaded() || !map.getStyle()) {
+      console.warn('Map style not loaded, deferring layer operations')
+      return
+    }
+
     // Remove existing layers if they exist (cleanup)
     const layersToRemove = [
       CLUSTER_LAYER_ID,
@@ -159,8 +165,13 @@ export default function BuildingsLayer({
       BUILDINGS_LAYER_ID
     ]
     layersToRemove.forEach(layerId => {
-      if (map.getLayer(layerId)) {
-        map.removeLayer(layerId)
+      try {
+        if (map.getLayer(layerId)) {
+          map.removeLayer(layerId)
+        }
+      } catch (err) {
+        // Silently ignore errors during layer cleanup
+        console.debug(`Could not remove layer ${layerId}:`, err)
       }
     })
 
@@ -413,25 +424,39 @@ export default function BuildingsLayer({
     return () => {
       if (!map) return
 
-      // Remove layers
-      const layersToRemove = [
-        CLUSTER_LAYER_ID,
-        CLUSTER_COUNT_LAYER_ID,
-        BUILDINGS_FOOTPRINT_LAYER_ID,
-        BUILDINGS_LAYER_ID
-      ]
-      layersToRemove.forEach(layerId => {
-        if (map.getLayer(layerId)) {
-          map.removeLayer(layerId)
+      // Check if map is still valid before cleanup
+      try {
+        // Remove layers
+        const layersToRemove = [
+          CLUSTER_LAYER_ID,
+          CLUSTER_COUNT_LAYER_ID,
+          BUILDINGS_FOOTPRINT_LAYER_ID,
+          BUILDINGS_LAYER_ID
+        ]
+        layersToRemove.forEach(layerId => {
+          try {
+            if (map.getStyle() && map.getLayer(layerId)) {
+              map.removeLayer(layerId)
+            }
+          } catch (err) {
+            // Silently ignore errors during cleanup (map may be destroyed)
+            console.debug(`Could not remove layer ${layerId} during cleanup:`, err)
+          }
+        })
+
+        // Remove source
+        try {
+          if (map.getStyle() && map.getSource(SOURCE_ID)) {
+            map.removeSource(SOURCE_ID)
+          }
+        } catch (err) {
+          console.debug(`Could not remove source ${SOURCE_ID} during cleanup:`, err)
         }
-      })
 
-      // Remove source
-      if (map.getSource(SOURCE_ID)) {
-        map.removeSource(SOURCE_ID)
+        console.log('🧹 Buildings layer cleaned up')
+      } catch (err) {
+        console.debug('Error during buildings layer cleanup:', err)
       }
-
-      console.log('🧹 Buildings layer cleaned up')
     }
   }, [map])
 
