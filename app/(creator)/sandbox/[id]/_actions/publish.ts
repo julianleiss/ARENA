@@ -111,7 +111,7 @@ export async function publishSandbox(input: unknown) {
     // Step 6: Create Proposal
     const proposalId = `prop_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
 
-    const { data: proposal, error: proposalError } = await supabase
+    const { error: proposalError } = await supabase
       .from('proposals')
       .insert({
         id: proposalId,
