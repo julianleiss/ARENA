@@ -21,8 +21,7 @@
 import { useEffect, useState, useRef, useCallback } from 'react'
 import mapboxgl from 'mapbox-gl'
 import {
-  loadBuildings,
-  type BuildingsData
+  loadBuildings
 } from '@/app/lib/buildings-loader'
 import {
   createBuildingsSourceOptions,

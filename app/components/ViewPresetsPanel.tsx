@@ -23,7 +23,7 @@
  */
 
 import { useState, useCallback } from 'react'
-import type { Map as MapboxMap } from 'mapbox-gl'
+import type { Map as MapboxMap } from 'maplibre-gl'
 import { easeCameraTo, type CameraPosition } from '@/app/lib/mapbox-camera'
 import { updateMapLighting } from '@/app/lib/mapbox-lighting'
 import { BUENOS_AIRES_CENTER } from '@/app/lib/mapbox-config'

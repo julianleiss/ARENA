@@ -252,7 +252,7 @@ const MapboxView = forwardRef<MapboxViewHandle, MapboxViewProps>(({
   const styleUrl = useMemo(() => getStyleUrl(style, accessToken), [style, accessToken])
 
   // Memoize map options to prevent unnecessary re-renders
-  const mapOptions = useMemo<mapboxgl.MapboxOptions>(() => ({
+  const mapOptions = useMemo<mapboxgl.MapOptions>(() => ({
     container: 'mapbox-container', // Will be set in useEffect
     style: styleUrl,
     center: [viewState.longitude, viewState.latitude] as [number, number],
@@ -505,8 +505,7 @@ const MapboxView = forwardRef<MapboxViewHandle, MapboxViewProps>(({
           positionOptions: {
             enableHighAccuracy: true
           },
-          trackUserLocation: true,
-          showUserHeading: true
+          trackUserLocation: true
         })
         map.addControl(geolocateControl, 'top-right')
       }

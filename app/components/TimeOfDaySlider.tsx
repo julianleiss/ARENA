@@ -24,7 +24,7 @@
  */
 
 import { useState, useEffect, useCallback } from 'react'
-import type { Map as MapboxMap } from 'mapbox-gl'
+import type { Map as MapboxMap } from 'maplibre-gl'
 import {
   updateMapLighting,
   formatTime,
