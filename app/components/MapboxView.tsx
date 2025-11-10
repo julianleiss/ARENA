@@ -107,13 +107,31 @@ export interface MapboxViewProps {
 }
 
 /**
+ * Options for animated camera transitions
+ */
+export interface FlyToOptions {
+  /** Duration of animation in milliseconds */
+  duration?: number
+  /** Easing function */
+  easing?: (t: number) => number
+  /** Offset from target center */
+  offset?: [number, number]
+  /** Animation will occur even if `prefers-reduced-motion` is set */
+  essential?: boolean
+  /** Padding around the viewport */
+  padding?: number | mapboxgl.PaddingOptions
+  /** Maximum zoom level */
+  maxZoom?: number
+}
+
+/**
  * Imperative handle for programmatic map control
  */
 export interface MapboxViewHandle {
   /** Get the underlying Mapbox map instance */
   getMap: () => mapboxgl.Map | null
   /** Fly to a specific location with animation */
-  flyTo: (viewState: Partial<ViewState>, options?: Omit<mapboxgl.EasingOptions, keyof ViewState>) => void
+  flyTo: (viewState: Partial<ViewState>, options?: FlyToOptions) => void
   /** Jump to a specific location without animation */
   jumpTo: (viewState: Partial<ViewState>) => void
   /** Fit map to bounds */
@@ -267,17 +285,26 @@ const MapboxView = forwardRef<MapboxViewHandle, MapboxViewProps>(({
     if (!mapRef.current) return
 
     const map = mapRef.current
-    const center = map.getCenter()
 
-    const newViewState: ViewState = {
-      longitude: center.lng,
-      latitude: center.lat,
-      zoom: map.getZoom(),
-      bearing: map.getBearing(),
-      pitch: map.getPitch()
+    // Safety check: ensure map methods are available (not during cleanup)
+    if (!map.getCenter || !map.getZoom) return
+
+    try {
+      const center = map.getCenter()
+
+      const newViewState: ViewState = {
+        longitude: center.lng,
+        latitude: center.lat,
+        zoom: map.getZoom(),
+        bearing: map.getBearing(),
+        pitch: map.getPitch()
+      }
+
+      debouncedViewStateChange(newViewState)
+    } catch (err) {
+      // Silently ignore errors during cleanup
+      console.debug('Error in handleMove (likely during cleanup):', err)
     }
-
-    debouncedViewStateChange(newViewState)
   }, [debouncedViewStateChange])
 
   // ============================================================================
@@ -287,39 +314,52 @@ const MapboxView = forwardRef<MapboxViewHandle, MapboxViewProps>(({
   useImperativeHandle(ref, () => ({
     getMap: () => mapRef.current,
 
-    flyTo: (viewState: Partial<ViewState>, options?: Omit<mapboxgl.EasingOptions, keyof ViewState>) => {
-      if (!mapRef.current) return
+    flyTo: (viewState: Partial<ViewState>, options?: FlyToOptions) => {
+      if (!mapRef.current || !mapRef.current.flyTo) return
 
-      const flyToOptions: mapboxgl.EasingOptions = {
-        ...options,
-        center: viewState.longitude !== undefined && viewState.latitude !== undefined
-          ? [viewState.longitude, viewState.latitude]
-          : undefined,
-        zoom: viewState.zoom,
-        bearing: viewState.bearing,
-        pitch: viewState.pitch,
-        essential: true // Animation won't be skipped
+      try {
+        const flyToOptions: any = {
+          ...options,
+          center: viewState.longitude !== undefined && viewState.latitude !== undefined
+            ? [viewState.longitude, viewState.latitude]
+            : undefined,
+          zoom: viewState.zoom,
+          bearing: viewState.bearing,
+          pitch: viewState.pitch,
+          essential: options?.essential ?? true // Animation won't be skipped
+        }
+
+        mapRef.current.flyTo(flyToOptions)
+      } catch (err) {
+        console.warn('Error in flyTo:', err)
       }
-
-      mapRef.current.flyTo(flyToOptions)
     },
 
     jumpTo: (viewState: Partial<ViewState>) => {
-      if (!mapRef.current) return
+      if (!mapRef.current || !mapRef.current.jumpTo) return
 
-      mapRef.current.jumpTo({
-        center: viewState.longitude !== undefined && viewState.latitude !== undefined
-          ? [viewState.longitude, viewState.latitude]
-          : undefined,
-        zoom: viewState.zoom,
-        bearing: viewState.bearing,
-        pitch: viewState.pitch
-      })
+      try {
+        mapRef.current.jumpTo({
+          center: viewState.longitude !== undefined && viewState.latitude !== undefined
+            ? [viewState.longitude, viewState.latitude]
+            : undefined,
+          zoom: viewState.zoom,
+          bearing: viewState.bearing,
+          pitch: viewState.pitch
+        })
+      } catch (err) {
+        console.warn('Error in jumpTo:', err)
+      }
     },
 
     fitBounds: (bounds: mapboxgl.LngLatBoundsLike, options?: mapboxgl.FitBoundsOptions) => {
-      if (!mapRef.current) return
-      mapRef.current.fitBounds(bounds, options)
+      if (!mapRef.current || !mapRef.current.fitBounds) return
+
+      try {
+        mapRef.current.fitBounds(bounds, options)
+      } catch (err) {
+        console.warn('Error in fitBounds:', err)
+      }
     }
   }), [])
 
@@ -354,18 +394,20 @@ const MapboxView = forwardRef<MapboxViewHandle, MapboxViewProps>(({
           // Mapbox Standard style has 3D buildings built-in
           // Configure 3D building layer if needed
           try {
-            // For standard style, buildings are already 3D
-            // We can configure them if needed
-            if (map.getLayer('building')) {
-              map.setPaintProperty('building', 'fill-extrusion-height', [
-                'interpolate',
-                ['linear'],
-                ['zoom'],
-                15,
-                0,
-                15.05,
-                ['get', 'height']
-              ])
+            // Ensure map and style are ready before accessing layers
+            if (map.isStyleLoaded() && map.getStyle()) {
+              const buildingLayer = map.getLayer('building')
+              if (buildingLayer) {
+                map.setPaintProperty('building', 'fill-extrusion-height', [
+                  'interpolate',
+                  ['linear'],
+                  ['zoom'],
+                  15,
+                  0,
+                  15.05,
+                  ['get', 'height']
+                ])
+              }
             }
           } catch (err) {
             console.warn('Could not configure 3D buildings:', err)
@@ -412,8 +454,21 @@ const MapboxView = forwardRef<MapboxViewHandle, MapboxViewProps>(({
 
       // Handle map errors
       map.on('error', (e) => {
-        console.error('❌ Mapbox error:', e)
-        setError(`Map error: ${e.error?.message || 'Unknown error'}`)
+        // Extract meaningful error information
+        const errorMessage = e.error?.message || 'Unknown error'
+        const errorEvent = e as any // Mapbox error events can have varying properties
+        const errorDetails = {
+          message: errorMessage,
+          sourceId: errorEvent.sourceId,
+          tile: errorEvent.tile,
+          error: e.error
+        }
+        console.error('❌ Mapbox error:', errorDetails)
+
+        // Only show error state for critical errors, not tile loading issues
+        if (!errorEvent.sourceId && !errorEvent.tile) {
+          setError(`Map error: ${errorMessage}`)
+        }
       })
 
       // Handle view state changes
@@ -467,30 +522,44 @@ const MapboxView = forwardRef<MapboxViewHandle, MapboxViewProps>(({
       return () => {
         console.log('🧹 Cleaning up Mapbox map...')
 
-        // Remove event listeners
-        map.off('move', handleMove)
-        map.off('zoom', handleMove)
-        map.off('rotate', handleMove)
-        map.off('pitch', handleMove)
-        window.removeEventListener('resize', handleResize)
+        // Check if map still exists before cleanup
+        if (!mapRef.current) return
 
-        // Remove map
-        map.remove()
-        mapRef.current = null
+        try {
+          const mapInstance = mapRef.current
+
+          // Remove event listeners safely
+          if (mapInstance.off) {
+            mapInstance.off('move', handleMove)
+            mapInstance.off('zoom', handleMove)
+            mapInstance.off('rotate', handleMove)
+            mapInstance.off('pitch', handleMove)
+          }
+
+          window.removeEventListener('resize', handleResize)
+
+          // Remove map instance
+          if (mapInstance.remove && !mapInstance._removed) {
+            mapInstance.remove()
+          }
+        } catch (err) {
+          console.warn('Error during map cleanup:', err)
+        } finally {
+          mapRef.current = null
+        }
       }
     } catch (err) {
       console.error('❌ Failed to initialize Mapbox:', err)
       setError(err instanceof Error ? err.message : 'Failed to initialize map')
       setIsLoading(false)
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
-    mapOptions,
-    handleMove,
-    onMapLoad,
-    style,
+    // Only re-initialize map if these critical props change
+    // Note: mapOptions and handleMove are intentionally excluded to prevent re-initialization on view changes
+    styleUrl,
     enable3DTerrain,
     enableCinematicEnhancements,
-    initialTimeOfDay,
     showNavigationControls,
     showFullscreenControl,
     showScaleControl,

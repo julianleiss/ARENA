@@ -1,5 +1,4 @@
 // ARENA - 3D Sandbox Editor (Proposal Viewer/Editor)
-import { notFound } from 'next/navigation'
 import SandboxClient from './_components/SandboxClient'
 import SandboxWrapper from './_components/SandboxWrapper'
 

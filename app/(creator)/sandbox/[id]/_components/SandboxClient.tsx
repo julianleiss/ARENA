@@ -4,7 +4,6 @@
 // Manages 3D canvas with deck.gl + Google Maps
 
 import { useState, useEffect, useRef, useCallback } from 'react'
-import { Deck } from '@deck.gl/core'
 import { GeoJsonLayer, IconLayer } from '@deck.gl/layers'
 import { GoogleMapsOverlay } from '@deck.gl/google-maps'
 import { AmbientLight, DirectionalLight, LightingEffect } from '@deck.gl/core'
@@ -12,14 +11,6 @@ import { nanoid } from 'nanoid'
 import type { Asset } from '../../_components/Palette'
 import Toolbar from './Toolbar'
 import StatsPanel from './StatsPanel'
-
-// Helper: Convert hex color to RGB array
-function hexToRgb(hex: string): [number, number, number] {
-  const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex)
-  return result
-    ? [parseInt(result[1], 16), parseInt(result[2], 16), parseInt(result[3], 16)]
-    : [255, 0, 255] // fallback magenta
-}
 
 // Helper: Create SVG data URL for marker icon
 function createIconDataUrl(color: string): string {
@@ -69,17 +60,17 @@ interface SandboxClientProps {
 
 export default function SandboxClient({
   proposalId,
-  proposalTitle,
+  proposalTitle: _proposalTitle,
   proposalGeom,
   centerLng = -58.46,
   centerLat = -34.545,
   selectedAsset = null,
   onPlacedObjectsChange,
   onSelectedObjectChange,
-  selectedArea,
-  onPublish,
-  onCancel,
-  isModal = false,
+  selectedArea: _selectedArea,
+  onPublish: _onPublish,
+  onCancel: _onCancel,
+  isModal: _isModal = false,
 }: SandboxClientProps) {
   const mapRef = useRef<google.maps.Map | null>(null)
   const deckOverlayRef = useRef<GoogleMapsOverlay | null>(null)
@@ -568,7 +559,10 @@ export default function SandboxClient({
     }
 
     loadGoogleMaps()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [centerLng, centerLat, handleMapClick])
+  // Note: initializeDeckOverlay and isPlacementMode are intentionally not in deps
+  // to avoid re-initializing the map on every state change
 
   // Initialize deck.gl overlay
   const initializeDeckOverlay = useCallback((map: google.maps.Map) => {
