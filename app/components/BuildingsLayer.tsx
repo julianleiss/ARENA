@@ -19,11 +19,9 @@
  */
 
 import { useEffect, useState, useRef, useCallback } from 'react'
-import type mapboxgl from 'mapbox-gl'
+import mapboxgl from 'mapbox-gl'
 import {
   loadBuildings,
-  isBuildingsCached,
-  estimateBuildingHeight,
   type BuildingsData
 } from '@/app/lib/buildings-loader'
 import {
@@ -32,7 +30,6 @@ import {
   getClusterRadiusExpression,
   getClusterColorExpression,
   getClusterTextSizeExpression,
-  getRenderingMode,
   ZOOM_THRESHOLDS
 } from '@/app/lib/building-clustering'
 
