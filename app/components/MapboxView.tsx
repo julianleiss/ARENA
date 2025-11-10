@@ -19,8 +19,8 @@
  */
 
 import { useEffect, useRef, useState, useCallback, useMemo, forwardRef, useImperativeHandle } from 'react'
-import mapboxgl from 'mapbox-gl'
-import 'mapbox-gl/dist/mapbox-gl.css'
+import mapboxgl from 'maplibre-gl'
+import 'maplibre-gl/dist/maplibre-gl.css'
 import { initializeMapLighting } from '@/app/lib/mapbox-lighting'
 import TimeOfDaySlider from './TimeOfDaySlider'
 import ViewPresetsPanel from './ViewPresetsPanel'
@@ -107,13 +107,31 @@ export interface MapboxViewProps {
 }
 
 /**
+ * Options for animated camera transitions
+ */
+export interface FlyToOptions {
+  /** Duration of animation in milliseconds */
+  duration?: number
+  /** Easing function */
+  easing?: (t: number) => number
+  /** Offset from target center */
+  offset?: [number, number]
+  /** Animation will occur even if `prefers-reduced-motion` is set */
+  essential?: boolean
+  /** Padding around the viewport */
+  padding?: number | mapboxgl.PaddingOptions
+  /** Maximum zoom level */
+  maxZoom?: number
+}
+
+/**
  * Imperative handle for programmatic map control
  */
 export interface MapboxViewHandle {
   /** Get the underlying Mapbox map instance */
   getMap: () => mapboxgl.Map | null
   /** Fly to a specific location with animation */
-  flyTo: (viewState: Partial<ViewState>, options?: Omit<mapboxgl.EasingOptions, keyof ViewState>) => void
+  flyTo: (viewState: Partial<ViewState>, options?: FlyToOptions) => void
   /** Jump to a specific location without animation */
   jumpTo: (viewState: Partial<ViewState>) => void
   /** Fit map to bounds */
@@ -133,15 +151,21 @@ const DEFAULT_VIEW_STATE: ViewState = {
   pitch: 60 // 3D view by default
 }
 
-/** Map style URL mapping */
-const STYLE_URLS: Record<string, string> = {
-  standard: 'mapbox://styles/mapbox/standard',
-  streets: 'mapbox://styles/mapbox/streets-v12',
-  outdoors: 'mapbox://styles/mapbox/outdoors-v12',
-  light: 'mapbox://styles/mapbox/light-v11',
-  dark: 'mapbox://styles/mapbox/dark-v11',
-  satellite: 'mapbox://styles/mapbox/satellite-v9',
-  'satellite-streets': 'mapbox://styles/mapbox/satellite-streets-v12'
+/**
+ * Get Map style URL mapping for MapLibre GL
+ * Using older Mapbox v1 styles that are compatible with MapLibre GL
+ */
+function getStyleUrls(token: string): Record<string, string> {
+  return {
+    // Use Mapbox v1 styles (compatible with MapLibre GL fork)
+    standard: `https://api.mapbox.com/styles/v1/mapbox/streets-v11?access_token=${token}`,
+    streets: `https://api.mapbox.com/styles/v1/mapbox/streets-v11?access_token=${token}`,
+    outdoors: `https://api.mapbox.com/styles/v1/mapbox/outdoors-v11?access_token=${token}`,
+    light: `https://api.mapbox.com/styles/v1/mapbox/light-v10?access_token=${token}`,
+    dark: `https://api.mapbox.com/styles/v1/mapbox/dark-v10?access_token=${token}`,
+    satellite: `https://api.mapbox.com/styles/v1/mapbox/satellite-v9?access_token=${token}`,
+    'satellite-streets': `https://api.mapbox.com/styles/v1/mapbox/satellite-streets-v11?access_token=${token}`
+  }
 }
 
 // ============================================================================
@@ -151,9 +175,15 @@ const STYLE_URLS: Record<string, string> = {
 /**
  * Get the Mapbox style URL from a style name or custom URL
  */
-function getStyleUrl(style?: MapStyle): string {
-  if (!style) return STYLE_URLS.standard
-  return STYLE_URLS[style] || style
+function getStyleUrl(style?: MapStyle, token?: string): string {
+  if (!token) {
+    // Fallback to a free MapLibre style if no token
+    return 'https://demotiles.maplibre.org/style.json'
+  }
+
+  const styleUrls = getStyleUrls(token)
+  if (!style) return styleUrls.streets
+  return styleUrls[style] || style
 }
 
 /**
@@ -216,7 +246,10 @@ const MapboxView = forwardRef<MapboxViewHandle, MapboxViewProps>(({
     [initialViewState]
   )
 
-  const styleUrl = useMemo(() => getStyleUrl(style), [style])
+  // Get access token for style URLs
+  const accessToken = process.env.NEXT_PUBLIC_MAPBOX_TOKEN
+
+  const styleUrl = useMemo(() => getStyleUrl(style, accessToken), [style, accessToken])
 
   // Memoize map options to prevent unnecessary re-renders
   const mapOptions = useMemo<mapboxgl.MapboxOptions>(() => ({
@@ -281,11 +314,11 @@ const MapboxView = forwardRef<MapboxViewHandle, MapboxViewProps>(({
   useImperativeHandle(ref, () => ({
     getMap: () => mapRef.current,
 
-    flyTo: (viewState: Partial<ViewState>, options?: Omit<mapboxgl.EasingOptions, keyof ViewState>) => {
+    flyTo: (viewState: Partial<ViewState>, options?: FlyToOptions) => {
       if (!mapRef.current || !mapRef.current.flyTo) return
 
       try {
-        const flyToOptions: mapboxgl.EasingOptions = {
+        const flyToOptions: any = {
           ...options,
           center: viewState.longitude !== undefined && viewState.latitude !== undefined
             ? [viewState.longitude, viewState.latitude]
@@ -293,7 +326,7 @@ const MapboxView = forwardRef<MapboxViewHandle, MapboxViewProps>(({
           zoom: viewState.zoom,
           bearing: viewState.bearing,
           pitch: viewState.pitch,
-          essential: true // Animation won't be skipped
+          essential: options?.essential ?? true // Animation won't be skipped
         }
 
         mapRef.current.flyTo(flyToOptions)
@@ -335,20 +368,11 @@ const MapboxView = forwardRef<MapboxViewHandle, MapboxViewProps>(({
   // ============================================================================
 
   useEffect(() => {
-    // Check for access token
-    const accessToken = process.env.NEXT_PUBLIC_MAPBOX_TOKEN
-
-    if (!accessToken) {
-      setError('Mapbox access token is missing. Please set NEXT_PUBLIC_MAPBOX_TOKEN in your environment variables.')
-      setIsLoading(false)
-      return
-    }
+    // Note: MapLibre GL doesn't need a global accessToken like Mapbox GL
+    // The token is embedded in the style URLs instead
 
     if (!mapContainerRef.current) return
     if (mapRef.current) return // Already initialized
-
-    // Set access token
-    mapboxgl.accessToken = accessToken
 
     try {
       // Initialize map
@@ -391,11 +415,12 @@ const MapboxView = forwardRef<MapboxViewHandle, MapboxViewProps>(({
         }
 
         // Enable 3D terrain if requested
-        if (enable3DTerrain) {
+        if (enable3DTerrain && accessToken) {
           try {
+            // MapLibre requires HTTPS URL format with token for terrain tiles
             map.addSource('mapbox-dem', {
               type: 'raster-dem',
-              url: 'mapbox://mapbox.mapbox-terrain-dem-v1',
+              tiles: [`https://api.mapbox.com/v4/mapbox.terrain-rgb/{z}/{x}/{y}.pngraw?access_token=${accessToken}`],
               tileSize: 512,
               maxzoom: 14
             })
@@ -407,12 +432,17 @@ const MapboxView = forwardRef<MapboxViewHandle, MapboxViewProps>(({
 
         // Enable cinematic enhancements (lighting, fog, atmosphere)
         if (enableCinematicEnhancements) {
-          try {
-            initializeMapLighting(map, initialTimeOfDay)
-            console.log('✨ Cinematic enhancements enabled')
-          } catch (err) {
-            console.warn('Could not initialize cinematic enhancements:', err)
-          }
+          // Wait a bit for map style to be fully loaded before initializing lighting
+          setTimeout(() => {
+            try {
+              if (mapRef.current) {
+                initializeMapLighting(map, initialTimeOfDay)
+                console.log('✨ Cinematic enhancements enabled')
+              }
+            } catch (err) {
+              console.warn('Could not initialize cinematic enhancements:', err)
+            }
+          }, 100)
         }
 
         // Trigger fade-in animation
@@ -425,17 +455,18 @@ const MapboxView = forwardRef<MapboxViewHandle, MapboxViewProps>(({
       // Handle map errors
       map.on('error', (e) => {
         // Extract meaningful error information
-        const errorMessage = e.error?.message || e.message || 'Unknown error'
+        const errorMessage = e.error?.message || 'Unknown error'
+        const errorEvent = e as any // Mapbox error events can have varying properties
         const errorDetails = {
           message: errorMessage,
-          sourceId: e.sourceId,
-          tile: e.tile,
+          sourceId: errorEvent.sourceId,
+          tile: errorEvent.tile,
           error: e.error
         }
         console.error('❌ Mapbox error:', errorDetails)
 
         // Only show error state for critical errors, not tile loading issues
-        if (!e.sourceId && !e.tile) {
+        if (!errorEvent.sourceId && !errorEvent.tile) {
           setError(`Map error: ${errorMessage}`)
         }
       })

@@ -16,9 +16,12 @@
  * @see https://docs.mapbox.com/mapbox-gl-js/example/cluster/
  */
 
-import type { GeoJSONSourceOptions } from 'mapbox-gl'
+import mapboxgl from 'mapbox-gl'
 import type { BuildingsData, BuildingFeature } from './buildings-loader'
-import { getBuildingHeight, estimateBuildingHeight } from './buildings-loader'
+import { estimateBuildingHeight } from './buildings-loader'
+
+// Type for GeoJSON source options
+type GeoJSONSourceOptions = mapboxgl.GeoJSONSourceRaw
 
 // ============================================================================
 // Constants

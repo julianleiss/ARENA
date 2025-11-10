@@ -234,7 +234,9 @@ export async function getBuildingsInBounds(bounds: LngLatBounds): Promise<Buildi
       ? feature.geometry.coordinates[0][0]
       : feature.geometry.coordinates[0][0][0]
 
-    const [lng, lat] = coords
+    // Ensure coords is an array of numbers
+    const coordArray = Array.isArray(coords) ? coords : [coords]
+    const [lng, lat] = coordArray as number[]
 
     // Check if point is within bounds
     const isInBounds = lng >= west && lng <= east && lat >= south && lat <= north
