@@ -237,7 +237,7 @@ const MapboxView = forwardRef<MapboxViewHandle, MapboxViewProps>(({
   const styleUrl = useMemo(() => getStyleUrl(style), [style])
 
   // Memoize map options to prevent unnecessary re-renders
-  const mapOptions = useMemo<mapboxgl.MapboxOptions>(() => ({
+  const mapOptions = useMemo(() => ({
     container: 'mapbox-container', // Will be set in useEffect
     style: styleUrl,
     center: [viewState.longitude, viewState.latitude],
