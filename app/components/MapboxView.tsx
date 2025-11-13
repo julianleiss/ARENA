@@ -19,8 +19,8 @@
  */
 
 import { useEffect, useRef, useState, useCallback, useMemo, forwardRef, useImperativeHandle } from 'react'
-import mapboxgl from 'maplibre-gl'
-import 'maplibre-gl/dist/maplibre-gl.css'
+import mapboxgl from 'mapbox-gl'
+import 'mapbox-gl/dist/mapbox-gl.css'
 import { initializeMapLighting } from '@/app/lib/mapbox-lighting'
 import TimeOfDaySlider from './TimeOfDaySlider'
 import ViewPresetsPanel from './ViewPresetsPanel'
@@ -368,8 +368,12 @@ const MapboxView = forwardRef<MapboxViewHandle, MapboxViewProps>(({
   // ============================================================================
 
   useEffect(() => {
-    // Note: MapLibre GL doesn't need a global accessToken like Mapbox GL
-    // The token is embedded in the style URLs instead
+    // Configure Mapbox access token
+    if (accessToken) {
+      mapboxgl.accessToken = accessToken
+    } else {
+      console.warn('⚠️ NEXT_PUBLIC_MAPBOX_TOKEN not found')
+    }
 
     if (!mapContainerRef.current) return
     if (mapRef.current) return // Already initialized

@@ -57,8 +57,15 @@ export default function ProposalMarkers({
 
         // Load custom pin image
         if (!map.hasImage(IMAGE_ID)) {
-          const image = await createProposalPinImage()
-          map.addImage(IMAGE_ID, image, { pixelRatio: 2 })
+          try {
+            const image = await createProposalPinImage()
+            // Double-check after async operation
+            if (!map.hasImage(IMAGE_ID)) {
+              map.addImage(IMAGE_ID, image, { pixelRatio: 2 })
+            }
+          } catch (error) {
+            console.error('Failed to load proposal pin image:', error)
+          }
         }
 
         // Add source for proposals
