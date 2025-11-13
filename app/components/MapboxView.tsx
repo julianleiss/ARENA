@@ -255,7 +255,7 @@ const MapboxView = forwardRef<MapboxViewHandle, MapboxViewProps>(({
   const mapOptions = useMemo(() => ({
     container: 'mapbox-container', // Will be set in useEffect
     style: styleUrl,
-    center: [viewState.longitude, viewState.latitude],
+    center: [viewState.longitude, viewState.latitude] as [number, number],
     zoom: viewState.zoom,
     bearing: viewState.bearing || 0,
     pitch: viewState.pitch || 0,
