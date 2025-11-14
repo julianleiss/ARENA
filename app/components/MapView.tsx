@@ -264,62 +264,6 @@ function DeckGLOverlay({
     // Build layers array
     const layers: any[] = []
 
-    // Add proposal pins layer (always visible in navigate mode)
-    if (mapMode === 'navigate' && proposals.length > 0) {
-      // Filter proposals that have geometry
-      const proposalsWithGeometry = proposals.filter(p => p.geom)
-
-      layers.push(
-        new IconLayer({
-          id: 'proposal-pins',
-          data: proposalsWithGeometry,
-          getPosition: (d: any) => {
-            if (!d.geom) return [0, 0]
-            if (d.geom.type === 'Point') return d.geom.coordinates
-            if (d.geom.type === 'Polygon') return d.geom.coordinates[0][0]
-            if (d.geom.type === 'LineString') return d.geom.coordinates[0]
-            if (d.geom.type === 'MultiPoint') return d.geom.coordinates[0]
-            return [0, 0]
-          },
-          getIcon: (d: any) => ({
-            url: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDgiIGhlaWdodD0iNDgiIHZpZXdCb3g9IjAgMCA0OCA0OCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPCEtLSBEcm9wIHNoYWRvdyAtLT4KPGVsbGlwc2UgY3g9IjI0IiBjeT0iNDQiIHJ4PSI2IiByeT0iMiIgZmlsbD0iYmxhY2siIG9wYWNpdHk9IjAuMiIvPgo8IS0tIFBpbiBib2R5IC0tPgo8cGF0aCBkPSJNMjQgNEMxNy4zNzI2IDQgMTIgOS4zNzI1OCAxMiAxNkMxMiAyNC41IDE5IDMzIDI0IDQwQzI5IDMzIDM2IDI0LjUgMzYgMTZDMzYgOS4zNzI1OCAzMC42Mjc0IDQgMjQgNFoiIGZpbGw9IiM4QjVDRjYiLz4KPCEtLSBJbm5lciBjaXJjbGUgLS0+CjxjaXJjbGUgY3g9IjI0IiBjeT0iMTYiIHI9IjYiIGZpbGw9IndoaXRlIi8+Cjwvc3ZnPg==',
-            width: 48,
-            height: 48,
-            anchorY: 48 // Pin bottom at the location
-          }),
-          getSize: 48,
-          pickable: true,
-          onClick: (info: any) => {
-            if (info.object) {
-              console.log('📍 Clicked proposal:', info.object.id)
-              onProposalClick(info.object.id)
-            }
-          },
-          onHover: (info: any) => {
-            // Set hovered proposal for tooltip
-            if (info.object) {
-              onProposalHover({
-                id: info.object.id,
-                title: info.object.title,
-                summary: info.object.summary,
-                author: info.object.author?.name || 'Unknown'
-              })
-            } else {
-              onProposalHover(null)
-            }
-
-            // Change cursor on hover
-            if (map) {
-              const googleMap = map as any
-              googleMap.setOptions({
-                draggableCursor: info.object ? 'pointer' : 'grab'
-              })
-            }
-          }
-        })
-      )
-    }
-
     // Add building layer (only in create mode for performance)
     if (mapMode === 'create' && selectionMode === 'building') {
       layers.push(
@@ -434,9 +378,65 @@ function DeckGLOverlay({
       )
     }
 
+    // Add proposal pins layer (LAST to render on top of everything)
+    if (mapMode === 'navigate' && proposals.length > 0) {
+      // Filter proposals that have geometry
+      const proposalsWithGeometry = proposals.filter(p => p.geom)
+
+      layers.push(
+        new IconLayer({
+          id: 'proposal-pins',
+          data: proposalsWithGeometry,
+          getPosition: (d: any) => {
+            if (!d.geom) return [0, 0]
+            if (d.geom.type === 'Point') return d.geom.coordinates
+            if (d.geom.type === 'Polygon') return d.geom.coordinates[0][0]
+            if (d.geom.type === 'LineString') return d.geom.coordinates[0]
+            if (d.geom.type === 'MultiPoint') return d.geom.coordinates[0]
+            return [0, 0]
+          },
+          getIcon: (d: any) => ({
+            url: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDgiIGhlaWdodD0iNDgiIHZpZXdCb3g9IjAgMCA0OCA0OCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPCEtLSBEcm9wIHNoYWRvdyAtLT4KPGVsbGlwc2UgY3g9IjI0IiBjeT0iNDQiIHJ4PSI2IiByeT0iMiIgZmlsbD0iYmxhY2siIG9wYWNpdHk9IjAuMiIvPgo8IS0tIFBpbiBib2R5IC0tPgo8cGF0aCBkPSJNMjQgNEMxNy4zNzI2IDQgMTIgOS4zNzI1OCAxMiAxNkMxMiAyNC41IDE5IDMzIDI0IDQwQzI5IDMzIDM2IDI0LjUgMzYgMTZDMzYgOS4zNzI1OCAzMC42Mjc0IDQgMjQgNFoiIGZpbGw9IiM4QjVDRjYiLz4KPCEtLSBJbm5lciBjaXJjbGUgLS0+CjxjaXJjbGUgY3g9IjI0IiBjeT0iMTYiIHI9IjYiIGZpbGw9IndoaXRlIi8+Cjwvc3ZnPg==',
+            width: 48,
+            height: 48,
+            anchorY: 48 // Pin bottom at the location
+          }),
+          getSize: 48,
+          pickable: true,
+          onClick: (info: any) => {
+            if (info.object) {
+              console.log('📍 Clicked proposal:', info.object.id)
+              onProposalClick(info.object.id)
+            }
+          },
+          onHover: (info: any) => {
+            // Set hovered proposal for tooltip
+            if (info.object) {
+              onProposalHover({
+                id: info.object.id,
+                title: info.object.title,
+                summary: info.object.summary,
+                author: info.object.author?.name || 'Unknown'
+              })
+            } else {
+              onProposalHover(null)
+            }
+
+            // Change cursor on hover
+            if (map) {
+              const googleMap = map as any
+              googleMap.setOptions({
+                draggableCursor: info.object ? 'pointer' : 'grab'
+              })
+            }
+          }
+        })
+      )
+    }
+
     // Update layers without recreating the overlay
     overlayRef.current.setProps({ layers })
-  }, [buildingData, selectedBuildingIds, hoveredBuildingId, mapMode, selectionMode, mousePosition, pointRadius, polygonPoints, proposals, map, onBuildingClick, onBuildingHover])
+  }, [buildingData, selectedBuildingIds, hoveredBuildingId, mapMode, selectionMode, mousePosition, pointRadius, polygonPoints, proposals, map, onBuildingClick, onBuildingHover, onProposalClick, onProposalHover])
 
   return null
 }
