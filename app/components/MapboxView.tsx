@@ -153,13 +153,14 @@ const DEFAULT_VIEW_STATE: ViewState = {
 
 /**
  * Get Map style URL mapping for MapLibre GL
- * Using older Mapbox v1 styles that are compatible with MapLibre GL
+ * Using custom ARENA style and Mapbox v1 styles
  */
 function getStyleUrls(token: string): Record<string, string> {
   return {
-    // Use Mapbox v1 styles (compatible with MapLibre GL fork)
-    standard: `https://api.mapbox.com/styles/v1/mapbox/streets-v11?access_token=${token}`,
-    streets: `https://api.mapbox.com/styles/v1/mapbox/streets-v11?access_token=${token}`,
+    // Use custom ARENA style as default
+    standard: `https://api.mapbox.com/styles/v1/julianleiss/cmhxxqeb6009q01s1hixf7jbk?access_token=${token}`,
+    streets: `https://api.mapbox.com/styles/v1/julianleiss/cmhxxqeb6009q01s1hixf7jbk?access_token=${token}`,
+    // Mapbox v1 fallback styles
     outdoors: `https://api.mapbox.com/styles/v1/mapbox/outdoors-v11?access_token=${token}`,
     light: `https://api.mapbox.com/styles/v1/mapbox/light-v10?access_token=${token}`,
     dark: `https://api.mapbox.com/styles/v1/mapbox/dark-v10?access_token=${token}`,
