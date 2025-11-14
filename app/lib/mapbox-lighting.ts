@@ -15,7 +15,7 @@
  * @see https://docs.mapbox.com/mapbox-gl-js/api/map/#map#setfog
  */
 
-import type { Map as MapboxMap } from 'maplibre-gl'
+import type { Map as MapboxMap } from 'mapbox-gl'
 
 // ============================================================================
 // CONSTANTS

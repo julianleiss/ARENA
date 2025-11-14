@@ -2,7 +2,7 @@
 // This file demonstrates how to integrate FeatureSelector in MapView
 
 import { useState } from 'react'
-import * as maplibregl from 'maplibre-gl'
+import * as mapboxgl from 'mapbox-gl'
 import { detectFeaturesAtPoint, DetectedFeature } from '@/src/lib/feature-detection'
 import FeatureSelector from './FeatureSelector'
 
@@ -14,7 +14,7 @@ export function MapViewWithFeatureSelector() {
   const [clickPoint, setClickPoint] = useState<{ lng: number; lat: number } | null>(null)
   const [showSelector, setShowSelector] = useState(false)
 
-  const handleMapClick = (map: maplibregl.Map, e: maplibregl.MapMouseEvent) => {
+  const handleMapClick = (map: mapboxgl.Map, e: mapboxgl.MapMouseEvent) => {
     // Detect features at click point
     const point = map.project(e.lngLat)
     const detectedFeatures = detectFeaturesAtPoint(map, point, 15)

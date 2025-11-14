@@ -1,17 +1,17 @@
 /**
- * ARENA - MapLibre GL JS Configuration
+ * ARENA - Mapbox GL JS Configuration
  *
- * Centralized configuration for MapLibre GL JS integration.
+ * Centralized configuration for Mapbox GL JS integration.
  * Provides predefined styles, viewport settings, and utilities
  * for Buenos Aires urban planning visualization.
  *
- * NOTE: This project uses MapLibre GL JS (open-source fork of Mapbox GL JS v1).
- * MapLibre cannot use mapbox:// style URLs - must use HTTPS URLs with access tokens.
+ * NOTE: This project uses Mapbox GL JS v3.
+ * Mapbox cannot use mapbox:// style URLs - must use HTTPS URLs with access tokens.
  *
- * @see https://maplibre.org/maplibre-gl-js/docs/
+ * @see https://docs.mapbox.com/mapbox-gl-js/api/
  */
 
-import type { LngLatBoundsLike, MapboxOptions } from 'maplibre-gl'
+import type { LngLatBoundsLike, MapboxOptions } from 'mapbox-gl'
 
 // ============================================================================
 // TOKEN MANAGEMENT
@@ -49,8 +49,7 @@ export function hasMapboxToken(): boolean {
 
 /**
  * Predefined Mapbox map style identifiers
- * NOTE: Using v1 styles (v11/v10) for MapLibre GL compatibility
- * MapLibre GL is a fork of Mapbox GL v1 and doesn't support v2+ style features
+ * NOTE: Using Mapbox GL JS v3 styles
  */
 export const MAPBOX_STYLES = {
   /** Clean, minimal streets map - good for urban planning overlays */
@@ -73,7 +72,7 @@ export const MAPBOX_STYLES = {
 } as const
 
 /**
- * Get full HTTPS URL for a Mapbox style (compatible with MapLibre GL)
+ * Get full HTTPS URL for a Mapbox style
  *
  * @param styleId - Style identifier (e.g., 'streets-v12')
  * @param accessToken - Mapbox access token (optional, uses env var if not provided)
@@ -89,8 +88,7 @@ export function getMapboxStyleUrl(styleId: string, accessToken?: string): string
   const token = accessToken || process.env.NEXT_PUBLIC_MAPBOX_TOKEN
 
   if (!token) {
-    console.warn('No Mapbox token provided, falling back to MapLibre demo style')
-    return 'https://demotiles.maplibre.org/style.json'
+    throw new Error('Mapbox access token is required')
   }
 
   return `https://api.mapbox.com/styles/v1/mapbox/${styleId}?access_token=${token}`
@@ -162,7 +160,7 @@ export const BUENOS_AIRES_MAX_BOUNDS: LngLatBoundsLike = [
  * Optimized for proposal visualization with 3D buildings
  *
  * NOTE: These presets use style IDs (not full URLs). MapboxView component
- * will convert them to full HTTPS URLs with access tokens for MapLibre GL.
+ * will convert them to full HTTPS URLs with access tokens.
  */
 export const MAIN_MAP_CONFIG: Partial<MapboxOptions> = {
   style: DEFAULT_STYLE,

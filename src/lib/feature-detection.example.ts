@@ -1,7 +1,7 @@
 // ARENA V1.0 - Feature Detection Usage Example
 // This file demonstrates how to use the feature detection library
 
-import * as maplibregl from 'maplibre-gl'
+import * as mapboxgl from 'mapbox-gl'
 import {
   detectFeaturesAtPoint,
   getCentroid,
@@ -12,7 +12,7 @@ import {
 /**
  * Example 1: Detect features on map click
  */
-export function setupFeatureDetection(map: maplibregl.Map) {
+export function setupFeatureDetection(map: mapboxgl.Map) {
   map.on('click', (e) => {
     // Convert lat/lng to screen coordinates
     const point = map.project(e.lngLat)

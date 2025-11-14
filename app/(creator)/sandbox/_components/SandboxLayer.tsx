@@ -2,10 +2,10 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
-import maplibregl from 'maplibre-gl'
+import mapboxgl from 'mapbox-gl'
 import { Deck } from '@deck.gl/core'
 import { GeoJsonLayer } from '@deck.gl/layers'
-import 'maplibre-gl/dist/maplibre-gl.css'
+import 'mapbox-gl/dist/mapbox-gl.css'
 
 type Instance = {
   id: string
@@ -43,14 +43,14 @@ export default function SandboxLayer({
   onMapClick,
 }: SandboxLayerProps) {
   const mapContainerRef = useRef<HTMLDivElement>(null)
-  const mapRef = useRef<maplibregl.Map | null>(null)
+  const mapRef = useRef<mapboxgl.Map | null>(null)
   const deckRef = useRef<Deck | null>(null)
 
   useEffect(() => {
     if (!mapContainerRef.current) return
 
-    // Initialize MapLibre
-    const map = new maplibregl.Map({
+    // Initialize Mapbox
+    const map = new mapboxgl.Map({
       container: mapContainerRef.current,
       style: 'https://basemaps.cartocdn.com/gl/positron-gl-style/style.json',
       center: [-58.46, -34.545],
