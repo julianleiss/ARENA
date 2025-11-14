@@ -82,7 +82,7 @@ export interface ClusterProperties {
 /**
  * Enhanced building feature with cluster support
  */
-export interface ClusterableBuildingFeature extends BuildingFeature {
+export type ClusterableBuildingFeature = BuildingFeature & {
   properties: BuildingFeature['properties'] & {
     /** Estimated height for clustering (pre-calculated) */
     _cluster_height?: number
