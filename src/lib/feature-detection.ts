@@ -108,6 +108,12 @@ export function detectFeaturesAtPoint(
   const detectedFeatures: DetectedFeature[] = []
 
   features.forEach((feature, index) => {
+    // Safety check: skip features without layer info
+    if (!feature.layer) {
+      console.warn('⚠️ Feature without layer info, skipping')
+      return
+    }
+
     const osmId = feature.properties?.id || feature.properties?.osm_id
     const featureId = osmId || `${feature.layer.id}-${index}`
 
@@ -252,7 +258,7 @@ export function getFeatureIcon(type: DetectedFeature['type']): string {
 /**
  * Helper: Extracts a human-readable name from feature properties
  */
-function extractFeatureName(feature: mapboxgl.MapGeoJSONFeature): string | undefined {
+function extractFeatureName(feature: mapboxgl.GeoJSONFeature): string | undefined {
   const props = feature.properties || {}
 
   // Try common name fields
@@ -281,7 +287,7 @@ function extractFeatureName(feature: mapboxgl.MapGeoJSONFeature): string | undef
 /**
  * Helper: Extracts a description from feature properties
  */
-function extractFeatureDescription(feature: mapboxgl.MapGeoJSONFeature): string | undefined {
+function extractFeatureDescription(feature: mapboxgl.GeoJSONFeature): string | undefined {
   const props = feature.properties || {}
 
   // Try to build a meaningful description
@@ -303,7 +309,7 @@ function extractFeatureDescription(feature: mapboxgl.MapGeoJSONFeature): string 
   }
 
   // Add layer information (buildings only)
-  if (props.layer && feature.layer.id.includes('building')) {
+  if (props.layer && feature.layer?.id.includes('building')) {
     parts.push(`Layer ${props.layer}`)
   }
 
@@ -323,8 +329,8 @@ function extractFeatureDescription(feature: mapboxgl.MapGeoJSONFeature): string 
 /**
  * Helper: Determines the feature type from layer and properties
  */
-function getFeatureType(feature: mapboxgl.MapGeoJSONFeature): DetectedFeature['type'] {
-  const layerId = feature.layer.id
+function getFeatureType(feature: mapboxgl.GeoJSONFeature): DetectedFeature['type'] {
+  const layerId = feature.layer?.id || ''
   const props = feature.properties || {}
 
   // Determine type based on layer
