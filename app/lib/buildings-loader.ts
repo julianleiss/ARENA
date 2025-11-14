@@ -23,6 +23,7 @@
  */
 
 import type { LngLatBounds } from 'mapbox-gl'
+import type { Feature, FeatureCollection, Polygon, MultiPolygon } from 'geojson'
 
 // ============================================================================
 // Types
@@ -68,23 +69,12 @@ export interface BuildingProperties {
 /**
  * GeoJSON Feature for a building
  */
-export interface BuildingFeature {
-  type: 'Feature'
-  id: number | string
-  properties: BuildingProperties
-  geometry: {
-    type: 'Polygon' | 'MultiPolygon'
-    coordinates: number[][][] | number[][][][]
-  }
-}
+export type BuildingFeature = Feature<Polygon | MultiPolygon, BuildingProperties>
 
 /**
  * GeoJSON FeatureCollection for buildings
  */
-export interface BuildingsData {
-  type: 'FeatureCollection'
-  features: BuildingFeature[]
-}
+export type BuildingsData = FeatureCollection<Polygon | MultiPolygon, BuildingProperties>
 
 /**
  * Bounding box [west, south, east, north] in decimal degrees
