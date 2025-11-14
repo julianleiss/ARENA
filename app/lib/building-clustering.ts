@@ -21,7 +21,7 @@ import type { BuildingsData, BuildingFeature } from './buildings-loader'
 import { estimateBuildingHeight } from './buildings-loader'
 
 // Type for GeoJSON source options
-type GeoJSONSourceOptions = mapboxgl.GeoJSONSourceRaw
+type GeoJSONSourceOptions = mapboxgl.GeoJSONSourceSpecification
 
 // ============================================================================
 // Constants
