@@ -49,11 +49,14 @@ export function hasMapboxToken(): boolean {
 
 /**
  * Predefined Mapbox map style identifiers
- * NOTE: Using Mapbox GL JS v3 styles
+ * NOTE: Using custom ARENA style as default
  */
 export const MAPBOX_STYLES = {
+  /** Custom ARENA style - optimized for civic engagement */
+  ARENA: 'standard',
+
   /** Clean, minimal streets map - good for urban planning overlays */
-  STREETS: 'streets-v11',
+  STREETS: 'streets',
 
   /** Light background - emphasizes data visualization */
   LIGHT: 'light-v10',
@@ -95,9 +98,9 @@ export function getMapboxStyleUrl(styleId: string, accessToken?: string): string
 }
 
 /**
- * Default style for ARENA (clean streets view)
+ * Default style for ARENA (custom style optimized for civic engagement)
  */
-export const DEFAULT_STYLE = MAPBOX_STYLES.STREETS
+export const DEFAULT_STYLE = MAPBOX_STYLES.ARENA
 
 // ============================================================================
 // BUENOS AIRES CONFIGURATION

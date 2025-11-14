@@ -88,13 +88,14 @@ export default function ProposalMarkers({
                 'interpolate',
                 ['linear'],
                 ['zoom'],
-                10, 0.5,
-                14, 0.7,
-                16, 0.9,
-                18, 1.1
+                10, 1.2,
+                14, 1.6,
+                16, 2.0,
+                18, 2.5
               ],
               'icon-anchor': 'bottom',
-              'icon-allow-overlap': true
+              'icon-allow-overlap': true,
+              'icon-ignore-placement': true
             },
             paint: {
               'icon-opacity': 1.0
