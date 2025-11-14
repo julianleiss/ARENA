@@ -244,9 +244,11 @@ function DeckGLOverlay({
     const lightingEffect = new LightingEffect({ ambientLight, directionalLight })
 
     // Create overlay once with lighting effects
+    // Use interleaved: true to ensure proper rendering on top of vector map features
     const overlay = new GoogleMapsOverlay({
       layers: [],
-      effects: [lightingEffect]
+      effects: [lightingEffect],
+      interleaved: true
     })
     overlay.setMap(map as any)
     overlayRef.current = overlay
@@ -379,7 +381,8 @@ function DeckGLOverlay({
     }
 
     // Add proposal pins layer (LAST to render on top of everything)
-    if (mapMode === 'navigate' && proposals.length > 0) {
+    // Show in both navigate and create modes for visibility
+    if (proposals.length > 0) {
       // Filter proposals that have geometry
       const proposalsWithGeometry = proposals.filter(p => p.geom)
 
@@ -645,6 +648,7 @@ export default function MapViewDeck({
           heading={0}
           gestureHandling="greedy"
           disableDefaultUI={false}
+          clickableIcons={false}
           className="w-full h-full"
           mapId="bf51a910020fa25a"
           mapTypeId="roadmap"
