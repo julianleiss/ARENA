@@ -125,8 +125,8 @@ export const DEFAULT_VIEWPORT = {
   /** Center point [longitude, latitude] */
   center: BUENOS_AIRES_CENTER,
 
-  /** Initial zoom level (14 = neighborhood scale) */
-  zoom: 14,
+  /** Initial zoom level (17 = building scale) */
+  zoom: 17,
 
   /** Camera pitch in degrees (0 = top-down, 60 = 3D perspective) */
   pitch: 60,
@@ -168,7 +168,7 @@ export const BUENOS_AIRES_MAX_BOUNDS: LngLatBoundsLike = [
 export const MAIN_MAP_CONFIG: Partial<MapboxOptions> = {
   style: DEFAULT_STYLE,
   center: BUENOS_AIRES_CENTER,
-  zoom: 14,
+  zoom: 17,
   pitch: 60,
   bearing: -17.6,
   maxBounds: BUENOS_AIRES_MAX_BOUNDS,

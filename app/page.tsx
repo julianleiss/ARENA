@@ -373,7 +373,7 @@ export default function MapPage() {
           initialViewState={{
             longitude: -58.46,
             latitude: -34.545,
-            zoom: 15,
+            zoom: 17,
             pitch: 60,
             bearing: 0
           }}

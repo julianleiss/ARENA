@@ -146,7 +146,7 @@ export interface MapboxViewHandle {
 const DEFAULT_VIEW_STATE: ViewState = {
   longitude: -58.46,
   latitude: -34.545,
-  zoom: 15,
+  zoom: 17,
   bearing: 0,
   pitch: 60 // 3D view by default
 }
