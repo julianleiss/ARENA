@@ -1,7 +1,7 @@
 // ARENA V1.0 - Feature Detection Usage Example
 // This file demonstrates how to use the feature detection library
 
-import * as maplibregl from 'maplibre-gl'
+import * as mapboxgl from 'mapbox-gl'
 import {
   detectFeaturesAtPoint,
   getCentroid,
@@ -12,7 +12,7 @@ import {
 /**
  * Example 1: Detect features on map click
  */
-export function setupFeatureDetection(map: maplibregl.Map) {
+export function setupFeatureDetection(map: mapboxgl.Map) {
   map.on('click', (e) => {
     // Convert lat/lng to screen coordinates
     const point = map.project(e.lngLat)
@@ -43,8 +43,8 @@ export function setupFeatureDetection(map: maplibregl.Map) {
 /**
  * Example 2: Show feature popup on hover
  */
-export function setupFeatureHover(map: maplibregl.Map) {
-  let popup: maplibregl.Popup | null = null
+export function setupFeatureHover(map: mapboxgl.Map) {
+  let popup: mapboxgl.Popup | null = null
 
   map.on('mousemove', (e) => {
     const point = map.project(e.lngLat)
@@ -60,7 +60,7 @@ export function setupFeatureHover(map: maplibregl.Map) {
       }
 
       // Create new popup
-      popup = new maplibregl.Popup({ closeButton: false })
+      popup = new mapboxgl.Popup({ closeButton: false })
         .setLngLat([centroid.lng, centroid.lat])
         .setHTML(`
           <div style="padding: 8px;">
@@ -82,7 +82,7 @@ export function setupFeatureHover(map: maplibregl.Map) {
 /**
  * Example 3: Highlight detected features
  */
-export function highlightFeature(map: maplibregl.Map, feature: DetectedFeature) {
+export function highlightFeature(map: mapboxgl.Map, feature: DetectedFeature) {
   // Add a temporary highlight layer
   const sourceId = `highlight-${feature.id}`
   const layerId = `highlight-layer-${feature.id}`

@@ -1,7 +1,7 @@
 // ARENA V1.0 - Feature Detection Library
 // Detects and processes OSM features from vector tiles
 
-import * as maplibregl from 'maplibre-gl'
+import * as mapboxgl from 'mapbox-gl'
 
 export interface DetectedFeature {
   id: string
@@ -16,14 +16,14 @@ export interface DetectedFeature {
 
 /**
  * Detects OSM features at a specific point on the map
- * @param map - MapLibre map instance
+ * @param map - Mapbox map instance
  * @param point - Point to query (screen coordinates)
  * @param radius - Search radius in pixels (default: 15)
  * @returns Array of detected features, deduplicated by OSM ID
  */
 export function detectFeaturesAtPoint(
-  map: maplibregl.Map,
-  point: maplibregl.Point,
+  map: mapboxgl.Map,
+  point: mapboxgl.Point,
   radius: number = 15
 ): DetectedFeature[] {
   console.log(`🔍 Detecting features at point:`, { x: point.x, y: point.y, radius })
@@ -252,7 +252,7 @@ export function getFeatureIcon(type: DetectedFeature['type']): string {
 /**
  * Helper: Extracts a human-readable name from feature properties
  */
-function extractFeatureName(feature: maplibregl.MapGeoJSONFeature): string | undefined {
+function extractFeatureName(feature: mapboxgl.MapGeoJSONFeature): string | undefined {
   const props = feature.properties || {}
 
   // Try common name fields
@@ -281,7 +281,7 @@ function extractFeatureName(feature: maplibregl.MapGeoJSONFeature): string | und
 /**
  * Helper: Extracts a description from feature properties
  */
-function extractFeatureDescription(feature: maplibregl.MapGeoJSONFeature): string | undefined {
+function extractFeatureDescription(feature: mapboxgl.MapGeoJSONFeature): string | undefined {
   const props = feature.properties || {}
 
   // Try to build a meaningful description
@@ -323,7 +323,7 @@ function extractFeatureDescription(feature: maplibregl.MapGeoJSONFeature): strin
 /**
  * Helper: Determines the feature type from layer and properties
  */
-function getFeatureType(feature: maplibregl.MapGeoJSONFeature): DetectedFeature['type'] {
+function getFeatureType(feature: mapboxgl.MapGeoJSONFeature): DetectedFeature['type'] {
   const layerId = feature.layer.id
   const props = feature.properties || {}
 
