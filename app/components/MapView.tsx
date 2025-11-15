@@ -244,11 +244,10 @@ function DeckGLOverlay({
     const lightingEffect = new LightingEffect({ ambientLight, directionalLight })
 
     // Create overlay once with lighting effects
-    // Use interleaved: true to ensure proper rendering on top of vector map features
+    // Note: interleaved mode disabled - use standard overlay rendering
     const overlay = new GoogleMapsOverlay({
       layers: [],
-      effects: [lightingEffect],
-      interleaved: true
+      effects: [lightingEffect]
     })
     overlay.setMap(map as any)
     overlayRef.current = overlay
@@ -650,7 +649,8 @@ export default function MapViewDeck({
           disableDefaultUI={false}
           clickableIcons={false}
           className="w-full h-full"
-          mapId="bf51a910020fa25a"
+          // mapId disabled temporarily - vector maps can cause overlay rendering issues
+          // mapId="bf51a910020fa25a"
           mapTypeId="roadmap"
           onClick={handleMapClick}
           style={{ cursor: mapMode === 'create' ? 'crosshair' : 'auto' }}
