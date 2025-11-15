@@ -1,0 +1,196 @@
+// ARENA V1.0 - Database Schema
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  name      String?
+  role      String   @default("citizen")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  proposals Proposal[]
+  votes     Vote[]
+  comments  Comment[]
+  auditLogs AuditLog[]
+
+  @@map("users")
+}
+
+model Proposal {
+  id          String   @id @default(cuid())
+  title       String
+  summary     String?  // Short description for list views
+  body        String?  @db.Text // Full description
+  geom        Json?    // GeoJSON geometry (Point, Polygon, etc.)
+  layer       String   @default("micro") // micro, meso, macro
+  category    String   @default("urban") // urban, transport, green, social, housing, infrastructure
+  tags        String[] @default([]) // Tags for categorization
+  imageUrls   String[] @default([]) @map("image_urls") // URLs to uploaded images in Supabase Storage
+  status      String   @default("published") // "draft" | "published" | "public"
+  authorId    String   @map("author_id")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  author   User              @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  votes    Vote[]
+  comments Comment[]
+  metrics  Metric[]
+  versions ProposalVersion[] // Iteration 4
+  preview  ProposalPreview?  // Iteration 4
+
+  @@index([authorId])
+  @@index([status])
+  @@index([category])
+  @@map("proposals")
+}
+
+model ProposalVersion {
+  id         String   @id @default(cuid())
+  proposalId String   @map("proposal_id")
+  sandboxId  String   @map("sandbox_id")
+  hash       String
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  proposal Proposal @relation(fields: [proposalId], references: [id], onDelete: Cascade)
+
+  @@index([proposalId])
+  @@index([sandboxId])
+  @@map("proposal_versions")
+}
+
+model ProposalPreview {
+  id         String  @id @default(cuid())
+  proposalId String  @unique @map("proposal_id")
+  geom       Json    // FeatureCollection (simplified/clipped)
+  mask       Json    // Polygon (Sandbox.geometry)
+  meshUrl    String? @map("mesh_url")
+  imgUrl     String? @map("img_url")
+  lod        Int     @default(0)
+
+  proposal Proposal @relation(fields: [proposalId], references: [id], onDelete: Cascade)
+
+  @@map("proposal_previews")
+}
+
+model Vote {
+  id         String   @id @default(uuid())
+  proposalId String   @map("proposal_id")
+  userId     String   @map("user_id")
+  option     String
+  origin     String   @default("web")
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  proposal Proposal @relation(fields: [proposalId], references: [id], onDelete: Cascade)
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([proposalId, userId])
+  @@index([proposalId])
+  @@map("votes")
+}
+
+model Comment {
+  id         String   @id @default(uuid())
+  proposalId String   @map("proposal_id")
+  authorId   String   @map("author_id")
+  body       String   @db.Text
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  proposal Proposal @relation(fields: [proposalId], references: [id], onDelete: Cascade)
+  author   User     @relation(fields: [authorId], references: [id], onDelete: Cascade)
+
+  @@index([proposalId])
+  @@map("comments")
+}
+
+model Metric {
+  id         String   @id @default(uuid())
+  proposalId String   @map("proposal_id")
+  kind       String
+  value      Json
+  method     String
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  proposal Proposal @relation(fields: [proposalId], references: [id], onDelete: Cascade)
+
+  @@index([proposalId])
+  @@map("metrics")
+}
+
+model AuditLog {
+  id        String   @id @default(uuid())
+  userId    String?  @map("user_id")
+  action    String
+  entity    String
+  entityId  String   @map("entity_id")
+  metadata  Json?
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([entityId])
+  @@index([action])
+  @@map("audit_logs")
+}
+
+model POI {
+  id        String   @id @default(uuid())
+  name      String
+  type      String
+  geom      Json
+  address   String?
+  source    String   @default("manual")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@index([type])
+  @@map("pois")
+}
+
+model Sandbox {
+  id        String   @id @default(cuid())
+  geometry  Json     // GeoJSON Polygon
+  status    String   @default("draft") // "draft" | "published"
+  createdAt DateTime @default(now()) @map("created_at")
+
+  instances Instance[]
+
+  @@index([status])
+  @@map("sandboxes")
+}
+
+model Asset {
+  id            String @id @default(cuid())
+  name          String
+  kind          String // "building" | "tree" | "lamp" | "road" | "custom"
+  modelUrl      String? @map("model_url")
+  defaultParams Json    @map("default_params")
+
+  instances Instance[]
+
+  @@index([kind])
+  @@map("assets")
+}
+
+model Instance {
+  id        String  @id @default(cuid())
+  sandboxId String  @map("sandbox_id")
+  assetId   String  @map("asset_id")
+  geom      Json    // Point/Line/Polygon (GeoJSON)
+  params    Json    // { floors: number, height?: number, ... }
+  transform Json    // { scale?: number|vec3, rotation?: number|vec3 }
+  state     String  @default("added") // "added" | "removed" | "modified"
+
+  sandbox Sandbox @relation(fields: [sandboxId], references: [id], onDelete: Cascade)
+  asset   Asset   @relation(fields: [assetId], references: [id])
+
+  @@index([sandboxId])
+  @@index([assetId])
+  @@map("instances")
+}
