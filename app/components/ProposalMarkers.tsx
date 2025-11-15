@@ -44,16 +44,27 @@ export default function ProposalMarkers({
 
   // Initialize map source and layers
   useEffect(() => {
+    console.log('🔍 ProposalMarkers useEffect triggered', {
+      hasMap: !!map,
+      isInitialized: isInitialized.current,
+      proposalsCount: proposals.length
+    })
+
     if (!map) return
     if (isInitialized.current) return
 
     const initializeMapLayers = async () => {
       try {
+        console.log('🚀 Starting ProposalMarkers initialization...')
+
         // Wait for map style to load
         if (!map.isStyleLoaded()) {
+          console.log('⏳ Map style not loaded yet, waiting...')
           map.once('style.load', () => initializeMapLayers())
           return
         }
+
+        console.log('✅ Map style loaded, adding proposal markers...')
 
         // Load custom pin image
         if (!map.hasImage(IMAGE_ID)) {
@@ -160,13 +171,32 @@ export default function ProposalMarkers({
 
   // Update proposals data when it changes
   useEffect(() => {
-    if (!map || !isInitialized.current) return
+    console.log('🔄 Updating proposal markers data', {
+      hasMap: !!map,
+      isInitialized: isInitialized.current,
+      proposalsCount: proposals.length
+    })
+
+    if (!map || !isInitialized.current) {
+      console.log('⏭️ Skipping update - map not ready or not initialized')
+      return
+    }
 
     const source = map.getSource(SOURCE_ID) as mapboxgl.GeoJSONSource
     if (source) {
       const geojson = proposalsToGeoJSON(proposals)
+      console.log('📍 Setting proposal data:', {
+        featuresCount: geojson.features.length,
+        features: geojson.features.map(f => ({
+          id: f.properties?.id,
+          title: f.properties?.title,
+          coords: f.geometry.coordinates
+        }))
+      })
       source.setData(geojson)
-      console.log(`🔄 Updated ${proposals.length} proposal markers`)
+      console.log(`✅ Updated ${proposals.length} proposal markers`)
+    } else {
+      console.error('❌ Proposal source not found!')
     }
   }, [map, proposals])
 
