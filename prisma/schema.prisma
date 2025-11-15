@@ -38,6 +38,10 @@ model Proposal {
   authorId    String   @map("author_id")
   createdAt   DateTime @default(now()) @map("created_at")
   updatedAt   DateTime @updatedAt @map("updated_at")
+  targetFeatureId    String?
+  targetFeatureType  String?
+  targetGeometry     Json?
+  targetProperties   Json?
 
   author   User              @relation(fields: [authorId], references: [id], onDelete: Cascade)
   votes    Vote[]
