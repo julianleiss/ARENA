@@ -384,14 +384,12 @@ export default function MapPage() {
           showScaleControl={true}
           className={mapMode === 'create' ? 'cursor-crosshair' : ''}
         >
-          {/* Proposal markers (only in navigate mode) */}
-          {mapMode === 'navigate' && (
-            <ProposalMarkers
-              map={map}
-              proposals={proposals}
-              onProposalClick={handleProposalClick}
-            />
-          )}
+          {/* Proposal markers (show in both navigate and create modes) */}
+          <ProposalMarkers
+            map={map}
+            proposals={proposals}
+            onProposalClick={handleProposalClick}
+          />
         </MapboxView>
       </div>
 

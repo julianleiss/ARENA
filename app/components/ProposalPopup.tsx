@@ -40,7 +40,7 @@ export default function ProposalPopup({
   return (
     <div style={style}>
       {/* Tooltip container */}
-      <div className="bg-white rounded-xl shadow-2xl border border-indigo-100 p-4 max-w-sm backdrop-blur-sm bg-white/95">
+      <div className="bg-white rounded-xl shadow-2xl border border-indigo-100 p-4 max-w-md backdrop-blur-sm bg-white/95">
         <div className="flex items-start gap-3">
           {/* Icon */}
           <div className="flex-shrink-0 w-10 h-10 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-lg flex items-center justify-center">
@@ -61,25 +61,31 @@ export default function ProposalPopup({
 
           {/* Content */}
           <div className="flex-1 min-w-0">
-            <h3 className="font-bold text-gray-900 text-sm mb-1 line-clamp-2">
+            {/* Title */}
+            <h3 className="font-bold text-gray-900 text-base mb-2 line-clamp-2">
               {proposal.title}
             </h3>
 
-            <p className="text-xs text-gray-500 mb-1.5">
+            {/* Author */}
+            <p className="text-sm text-gray-600 mb-2 flex items-center gap-1">
+              <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clipRule="evenodd" />
+              </svg>
               <span className="font-medium">
-                {proposal.author?.name || 'Unknown'}
+                {proposal.author?.name || 'Anónimo'}
               </span>
             </p>
 
-            {proposal.summary && (
-              <p className="text-xs text-gray-600 line-clamp-2 leading-relaxed">
-                {proposal.summary}
+            {/* Description (use summary or body) */}
+            {(proposal.summary || proposal.body) && (
+              <p className="text-sm text-gray-700 line-clamp-3 leading-relaxed mb-2">
+                {proposal.summary || proposal.body}
               </p>
             )}
 
             {type === 'hover' && (
               <p className="text-xs text-indigo-600 font-medium mt-2">
-                Click para ver detalles →
+                Click para ver más →
               </p>
             )}
 

@@ -44,16 +44,27 @@ export default function ProposalMarkers({
 
   // Initialize map source and layers
   useEffect(() => {
+    console.log('🔍 ProposalMarkers useEffect triggered', {
+      hasMap: !!map,
+      isInitialized: isInitialized.current,
+      proposalsCount: proposals.length
+    })
+
     if (!map) return
     if (isInitialized.current) return
 
     const initializeMapLayers = async () => {
       try {
+        console.log('🚀 Starting ProposalMarkers initialization...')
+
         // Wait for map style to load
         if (!map.isStyleLoaded()) {
+          console.log('⏳ Map style not loaded yet, waiting...')
           map.once('style.load', () => initializeMapLayers())
           return
         }
+
+        console.log('✅ Map style loaded, adding proposal markers...')
 
         // Load custom pin image
         if (!map.hasImage(IMAGE_ID)) {
@@ -77,6 +88,8 @@ export default function ProposalMarkers({
         }
 
         // Add marker layer
+        // NOTE: Adding without beforeId puts layer at the TOP of the layer stack
+        // This ensures proposal pins render on top of all map features
         if (!map.getLayer(LAYER_ID)) {
           map.addLayer({
             id: LAYER_ID,
@@ -88,14 +101,15 @@ export default function ProposalMarkers({
                 'interpolate',
                 ['linear'],
                 ['zoom'],
-                10, 1.2,
-                14, 1.6,
-                16, 2.0,
-                18, 2.5
+                10, 1.5,    // Increased from 1.2
+                14, 2.0,    // Increased from 1.6
+                16, 2.5,    // Increased from 2.0
+                18, 3.0     // Increased from 2.5
               ],
               'icon-anchor': 'bottom',
-              'icon-allow-overlap': true,
-              'icon-ignore-placement': true
+              'icon-allow-overlap': true,      // Allow pins to overlap other symbols
+              'icon-ignore-placement': true,    // Don't participate in collision detection
+              'symbol-sort-key': 1000          // Render on top of other symbols
             },
             paint: {
               'icon-opacity': 1.0
@@ -118,9 +132,21 @@ export default function ProposalMarkers({
 
     initializeMapLayers()
 
+    // Re-initialize when style loads (ensures layer stays on top after style changes)
+    const handleStyleLoad = () => {
+      console.log('🔄 Map style reloaded, re-adding proposal markers on top')
+      isInitialized.current = false
+      initializeMapLayers()
+    }
+
+    map.on('style.load', handleStyleLoad)
+
     // Cleanup
     return () => {
       if (!map) return
+
+      // Remove style.load listener
+      map.off('style.load', handleStyleLoad)
 
       // Remove event listeners
       map.off('click', LAYER_ID, handleMarkerClick)
@@ -145,13 +171,32 @@ export default function ProposalMarkers({
 
   // Update proposals data when it changes
   useEffect(() => {
-    if (!map || !isInitialized.current) return
+    console.log('🔄 Updating proposal markers data', {
+      hasMap: !!map,
+      isInitialized: isInitialized.current,
+      proposalsCount: proposals.length
+    })
+
+    if (!map || !isInitialized.current) {
+      console.log('⏭️ Skipping update - map not ready or not initialized')
+      return
+    }
 
     const source = map.getSource(SOURCE_ID) as mapboxgl.GeoJSONSource
     if (source) {
       const geojson = proposalsToGeoJSON(proposals)
+      console.log('📍 Setting proposal data:', {
+        featuresCount: geojson.features.length,
+        features: geojson.features.map(f => ({
+          id: f.properties?.id,
+          title: f.properties?.title,
+          coords: f.geometry.coordinates
+        }))
+      })
       source.setData(geojson)
-      console.log(`🔄 Updated ${proposals.length} proposal markers`)
+      console.log(`✅ Updated ${proposals.length} proposal markers`)
+    } else {
+      console.error('❌ Proposal source not found!')
     }
   }, [map, proposals])
 
