@@ -241,7 +241,7 @@ const MapboxView = forwardRef<MapboxViewHandle, MapboxViewProps>(({
   const [fadeIn, setFadeIn] = useState(false)
 
   // Feature selection hook
-  const { setSelection } = useMapFeatureSelection()
+  const { setSelection, clearSelection } = useMapFeatureSelection()
 
   // ============================================================================
   // Memoized Values
@@ -538,7 +538,18 @@ const MapboxView = forwardRef<MapboxViewHandle, MapboxViewProps>(({
 
           console.log('✅ Building selected:', parsed)
         } else {
-          console.log('❌ No building detected at click location')
+          // Clear selection when clicking outside buildings
+          clearSelection()
+
+          const source = map.getSource('selected-building')
+          if (source && source.type === 'geojson') {
+            source.setData({
+              type: 'FeatureCollection',
+              features: [] // Empty features array clears the highlight
+            })
+          }
+
+          console.log('❌ No building detected - selection cleared')
         }
       })
 
