@@ -526,6 +526,16 @@ const MapboxView = forwardRef<MapboxViewHandle, MapboxViewProps>(({
             feature: parsed,
             coordinates: [e.lngLat.lng, e.lngLat.lat]
           })
+
+          // Update highlight layer to show selected building
+          const source = map.getSource('selected-building')
+          if (source && source.type === 'geojson') {
+            source.setData({
+              type: 'FeatureCollection',
+              features: [features[0]] // Original Mapbox feature with geometry
+            })
+          }
+
           console.log('✅ Building selected:', parsed)
         } else {
           console.log('❌ No building detected at click location')
