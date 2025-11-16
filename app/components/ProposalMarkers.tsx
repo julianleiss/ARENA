@@ -7,7 +7,7 @@
  * Manages marker source, layers, and event handlers.
  */
 
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState, useCallback } from 'react'
 import mapboxgl from 'mapbox-gl'
 import {
   proposalsToGeoJSON,
@@ -41,6 +41,58 @@ export default function ProposalMarkers({
   const [hoveredProposal, setHoveredProposal] = useState<Proposal | null>(null)
   const [popupPosition, setPopupPosition] = useState<{ x: number; y: number } | null>(null)
   const isInitialized = useRef(false)
+
+  // Event handlers with useCallback to ensure stable references
+  const handleMarkerClick = useCallback((e: mapboxgl.MapMouseEvent) => {
+    if (!e.features || e.features.length === 0) return
+
+    const feature = e.features[0]
+    const proposalId = feature.properties?.id
+
+    if (proposalId && onProposalClick) {
+      console.log('📍 Proposal marker clicked:', proposalId)
+      onProposalClick(proposalId)
+    }
+  }, [onProposalClick])
+
+  const handleMarkerMouseEnter = useCallback((e: mapboxgl.MapMouseEvent) => {
+    if (!map) return
+
+    // Change cursor to pointer
+    map.getCanvas().style.cursor = 'pointer'
+
+    // Find the full proposal object
+    if (e.features && e.features.length > 0) {
+      const proposalId = e.features[0].properties?.id
+      const proposal = proposals.find(p => p.id === proposalId)
+
+      if (proposal) {
+        setHoveredProposal(proposal)
+      }
+    }
+  }, [map, proposals])
+
+  const handleMarkerMouseMove = useCallback((e: mapboxgl.MapMouseEvent) => {
+    // Update popup position
+    const canvas = e.target.getCanvas()
+    const rect = canvas.getBoundingClientRect()
+
+    setPopupPosition({
+      x: e.point.x,
+      y: e.point.y - rect.top
+    })
+  }, [])
+
+  const handleMarkerMouseLeave = useCallback(() => {
+    if (!map) return
+
+    // Reset cursor
+    map.getCanvas().style.cursor = ''
+
+    // Hide popup
+    setHoveredProposal(null)
+    setPopupPosition(null)
+  }, [map])
 
   // Initialize map source and layers
   useEffect(() => {
@@ -91,6 +143,7 @@ export default function ProposalMarkers({
         // NOTE: Adding without beforeId puts layer at the TOP of the layer stack
         // This ensures proposal pins render on top of all map features
         if (!map.getLayer(LAYER_ID)) {
+          console.log('➕ Adding proposal marker layer to map')
           map.addLayer({
             id: LAYER_ID,
             type: 'symbol',
@@ -109,18 +162,25 @@ export default function ProposalMarkers({
               'icon-anchor': 'bottom',
               'icon-allow-overlap': true,      // Allow pins to overlap other symbols
               'icon-ignore-placement': true,    // Don't participate in collision detection
-              'symbol-sort-key': 1000          // Render on top of other symbols
+              'symbol-sort-key': 1000,          // Render on top of other symbols
+              'visibility': 'visible'           // Explicitly set visibility
             },
             paint: {
               'icon-opacity': 1.0
             }
           })
 
+          console.log('✅ Proposal marker layer added successfully')
+
           // Make layer interactive
           map.on('click', LAYER_ID, handleMarkerClick)
           map.on('mouseenter', LAYER_ID, handleMarkerMouseEnter)
           map.on('mousemove', LAYER_ID, handleMarkerMouseMove)
           map.on('mouseleave', LAYER_ID, handleMarkerMouseLeave)
+
+          console.log('✅ Event handlers attached to marker layer')
+        } else {
+          console.log('⏭️ Marker layer already exists, skipping')
         }
 
         isInitialized.current = true
@@ -143,31 +203,40 @@ export default function ProposalMarkers({
 
     // Cleanup
     return () => {
+      console.log('🧹 Cleaning up ProposalMarkers...')
       if (!map) return
 
-      // Remove style.load listener
-      map.off('style.load', handleStyleLoad)
+      try {
+        // Remove style.load listener
+        map.off('style.load', handleStyleLoad)
 
-      // Remove event listeners
-      map.off('click', LAYER_ID, handleMarkerClick)
-      map.off('mouseenter', LAYER_ID, handleMarkerMouseEnter)
-      map.off('mousemove', LAYER_ID, handleMarkerMouseMove)
-      map.off('mouseleave', LAYER_ID, handleMarkerMouseLeave)
+        // Remove event listeners safely
+        map.off('click', LAYER_ID, handleMarkerClick)
+        map.off('mouseenter', LAYER_ID, handleMarkerMouseEnter)
+        map.off('mousemove', LAYER_ID, handleMarkerMouseMove)
+        map.off('mouseleave', LAYER_ID, handleMarkerMouseLeave)
 
-      // Remove layer and source
-      if (map.getLayer(LAYER_ID)) {
-        map.removeLayer(LAYER_ID)
-      }
-      if (map.getSource(SOURCE_ID)) {
-        map.removeSource(SOURCE_ID)
-      }
-      if (map.hasImage(IMAGE_ID)) {
-        map.removeImage(IMAGE_ID)
-      }
+        // Remove layer and source
+        if (map.getLayer(LAYER_ID)) {
+          console.log('🗑️ Removing marker layer')
+          map.removeLayer(LAYER_ID)
+        }
+        if (map.getSource(SOURCE_ID)) {
+          console.log('🗑️ Removing marker source')
+          map.removeSource(SOURCE_ID)
+        }
+        if (map.hasImage(IMAGE_ID)) {
+          console.log('🗑️ Removing marker image')
+          map.removeImage(IMAGE_ID)
+        }
 
-      isInitialized.current = false
+        isInitialized.current = false
+        console.log('✅ ProposalMarkers cleanup complete')
+      } catch (err) {
+        console.error('❌ Error during ProposalMarkers cleanup:', err)
+      }
     }
-  }, [map])
+  }, [map, handleMarkerClick, handleMarkerMouseEnter, handleMarkerMouseMove, handleMarkerMouseLeave])
 
   // Update proposals data when it changes
   useEffect(() => {
@@ -180,6 +249,20 @@ export default function ProposalMarkers({
     if (!map || !isInitialized.current) {
       console.log('⏭️ Skipping update - map not ready or not initialized')
       return
+    }
+
+    // Verify layer still exists
+    if (!map.getLayer(LAYER_ID)) {
+      console.warn('⚠️ Marker layer disappeared! Re-initializing...')
+      isInitialized.current = false
+      return
+    }
+
+    // Verify layer is visible
+    const visibility = map.getLayoutProperty(LAYER_ID, 'visibility')
+    if (visibility === 'none') {
+      console.warn('⚠️ Marker layer is hidden! Making it visible...')
+      map.setLayoutProperty(LAYER_ID, 'visibility', 'visible')
     }
 
     const source = map.getSource(SOURCE_ID) as mapboxgl.GeoJSONSource
@@ -199,58 +282,6 @@ export default function ProposalMarkers({
       console.error('❌ Proposal source not found!')
     }
   }, [map, proposals])
-
-  // Event handlers
-  const handleMarkerClick = (e: mapboxgl.MapMouseEvent) => {
-    if (!e.features || e.features.length === 0) return
-
-    const feature = e.features[0]
-    const proposalId = feature.properties?.id
-
-    if (proposalId && onProposalClick) {
-      console.log('📍 Proposal marker clicked:', proposalId)
-      onProposalClick(proposalId)
-    }
-  }
-
-  const handleMarkerMouseEnter = (e: mapboxgl.MapMouseEvent) => {
-    if (!map) return
-
-    // Change cursor to pointer
-    map.getCanvas().style.cursor = 'pointer'
-
-    // Find the full proposal object
-    if (e.features && e.features.length > 0) {
-      const proposalId = e.features[0].properties?.id
-      const proposal = proposals.find(p => p.id === proposalId)
-
-      if (proposal) {
-        setHoveredProposal(proposal)
-      }
-    }
-  }
-
-  const handleMarkerMouseMove = (e: mapboxgl.MapMouseEvent) => {
-    // Update popup position
-    const canvas = e.target.getCanvas()
-    const rect = canvas.getBoundingClientRect()
-
-    setPopupPosition({
-      x: e.point.x,
-      y: e.point.y - rect.top
-    })
-  }
-
-  const handleMarkerMouseLeave = () => {
-    if (!map) return
-
-    // Reset cursor
-    map.getCanvas().style.cursor = ''
-
-    // Hide popup
-    setHoveredProposal(null)
-    setPopupPosition(null)
-  }
 
   return (
     <>
