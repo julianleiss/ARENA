@@ -191,6 +191,22 @@ export default function ProposalMarkers({
 
         isInitialized.current = true
         console.log('✅ Proposal markers initialized')
+
+        // Immediately load proposal data after initialization
+        const source = map.getSource(SOURCE_ID) as mapboxgl.GeoJSONSource
+        if (source && proposals.length > 0) {
+          const geojson = proposalsToGeoJSON(proposals)
+          console.log('📍 Initial proposal data load:', {
+            featuresCount: geojson.features.length,
+            features: geojson.features.map(f => ({
+              id: f.properties?.id,
+              title: f.properties?.title,
+              coords: f.geometry.coordinates
+            }))
+          })
+          source.setData(geojson)
+          console.log(`✅ Loaded ${proposals.length} initial proposal markers`)
+        }
       } catch (error) {
         console.error('❌ Failed to initialize proposal markers:', error)
       }
