@@ -484,6 +484,13 @@ const MapboxView = forwardRef<MapboxViewHandle, MapboxViewProps>(({
         }
       })
 
+      // TEMPORARY: Test click detection for volumetric selection
+      map.on('click', (e) => {
+        console.log('🗺️ Map click:', e.lngLat)
+        const features = map.queryRenderedFeatures(e.point)
+        console.log('📍 Features detected:', features)
+      })
+
       // Handle view state changes
       map.on('move', handleMove)
       map.on('zoom', handleMove)
