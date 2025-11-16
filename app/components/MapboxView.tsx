@@ -24,6 +24,8 @@ import 'mapbox-gl/dist/mapbox-gl.css'
 import { initializeMapLighting } from '@/app/lib/mapbox-lighting'
 import TimeOfDaySlider from './TimeOfDaySlider'
 import ViewPresetsPanel from './ViewPresetsPanel'
+import { useMapFeatureSelection } from '@/hooks/useMapFeatureSelection'
+import { parseMapboxFeature } from '@/utils/mapFeatureUtils'
 
 // ============================================================================
 // Types
@@ -237,6 +239,9 @@ const MapboxView = forwardRef<MapboxViewHandle, MapboxViewProps>(({
   const [error, setError] = useState<string | null>(null)
   const [isMapLoaded, setIsMapLoaded] = useState(false)
   const [fadeIn, setFadeIn] = useState(false)
+
+  // Feature selection hook
+  const { setSelection } = useMapFeatureSelection()
 
   // ============================================================================
   // Memoized Values
@@ -484,11 +489,22 @@ const MapboxView = forwardRef<MapboxViewHandle, MapboxViewProps>(({
         }
       })
 
-      // TEMPORARY: Test click detection for volumetric selection
+      // Building selection for volumetric proposals
       map.on('click', (e) => {
-        console.log('🗺️ Map click:', e.lngLat)
-        const features = map.queryRenderedFeatures(e.point)
-        console.log('📍 Features detected:', features)
+        const features = map.queryRenderedFeatures(e.point, {
+          layers: ['building'] // Query only building layer
+        })
+
+        if (features && features.length > 0) {
+          const parsed = parseMapboxFeature(features[0])
+          setSelection({
+            feature: parsed,
+            coordinates: [e.lngLat.lng, e.lngLat.lat]
+          })
+          console.log('✅ Building selected:', parsed)
+        } else {
+          console.log('❌ No building detected at click location')
+        }
       })
 
       // Handle view state changes
