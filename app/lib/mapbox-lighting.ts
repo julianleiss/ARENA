@@ -15,7 +15,7 @@
  * @see https://docs.mapbox.com/mapbox-gl-js/api/map/#map#setfog
  */
 
-import type { Map as MapboxMap } from 'mapbox-gl'
+import mapboxgl from 'mapbox-gl'
 
 // ============================================================================
 // CONSTANTS
@@ -312,7 +312,7 @@ function interpolateColor(color1: string, color2: string, factor: number): strin
  * ```
  */
 export function updateMapLighting(
-  map: MapboxMap,
+  map: mapboxgl.Map,
   hour: number,
   options?: {
     /** Animate transition (default: true) */
@@ -411,7 +411,7 @@ export function updateMapLighting(
  * @param map - Mapbox map instance
  * @param hour - Initial hour (default: current local time)
  */
-export function initializeMapLighting(map: MapboxMap, hour?: number): void {
+export function initializeMapLighting(map: mapboxgl.Map, hour?: number): void {
   // Use current time if not specified
   if (hour === undefined) {
     const now = new Date()
