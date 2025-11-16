@@ -650,6 +650,8 @@ const MapboxView = forwardRef<MapboxViewHandle, MapboxViewProps>(({
 
       {/* Children (custom overlays) - only render when map is loaded */}
       {isMapLoaded && !error && children}
+      {!isMapLoaded && console.log('⏳ Map not loaded yet, children not rendered')}
+      {error && console.log('❌ Map error, children not rendered:', error)}
 
       {/* Cinematic controls - positioned over the map */}
       {isMapLoaded && !error && enableCinematicEnhancements && (

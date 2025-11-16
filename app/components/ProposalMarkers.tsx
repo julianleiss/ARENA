@@ -38,6 +38,12 @@ export default function ProposalMarkers({
   proposals,
   onProposalClick
 }: ProposalMarkersProps) {
+  console.log('🎯 ProposalMarkers COMPONENT RENDER', {
+    hasMap: !!map,
+    proposalsCount: proposals.length,
+    hasOnClick: !!onProposalClick
+  })
+
   const [hoveredProposal, setHoveredProposal] = useState<Proposal | null>(null)
   const [popupPosition, setPopupPosition] = useState<{ x: number; y: number } | null>(null)
   const isInitialized = useRef(false)
