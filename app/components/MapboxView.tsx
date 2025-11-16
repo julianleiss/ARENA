@@ -448,6 +448,31 @@ const MapboxView = forwardRef<MapboxViewHandle, MapboxViewProps>(({
           }
         }
 
+        // Add source and layer for selected building highlights
+        try {
+          map.addSource('selected-building', {
+            type: 'geojson',
+            data: {
+              type: 'FeatureCollection',
+              features: []
+            }
+          })
+
+          map.addLayer({
+            id: 'selected-building-highlight',
+            type: 'fill-extrusion',
+            source: 'selected-building',
+            paint: {
+              'fill-extrusion-color': '#FFD700',
+              'fill-extrusion-height': ['get', 'height'],
+              'fill-extrusion-opacity': 0.6
+            }
+          })
+          console.log('✅ Selected building highlight layer added')
+        } catch (err) {
+          console.warn('Could not add selected building layer:', err)
+        }
+
         // Enable cinematic enhancements (lighting, fog, atmosphere)
         if (enableCinematicEnhancements) {
           // Wait a bit for map style to be fully loaded before initializing lighting
